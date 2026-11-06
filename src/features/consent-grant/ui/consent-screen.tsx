@@ -6,6 +6,7 @@ import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CONSENT_TYPES, useConsentGrants, type ConsentScreenId } from '@entities/consent';
+import { api, isApiError } from '@shared/api';
 import { tapConfirm } from '@shared/lib';
 
 import { useConsentFlow } from '../model/use-consent-flow';
@@ -88,7 +89,8 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
   }
 
   // Last slide. Pressing Next sends every ticked consent that is not granted yet (POST /v1/consents),
-  // then goes to onboarding.
+  // Last slide. Pressing Next saves each ticked consent (POST /v1/consents), then calls GET /v1/home.
+  // 428 (profile incomplete) opens onboarding; any other result opens the dashboard.
   async function onFinish() {
     tapConfirm();
     try {
@@ -97,9 +99,18 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
           await saveType(type);
         }
       }
-      router.replace('/(onboarding)/step-1');
     } catch {
-      // The error is kept in Redux (records[type].status).
+      return; // The error is kept in Redux (records[type].status) and shown on this screen.
+    }
+    try {
+      await api.get('/v1/home');
+      router.replace('/(app)/(tabs)/dashboard');
+    } catch (err) {
+      if (isApiError(err) && err.status === 428) {
+        router.replace('/onboarding/index');
+      } else {
+        router.replace('/(app)/(tabs)/dashboard');
+      }
     }
   }
 

@@ -1,25 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useProfileCompleteness } from '@entities/profile';
 import { Button } from '@shared/ui/button';
-import { ProgressBar } from '@shared/ui/progress-bar';
-import { Skeleton } from '@shared/ui/skeleton';
 import { tapConfirm } from '@shared/lib';
 
 import { stepHref, type OnboardingStepNumber } from '../model/step-href';
 import { useSaveStep } from '../model/use-save-step';
 import type { BasicsInput, HistoryInput, LifestyleInput } from '../model/onboarding.types';
 import { StepConditionsForm } from './step-conditions-form';
+import { StepHeaderBadge } from './step-header-badge';
 import { StepIdentityForm } from './step-identity-form';
 import { StepLifestyleForm } from './step-lifestyle-form';
+import { StepReportPrompt } from './step-report-prompt';
 
 const STEP_DATA = [
   { title: 'Vitals', subtitle: 'A few basics. A better picture of you.' },
-  { title: 'Your Health Details', subtitle: 'Help us understand your health' },
+  { title: 'Medical History', subtitle: 'Your context, at your pace.' },
   { title: 'Lifestyle & Habits', subtitle: 'Tell us about your daily routines' },
   { title: 'Your First Report', subtitle: 'Upload a lab report to get instant interpretation' },
 ];
@@ -27,7 +26,6 @@ const STEP_DATA = [
 export function OnboardingStepper({ step }: { step: number }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const status = useProfileCompleteness();
   const save = useSaveStep();
 
   const [basics, setBasics] = useState<BasicsInput | null>(null);
@@ -60,8 +58,6 @@ export function OnboardingStepper({ step }: { step: number }) {
     next();
   }
 
-  // Draw the step straight away; the progress bar falls back to the step position until status loads.
-  const percent = status.data?.percent ?? Math.round((step / 4) * 100);
   const canSave =
     (step === 1 && basics !== null) ||
     (step === 2 && history !== null) ||
@@ -72,6 +68,7 @@ export function OnboardingStepper({ step }: { step: number }) {
     <View style={styles.screen}>
       <ScrollView
         nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.container,
           {
@@ -79,15 +76,38 @@ export function OnboardingStepper({ step }: { step: number }) {
             paddingBottom: Math.max(insets.bottom, 20) + 16,
           },
         ]}>
+        {/* Top Header: Logo on left, stylized icon on right, step progress, bold title */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerLeft}>
+            {/* Logo at the left */}
+            <View style={styles.brandRow}>
+              <Image
+                source={require('../../../shared/assets/images/reovita-sprout.png')}
+                style={styles.brandMark}
+                resizeMode="contain"
+              />
+              <Text style={styles.brandName}>Reovita</Text>
+            </View>
 
-        {/* Intro: step context row, heading, description */}
-        <View style={styles.intro}>
-          <View style={styles.contextRow}>
-            <Text style={styles.stepBadge}>STEP {step} OF 4</Text>
-            <Text style={styles.requirement}>{step === 1 ? 'Mandatory' : 'Optional'}</Text>
+            {/* How much steps: pill badge and progress indicator */}
+            <View style={styles.stepRow}>
+              <View style={styles.stepPill}>
+                <Text style={styles.stepBadge}>Step {step} of 4</Text>
+              </View>
+              <View style={styles.stepTrack}>
+                <View style={[styles.stepFill, { width: `${(step / 4) * 100}%` }]} />
+              </View>
+            </View>
+
+            {/* Header title properly bolded for each step */}
+            <Text style={styles.title}>{current.title}</Text>
+            <Text style={styles.subtitle}>{current.subtitle}</Text>
           </View>
-          <Text style={styles.title}>{current.title}</Text>
-          <Text style={styles.subtitle}>{current.subtitle}</Text>
+
+          {/* Icon in the top right */}
+          <View style={styles.headerRight}>
+            <StepHeaderBadge step={step} size={82} />
+          </View>
         </View>
 
         {/* Step Content */}
@@ -96,25 +116,25 @@ export function OnboardingStepper({ step }: { step: number }) {
           {step === 2 ? <StepConditionsForm onChange={setHistory} /> : null}
           {step === 3 ? <StepLifestyleForm onChange={setLifestyle} /> : null}
           {step === 4 ? (
-            <View style={styles.reportUploadSection}>
-              <Text style={styles.reportPrompt}>
-                Upload a lab report or prescription to get your first personalized DNA health interpretation.
-              </Text>
-              <Button
-                label="Upload Lab Report"
-                onPress={() => router.push('/(app)/reports/upload')}
-              />
-            </View>
+            <StepReportPrompt
+              onChoose={() => router.push('/(app)/reports/upload')}
+              onSkip={() => router.replace('/(app)/(tabs)/dashboard')}
+            />
           ) : null}
         </View>
-
-        {/* Footer Actions */}
       </ScrollView>
+
+      {/* Footer Actions */}
       <View style={[styles.footerFixed, { paddingBottom: Math.max(insets.bottom, 20) + 8 }]}>
         <View style={styles.actionWrap}>
-          {step === 1 ? <Text style={styles.footerNote}>All fields required</Text> : null}
+          {step === 1 ? (
+            <View style={styles.requiredPill}>
+              <Ionicons name="information-circle-outline" size={15} color="#7545ED" />
+              <Text style={styles.requiredPillText}>All fields required</Text>
+            </View>
+          ) : null}
           <View style={styles.buttonGroup}>
-            {step > 1 ? (
+            {step > 1 && step < 4 ? (
               <>
                 <Pressable accessibilityRole="button" onPress={back} style={styles.skipButton}>
                   <Text style={styles.skipButtonText}>Back</Text>
@@ -126,7 +146,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             ) : null}
             <View style={styles.nextGroupItem}>
               <Button
-                label={step === 4 ? 'Complete Onboarding' : step === 1 ? 'Continue' : 'Next'}
+                label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
                 disabled={!canSave || save.isPending}
                 onPress={step === 4 ? next : onSave}
               />
@@ -135,7 +155,10 @@ export function OnboardingStepper({ step }: { step: number }) {
         </View>
 
         {save.isError ? (
-          <Text style={styles.errorText}>Could not save this step. Please check your entries.</Text>
+          <View style={styles.errorRow}>
+            <Ionicons name="information-circle-outline" size={14} color="#C22F43" />
+            <Text style={styles.errorText}>Could not save this step. Please check your entries.</Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -152,79 +175,102 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
   },
-  headerBar: {
+  headerSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    minHeight: 40,
     marginBottom: 8,
   },
-  headerBtn: {
-    padding: 6,
+  headerLeft: {
+    flex: 1,
+    paddingRight: 10,
+    gap: 8,
   },
-  backChevron: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#171717',
+  headerRight: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 2,
   },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#60646C',
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
   },
-  progressWrap: {
-    marginBottom: 16,
+  brandMark: {
+    width: 28,
+    height: 24,
   },
-  titleSection: {
-    gap: 6,
-    marginBottom: 20,
+  brandName: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 20,
+    color: '#1B152B',
+    letterSpacing: -0.4,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 2,
+  },
+  stepPill: {
+    backgroundColor: '#F1EDF7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   stepBadge: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 12,
     color: '#7545ED',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+  },
+  stepTrack: {
+    width: 64,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#E5E0EC',
+    overflow: 'hidden',
+  },
+  stepFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#7545ED',
   },
   title: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -1.1,
-    color: '#242032',
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.8,
+    color: '#1B152B',
+    marginTop: 2,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#60646C',
-    fontWeight: '500',
-    lineHeight: 22,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#655F74',
   },
   stepBody: {
     flex: 1,
-    marginTop: 24,
+    marginTop: 18,
     marginBottom: 24,
   },
-  reportUploadSection: {
-    gap: 16,
-    paddingTop: 12,
+  requiredPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F1EDF7',
+    marginBottom: 12,
   },
-  reportPrompt: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#171717',
+  requiredPillText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: '#655F74',
   },
-  navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60 },
-  navSide: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  navSideRight: { width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
-  navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 },
-  dotActive: { width: 20, height: 6, borderRadius: 999, backgroundColor: '#7545ED', marginHorizontal: 12 },
-  dotDone: { width: 6, height: 6, borderRadius: 999, backgroundColor: '#D4FF3F', marginHorizontal: 19 },
-  dotUpcoming: { width: 6, height: 6, borderRadius: 999, backgroundColor: '#E5E0EC', marginHorizontal: 19 },
-  percentText: { fontFamily: 'Poppins_500Medium', fontSize: 11, color: '#6B7280' },
-  intro: { gap: 8 },
-  contextRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  requirement: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: '#6B7280' },
-  footerNote: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280', marginBottom: 8 },
   footerFixed: {
     paddingHorizontal: 24,
     paddingTop: 12,
@@ -252,17 +298,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   skipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
     color: '#5C6080',
   },
   nextGroupItem: {
     flex: 1,
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
   errorText: {
+    fontFamily: 'Poppins_400Regular',
     color: '#C22F43',
     fontSize: 13,
     textAlign: 'center',
-    marginTop: 8,
   },
 });

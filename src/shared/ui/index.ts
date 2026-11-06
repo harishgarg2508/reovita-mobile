@@ -5,6 +5,7 @@ export { TopRightLeaves, BottomRightLeaves } from './corner-leaves/corner-leaves
 export { LoginBgTopLeaves } from './login-bg/login-bg-top-leaves';
 export { LoginBgBottomMist } from './login-bg/login-bg-bottom-mist';
 export { MiniSproutDivider } from './login-bg/mini-sprout-divider';
+export { BottomDock } from './bottom-dock';
 export { Button } from './button';
 export {
   GoogleIcon,

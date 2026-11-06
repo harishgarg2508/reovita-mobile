@@ -1,28 +1,30 @@
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LeafBackdrop, ReovitaLeafLogo } from '@shared/ui';
+import { BottomRightLeaves, ReovitaLeafLogo, TopRightLeaves } from '@shared/ui';
 
-const DURATION_MS = 2200;
+const DURATION_MS = 2400;
 
 /**
- * Reovita Splash Screen.
- * Exact recreation of Image 1 ("Splash Screen") from Figma:
- * - Subtle organic green leaf silhouettes in corners
- * - Centered vertical Reovita Leaf Logo + "Reovita" wordmark + "Your Health, Our DNA"
+ * Reovita Splash Screen on Landing Page.
+ * Exact recreation of Image 1 from Figma Design:
+ * - Clean white background
+ * - Botanical translucent green corner leaves in top-right and bottom-right
+ * - Centered vertical Reovita Leaf Logo emblem + "Reovita" wordmark + "Your Health, Our DNA"
  * - Left-aligned inspirational copy: "Monitor Wellness. Build Habits. Live Healthier Every Day 🌿"
  * - Purple progress bar at the bottom with smooth timing animation
+ * - Tap anywhere to advance immediately
  */
 export function SplashScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
-  const [progress] = useState(() => new Animated.Value(0.1));
+  const [progress] = useState(() => new Animated.Value(0.12));
   const [animFade] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(animFade, {
       toValue: 1,
-      duration: 600,
+      duration: 500,
       useNativeDriver: true,
     }).start();
 
@@ -41,27 +43,36 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['10%', '100%'],
+    outputRange: ['12%', '100%'],
   });
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: Math.max(insets.top, 24) + 40,
-          paddingBottom: Math.max(insets.bottom, 20) + 24,
-        },
-      ]}>
-      {/* Decorative corner organic leaves */}
-      <LeafBackdrop />
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Tap to continue"
+      onPress={onDone}
+      style={styles.container}>
+      {/* Decorative botanical translucent leaves in top-right and bottom-right */}
+      <TopRightLeaves size={260} />
+      <BottomRightLeaves size={280} />
 
-      <Animated.View style={[styles.content, { opacity: animFade }]}>
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 24) + 20,
+            paddingBottom: Math.max(insets.bottom, 20) + 24,
+            opacity: animFade,
+          },
+        ]}>
         {/* Center: Official Reovita Logo & Tagline */}
         <View style={styles.brandCenter}>
           <ReovitaLeafLogo
-            size={74}
-            wordmarkSize={34}
+            size={84}
+            wordmarkSize={44}
+            wordmarkColor="#100C22"
+            taglineSize={16}
+            taglineColor="#1B152B"
             showWordmark={true}
             showTagline={true}
             layout="vertical"
@@ -74,7 +85,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
             {'Monitor Wellness.\nBuild Habits. Live\nHealthier Every Day 🌿'}
           </Text>
 
-          {/* Bottom Purple Progress Bar from Image 1 */}
+          {/* Bottom Purple Progress Bar */}
           <View style={styles.progressRow}>
             <View
               style={styles.progressTrack}
@@ -85,7 +96,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           </View>
         </View>
       </Animated.View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -98,7 +109,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
     justifyContent: 'space-between',
     zIndex: 1,
   },
@@ -106,18 +116,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -40,
+    marginTop: -20,
   },
   lowerSection: {
     width: '100%',
     gap: 36,
   },
   headline: {
+    paddingHorizontal: 32,
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 26,
-    lineHeight: 34,
-    fontWeight: '700',
-    color: '#14121C',
-    letterSpacing: -0.5,
+    lineHeight: 36,
+    color: '#100C22',
+    letterSpacing: -0.6,
     textAlign: 'left',
   },
   progressRow: {
@@ -127,15 +138,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   progressTrack: {
-    width: '64%',
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#F3F1F7',
+    width: 220,
+    height: 4.5,
+    borderRadius: 999,
+    backgroundColor: '#EDE8F5',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#7545ED', // Reovita Royal Purple
-    borderRadius: 2,
+    borderRadius: 999,
   },
 });

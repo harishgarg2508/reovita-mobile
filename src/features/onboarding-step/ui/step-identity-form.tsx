@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useBasicsDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput } from '../model/onboarding.types';
 
 import { YearWheel } from './year-wheel';
@@ -18,14 +18,6 @@ const SEX_SEGMENTS: { value: Sex; short: string; label: string }[] = [
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1900;
 const MAX_YEAR = CURRENT_YEAR;
-const DEFAULT_YEAR = 1995;
-
-interface Draft {
-  year: number;
-  sex: Sex | null;
-  height: string;
-  weight: string;
-}
 
 // BMI category for the automatic card. Bands follow the WHO adult ranges.
 function bmiCategory(bmi: number): 'Under' | 'Healthy' | 'Over' | 'Obese' {
@@ -39,11 +31,11 @@ const CATEGORY_ORDER: ('Under' | 'Healthy' | 'Over' | 'Obese')[] = ['Under', 'He
 
 // Step 1: birth year, sex, height and weight. BMI is worked out from height and weight.
 export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput | null) => void }) {
-  const [draft, setDraft] = useState<Draft>({ year: DEFAULT_YEAR, sex: null, height: '', weight: '' });
+  const [draft, patchDraft] = useBasicsDraft();
 
-  function update(patch: Partial<Draft>) {
+  function update(patch: Partial<typeof draft>) {
     const next = { ...draft, ...patch };
-    setDraft(next);
+    patchDraft(patch);
 
     const cm = Number(next.height);
     const kg = Number(next.weight);
@@ -68,13 +60,23 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
     <View style={styles.form}>
       {/* Birth year: scroll wheel from the current year back to 1900 */}
       <View style={styles.block}>
-        <Text style={styles.label}>Birth year *</Text>
+        <View style={styles.labelRow}>
+          <View style={styles.labelBadge}>
+            <Ionicons name="calendar-outline" size={13} color="#7545ED" />
+          </View>
+          <Text style={styles.label}>Birth year *</Text>
+        </View>
         <YearWheel value={draft.year} minYear={MIN_YEAR} maxYear={MAX_YEAR} onChange={(year) => update({ year })} />
       </View>
 
       {/* Sex segments */}
       <View style={styles.block}>
-        <Text style={styles.label}>Sex *</Text>
+        <View style={styles.labelRow}>
+          <View style={styles.labelBadge}>
+            <Ionicons name="male-female-outline" size={13} color="#7545ED" />
+          </View>
+          <Text style={styles.label}>Sex *</Text>
+        </View>
         <View style={styles.segments}>
           {SEX_SEGMENTS.map((seg) => {
             const selected = draft.sex === seg.value;
@@ -95,7 +97,12 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
       {/* Height and weight */}
       <View style={styles.row}>
         <View style={styles.half}>
-          <Text style={styles.label}>Height *</Text>
+          <View style={styles.labelRow}>
+            <View style={styles.labelBadge}>
+              <Ionicons name="resize-outline" size={13} color="#7545ED" />
+            </View>
+            <Text style={styles.label}>Height *</Text>
+          </View>
           <View style={styles.numeric}>
             <TextInput
               style={styles.numericValue}
@@ -109,7 +116,12 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
           </View>
         </View>
         <View style={styles.half}>
-          <Text style={styles.label}>Weight *</Text>
+          <View style={styles.labelRow}>
+            <View style={styles.labelBadge}>
+              <Ionicons name="speedometer-outline" size={13} color="#7545ED" />
+            </View>
+            <Text style={styles.label}>Weight *</Text>
+          </View>
           <View style={styles.numeric}>
             <TextInput
               style={styles.numericValue}
@@ -157,6 +169,19 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
 const styles = StyleSheet.create({
   form: { gap: 24 },
   block: { gap: 8 },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  labelBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: '#F1EDF7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   label: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: '#242032' },
 
   segments: {

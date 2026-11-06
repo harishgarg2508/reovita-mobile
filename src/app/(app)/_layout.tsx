@@ -44,7 +44,7 @@ export default function AppLayout() {
     return <Redirect href="/(auth)/consent" />;
   }
   if (!status.data?.dashboard_access) {
-    return <Redirect href="/(onboarding)/step-1" />;
+    return <Redirect href="/onboarding/step-1" />;
   }
   return <Stack screenOptions={{ headerShown: false }} />;
 }

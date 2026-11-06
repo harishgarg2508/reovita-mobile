@@ -9,8 +9,9 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
  * - Lime green circular gauge ring with pulsing black heart
  * - "Your health is getting better!" status pill with green check badge
  */
-export function HealthScoreCard({ score }: { score: string | null }) {
-  const displayScore = score ?? '92';
+// Shows the server score. When there is none yet, shows an empty state with the unlock hint.
+export function HealthScoreCard({ score, unlockLine }: { score: string | null; unlockLine?: string }) {
+  const hasScore = score !== null;
 
   // Heartbeat pulsing animation
   const [heartScale] = useState(() => new Animated.Value(1));
@@ -52,14 +53,11 @@ export function HealthScoreCard({ score }: { score: string | null }) {
         {/* Left Side: Score & Trend */}
         <View style={styles.scoreCol}>
           <View style={styles.scoreNumberRow}>
-            <Text style={styles.scoreValue}>{displayScore}</Text>
-            <Text style={styles.upArrow}>↑</Text>
-            <Text style={styles.scoreDenominator}>/100</Text>
+            <Text style={styles.scoreValue}>{hasScore ? score : '--'}</Text>
+            {hasScore ? <Text style={styles.scoreDenominator}>/100</Text> : null}
           </View>
 
-          <View style={styles.trendRow}>
-            <Text style={styles.trendGreenText}>↑ +5% from last week</Text>
-          </View>
+          {!hasScore && unlockLine ? <Text style={styles.unlockText}>{unlockLine}</Text> : null}
         </View>
 
         {/* Right Side: Circular Gauge Ring with Pulsing Heart */}
@@ -80,13 +78,15 @@ export function HealthScoreCard({ score }: { score: string | null }) {
         </View>
       </View>
 
-      {/* Wellness Status Pill */}
-      <View style={styles.statusPill}>
-        <View style={styles.statusCheckCircle}>
-          <Text style={styles.statusCheckMark}>✓</Text>
+      {/* Wellness status: only shown once a score exists */}
+      {hasScore ? (
+        <View style={styles.statusPill}>
+          <View style={styles.statusCheckCircle}>
+            <Text style={styles.statusCheckMark}>✓</Text>
+          </View>
+          <Text style={styles.statusText}>Your health is getting better!</Text>
         </View>
-        <Text style={styles.statusText}>Your health is getting better!</Text>
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -181,6 +181,12 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: '#171717',
     lineHeight: 34,
+  },
+  unlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#60646C',
+    marginBottom: 12,
   },
   statusPill: {
     flexDirection: 'row',

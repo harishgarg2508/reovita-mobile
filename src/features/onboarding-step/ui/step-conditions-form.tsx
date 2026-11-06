@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-  Animated,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -8,317 +9,664 @@ import {
   View,
 } from 'react-native';
 
-import {
-  BloodDropDetailIcon,
-  HeightDetailIcon,
-  WeightDetailIcon,
-} from '@shared/ui';
+import { tapSelection } from '@shared/lib';
 
+import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const INITIAL_CONDITIONS = ['Asthma', 'Diabetes', 'Hypertension', 'Thyroid', 'None'];
+const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD'];
+
+const MEDICATION_SUGGESTIONS = [
+  'Salbutamol',
+  'Cetirizine',
+  'Paracetamol',
+  'Metformin',
+  'Amlodipine',
+  'Atorvastatin',
+  'Omeprazole',
+  'Levothyroxine',
+  'Ibuprofen',
+  'Amoxicillin',
+  'Lisinopril',
+  'Montelukast',
+];
+
+const FAMILY_CONDITION_OPTIONS = [
+  'Hypertension',
+  'Diabetes',
+  'Heart Disease',
+  'Asthma',
+  'Thyroid',
+  'Cancer',
+  'Stroke',
+  'High Cholesterol',
+  'None',
+];
 
 /**
- * Reovita Step 2 Form: "Your Health Details".
- * Exact recreation of Screen 1 from the Figma Design System with rich animations:
- * - Staggered fade & slide-in entrance for the 3 health cards
- * - Height card with measuring figure icon ("5 ft 8 in")
- * - Weight card with lime scale icon ("70 kg")
- * - Blood Group card with glossy red blood droplet ("B+")
- * - Interactive spring scale press feedback
+ * Reovita Step 2 Form: "Medical History"
+ * Matches the Figma design:
+ * - Conditions: multi-select chip tags with checkmark & "+ More"
+ * - Other: text area with character counter (0 / 500)
+ * - Meds: search box with suggestions & removable pill tags (e.g. Salbutamol, Cetirizine)
+ * - Family: Father, Mother, Sibling(s) rows with tag management
  */
 export function StepConditionsForm({
   onChange,
 }: {
   onChange: (value: HistoryInput | null) => void;
 }) {
-  const [height, setHeight] = useState('5 ft 8 in');
-  const [weight, setWeight] = useState('70 kg');
-  const [bloodGroup, setBloodGroup] = useState('B+');
-  const [bloodGroupOpen, setBloodGroupOpen] = useState(false);
+  // Saved selections live in Redux; only the UI-only state stays local.
+  const [draft, patchDraft] = useHistoryDraft();
+  const selectedConditions = draft.conditions;
+  const otherText = draft.otherText;
+  const selectedMeds = draft.medications;
+  const fatherConditions = draft.father;
+  const motherConditions = draft.mother;
+  const siblingConditions = draft.sibling;
 
-  // Entrance animation values
-  const [animCard1] = useState(() => new Animated.Value(0));
-  const [animCard2] = useState(() => new Animated.Value(0));
-  const [animCard3] = useState(() => new Animated.Value(0));
+  const [showMoreConditions, setShowMoreConditions] = useState(false);
+  const [medQuery, setMedQuery] = useState('');
+  const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
+  const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | null>(null);
 
-  // Press scale values
-  const [scale1] = useState(() => new Animated.Value(1));
-  const [scale2] = useState(() => new Animated.Value(1));
-  const [scale3] = useState(() => new Animated.Value(1));
-
+  // Emit the payload whenever the saved draft changes (also on mount, to restore the step).
   useEffect(() => {
-    // Staggered cascade entrance
-    Animated.stagger(100, [
-      Animated.spring(animCard1, {
-        toValue: 1,
-        tension: 65,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.spring(animCard2, {
-        toValue: 1,
-        tension: 65,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.spring(animCard3, {
-        toValue: 1,
-        tension: 65,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [animCard1, animCard2, animCard3]);
+    const familyItems = [
+      ...fatherConditions.map((condition) => ({ relation: 'father', condition })),
+      ...motherConditions.map((condition) => ({ relation: 'mother', condition })),
+      ...siblingConditions.map((condition) => ({ relation: 'sibling', condition })),
+    ];
+    const conditionItems = selectedConditions
+      .filter((c) => c !== 'None')
+      .map((tag) => ({ tag, free_text: otherText ? otherText : undefined }));
 
-  useEffect(() => {
     onChange({
-      conditions: {
-        items: [
-          { tag: 'height_ft', free_text: height },
-          { tag: 'weight_kg', free_text: weight },
-          { tag: 'blood_group', free_text: bloodGroup },
-        ],
-      },
+      conditions: conditionItems.length > 0 ? { items: conditionItems } : undefined,
+      medications: selectedMeds.length > 0 ? selectedMeds.map((name) => ({ name })) : undefined,
+      family_history: familyItems.length > 0 ? { items: familyItems } : undefined,
     });
-  }, [height, weight, bloodGroup, onChange]);
+  }, [draft, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function onPressIn(scale: Animated.Value) {
-    Animated.spring(scale, {
-      toValue: 0.98,
-      useNativeDriver: true,
-    }).start();
-  }
+  const toggleCondition = (item: string) => {
+    tapSelection();
+    let next: string[];
+    if (item === 'None') {
+      next = selectedConditions.includes('None') ? [] : ['None'];
+    } else {
+      const withoutNone = selectedConditions.filter((c) => c !== 'None');
+      next = withoutNone.includes(item) ? withoutNone.filter((c) => c !== item) : [...withoutNone, item];
+    }
+    patchDraft({ conditions: next });
+  };
 
-  function onPressOut(scale: Animated.Value) {
-    Animated.spring(scale, {
-      toValue: 1,
-      tension: 100,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
-  }
+  const handleOtherTextChange = (text: string) => patchDraft({ otherText: text });
+
+  const addMedication = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (!selectedMeds.includes(trimmed)) {
+      tapSelection();
+      patchDraft({ medications: [...selectedMeds, trimmed] });
+    }
+    setMedQuery('');
+    setMedsDropdownOpen(false);
+  };
+
+  const removeMedication = (name: string) => {
+    tapSelection();
+    patchDraft({ medications: selectedMeds.filter((m) => m !== name) });
+  };
+
+  const toggleFamilyCondition = (cond: string) => {
+    tapSelection();
+    if (activeFamilyRelation === null) return;
+    const current = draft[activeFamilyRelation];
+    const next = current.includes(cond)
+      ? current.filter((c) => c !== cond)
+      : cond === 'None'
+      ? ['None']
+      : [...current.filter((c) => c !== 'None'), cond];
+    const patch: Partial<typeof draft> =
+      activeFamilyRelation === 'father'
+        ? { father: next }
+        : activeFamilyRelation === 'mother'
+        ? { mother: next }
+        : { sibling: next };
+    patchDraft(patch);
+  };
+
+  const visibleConditionsList = showMoreConditions
+    ? [...INITIAL_CONDITIONS.filter((c) => c !== 'None'), ...EXTRA_CONDITIONS, 'None']
+    : INITIAL_CONDITIONS;
+
+  const filteredMeds = MEDICATION_SUGGESTIONS.filter(
+    (m) =>
+      m.toLowerCase().includes(medQuery.toLowerCase()) &&
+      !selectedMeds.includes(m)
+  );
 
   return (
     <View style={styles.container}>
-      {/* 1. Height Card */}
-      <Animated.View
-        style={{
-          opacity: animCard1,
-          transform: [
-            {
-              translateY: animCard1.interpolate({
-                inputRange: [0, 1],
-                outputRange: [24, 0],
-              }),
-            },
-            { scale: scale1 },
-          ],
-        }}>
-        <Pressable
-          onPressIn={() => onPressIn(scale1)}
-          onPressOut={() => onPressOut(scale1)}
-          style={styles.card}>
-          <View style={styles.iconCol}>
-            <HeightDetailIcon size={34} />
-          </View>
-          <View style={styles.inputCol}>
-            <Text style={styles.label}>Height</Text>
-            <TextInput
-              style={styles.textInput}
-              value={height}
-              onChangeText={setHeight}
-              placeholder="e.g. 5 ft 8 in"
-              placeholderTextColor="#8E929A"
-            />
-          </View>
-        </Pressable>
-      </Animated.View>
-
-      {/* 2. Weight Card */}
-      <Animated.View
-        style={{
-          opacity: animCard2,
-          transform: [
-            {
-              translateY: animCard2.interpolate({
-                inputRange: [0, 1],
-                outputRange: [24, 0],
-              }),
-            },
-            { scale: scale2 },
-          ],
-        }}>
-        <Pressable
-          onPressIn={() => onPressIn(scale2)}
-          onPressOut={() => onPressOut(scale2)}
-          style={styles.card}>
-          <View style={styles.iconCol}>
-            <WeightDetailIcon size={34} />
-          </View>
-          <View style={styles.inputCol}>
-            <Text style={styles.label}>Weight</Text>
-            <TextInput
-              style={styles.textInput}
-              value={weight}
-              onChangeText={setWeight}
-              placeholder="e.g. 70 kg"
-              placeholderTextColor="#8E929A"
-            />
-          </View>
-        </Pressable>
-      </Animated.View>
-
-      {/* 3. Blood Group Card */}
-      <Animated.View
-        style={{
-          opacity: animCard3,
-          transform: [
-            {
-              translateY: animCard3.interpolate({
-                inputRange: [0, 1],
-                outputRange: [24, 0],
-              }),
-            },
-            { scale: scale3 },
-          ],
-        }}>
-        <Pressable
-          onPressIn={() => onPressIn(scale3)}
-          onPressOut={() => onPressOut(scale3)}
-          onPress={() => setBloodGroupOpen(!bloodGroupOpen)}
-          style={styles.card}>
-          <View style={styles.iconCol}>
-            <BloodDropDetailIcon size={34} />
-          </View>
-          <View style={styles.inputCol}>
-            <Text style={styles.label}>Blood Group</Text>
-            <View style={styles.dropdownRow}>
-              <Text style={styles.bloodText}>{bloodGroup}</Text>
-              <Text style={styles.chevron}>{bloodGroupOpen ? '▲' : '▼'}</Text>
-            </View>
-          </View>
-        </Pressable>
-      </Animated.View>
-
-      {/* Blood Group Picker Selector */}
-      {bloodGroupOpen && (
-        <View style={styles.dropdownPicker}>
-          {BLOOD_GROUPS.map((bg) => (
+      {/* 1. Conditions Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Conditions</Text>
+        <View style={styles.chipsWrap}>
+          {visibleConditionsList.map((item) => {
+            const isSelected = selectedConditions.includes(item);
+            return (
+              <Pressable
+                key={item}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                onPress={() => toggleCondition(item)}
+                style={[styles.chip, isSelected && styles.chipSelected]}>
+                {isSelected && (
+                  <Ionicons name="checkmark" size={13} color="#2E4D00" style={styles.chipCheck} />
+                )}
+                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                  {item}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {!showMoreConditions && (
             <Pressable
-              key={bg}
-              style={[
-                styles.dropdownItem,
-                bloodGroup === bg && styles.dropdownItemSelected,
-              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Show more conditions"
               onPress={() => {
-                setBloodGroup(bg);
-                setBloodGroupOpen(false);
-              }}>
+                tapSelection();
+                setShowMoreConditions(true);
+              }}
+              style={styles.moreChip}>
+              <Text style={styles.moreChipText}>+ More</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {/* 2. Other Notes Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Other</Text>
+        <View style={styles.otherCard}>
+          <TextInput
+            multiline
+            maxLength={500}
+            value={otherText}
+            onChangeText={handleOtherTextChange}
+            placeholder="Anything else to add?"
+            placeholderTextColor="#9185AA"
+            style={styles.otherInput}
+          />
+          <Text style={styles.charCount}>{otherText.length} / 500</Text>
+        </View>
+      </View>
+
+      {/* 3. Meds Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Meds</Text>
+        <View style={styles.medsBox}>
+          {/* Search bar */}
+          <View style={styles.medSearchBar}>
+            <Ionicons name="search-outline" size={18} color="#9185AA" style={styles.searchIcon} />
+            <TextInput
+              value={medQuery}
+              onChangeText={(text) => {
+                setMedQuery(text);
+                setMedsDropdownOpen(true);
+              }}
+              onFocus={() => setMedsDropdownOpen(true)}
+              placeholder="Search medications"
+              placeholderTextColor="#9185AA"
+              returnKeyType="done"
+              onSubmitEditing={() => addMedication(medQuery)}
+              style={styles.medSearchInput}
+            />
+            <Pressable
+              onPress={() => setMedsDropdownOpen((prev) => !prev)}
+              hitSlop={8}
+              style={styles.dropdownChevron}>
+              <Ionicons
+                name={medsDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color="#7545ED"
+              />
+            </Pressable>
+          </View>
+
+          {/* Suggestions Dropdown */}
+          {medsDropdownOpen && (
+            <View style={styles.suggestionsDropdown}>
+              {medQuery.trim().length > 0 && !selectedMeds.includes(medQuery.trim()) && (
+                <Pressable
+                  onPress={() => addMedication(medQuery)}
+                  style={styles.suggestionItem}>
+                  <Text style={styles.addCustomMedText}>
+                    Add &quot;{medQuery.trim()}&quot;
+                  </Text>
+                </Pressable>
+              )}
+              {filteredMeds.slice(0, 5).map((med) => (
+                <Pressable
+                  key={med}
+                  onPress={() => addMedication(med)}
+                  style={styles.suggestionItem}>
+                  <Text style={styles.suggestionText}>{med}</Text>
+                  <Ionicons name="add" size={16} color="#7545ED" />
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          {/* Selected Medication Tags */}
+          {selectedMeds.length > 0 && (
+            <View style={styles.selectedMedsWrap}>
+              {selectedMeds.map((med) => (
+                <Pressable
+                  key={med}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${med}`}
+                  onPress={() => removeMedication(med)}
+                  style={styles.medTag}>
+                  <Text style={styles.medTagText}>{med}</Text>
+                  <Ionicons name="close" size={14} color="#7545ED" style={styles.medTagClose} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* 4. Family Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Family</Text>
+        <View style={styles.familyCard}>
+          {/* Father Row */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit Father medical history"
+            onPress={() => setActiveFamilyRelation('father')}
+            style={styles.familyRow}>
+            <Text style={styles.familyRelation}>Father</Text>
+            <View style={styles.familyValueCol}>
+              <Text style={styles.familyTagsText}>
+                {fatherConditions.length > 0 ? fatherConditions.join(', ') : 'Add tags'}
+              </Text>
+            </View>
+            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+          </Pressable>
+
+          <View style={styles.familyDivider} />
+
+          {/* Mother Row */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit Mother medical history"
+            onPress={() => setActiveFamilyRelation('mother')}
+            style={styles.familyRow}>
+            <Text style={styles.familyRelation}>Mother</Text>
+            <View style={styles.familyValueCol}>
+              <Text style={styles.familyTagsText}>
+                {motherConditions.length > 0 ? motherConditions.join(', ') : 'Add tags'}
+              </Text>
+            </View>
+            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+          </Pressable>
+
+          <View style={styles.familyDivider} />
+
+          {/* Sibling(s) Row */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit Sibling medical history"
+            onPress={() => setActiveFamilyRelation('sibling')}
+            style={styles.familyRow}>
+            <Text style={styles.familyRelation}>Sibling(s)</Text>
+            <View style={styles.familyValueCol}>
               <Text
                 style={[
-                  styles.dropdownText,
-                  bloodGroup === bg && styles.dropdownTextSelected,
+                  styles.familyTagsText,
+                  siblingConditions.length === 0 && styles.familyPlaceholderText,
                 ]}>
-                {bg}
+                {siblingConditions.length > 0 ? siblingConditions.join(', ') : 'Add tags'}
               </Text>
-            </Pressable>
-          ))}
+            </View>
+            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+          </Pressable>
         </View>
-      )}
+      </View>
+
+      {/* Modal / Sheet for Family Condition Selection */}
+      <Modal
+        visible={activeFamilyRelation !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveFamilyRelation(null)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActiveFamilyRelation(null)}>
+          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {activeFamilyRelation === 'father'
+                  ? 'Father\'s Health'
+                  : activeFamilyRelation === 'mother'
+                  ? 'Mother\'s Health'
+                  : 'Sibling(s) Health'}
+              </Text>
+              <Pressable
+                onPress={() => setActiveFamilyRelation(null)}
+                hitSlop={8}
+                style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color="#242032" />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalChipsWrap}>
+              {FAMILY_CONDITION_OPTIONS.map((cond) => {
+                const currentList =
+                  activeFamilyRelation === 'father'
+                    ? fatherConditions
+                    : activeFamilyRelation === 'mother'
+                    ? motherConditions
+                    : siblingConditions;
+                const isSelected = currentList.includes(cond);
+                return (
+                  <Pressable
+                    key={cond}
+                    onPress={() => toggleFamilyCondition(cond)}
+                    style={[styles.modalChip, isSelected && styles.modalChipSelected]}>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={13} color="#2E4D00" style={styles.chipCheck} />
+                    )}
+                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                      {cond}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              onPress={() => setActiveFamilyRelation(null)}
+              style={styles.modalDoneBtn}>
+              <Text style={styles.modalDoneBtnText}>Done</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
-    paddingTop: 8,
+    gap: 20,
   },
-  card: {
+  section: {
+    gap: 8,
+  },
+  sectionLabel: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+    color: '#242032',
+  },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#ECEAEF',
-    borderRadius: 18,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    backgroundColor: '#FFFFFF',
   },
-  iconCol: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F8F8FA',
+  chipSelected: {
+    backgroundColor: '#E8F8CE',
+    borderColor: '#7545ED',
+    borderWidth: 1.5,
+  },
+  chipCheck: {
+    marginRight: 4,
+  },
+  chipText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#655F74',
+  },
+  chipTextSelected: {
+    fontFamily: 'Poppins_500Medium',
+    color: '#2E4D00',
+  },
+  moreChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
   },
-  inputCol: {
-    flex: 1,
-  },
-  label: {
+  moreChipText: {
+    fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    fontWeight: '500',
-    color: '#8E929A',
-    marginBottom: 2,
+    color: '#655F74',
   },
-  textInput: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#171717',
+
+  /* Other Card */
+  otherCard: {
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    minHeight: 100,
+    justifyContent: 'space-between',
+  },
+  otherInput: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#242032',
+    lineHeight: 18,
+    minHeight: 52,
+    textAlignVertical: 'top',
     padding: 0,
-    margin: 0,
   },
-  dropdownRow: {
+  charCount: {
+    alignSelf: 'flex-end',
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 11,
+    color: '#9185AA',
+    marginTop: 4,
+  },
+
+  /* Meds Box */
+  medsBox: {
+    gap: 10,
+  },
+  medSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  medSearchInput: {
+    flex: 1,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#242032',
+    padding: 0,
+  },
+  dropdownChevron: {
+    padding: 4,
+  },
+  suggestionsDropdown: {
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    marginTop: -4,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F1EDF7',
+  },
+  suggestionText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#242032',
+  },
+  addCustomMedText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: '#7545ED',
+  },
+  selectedMedsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  medTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#E8F8CE',
+    borderWidth: 1.5,
+    borderColor: '#7545ED',
+  },
+  medTagText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: '#2E4D00',
+  },
+  medTagClose: {
+    marginLeft: 2,
+  },
+
+  /* Family Card */
+  familyCard: {
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  familyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  familyRelation: {
+    width: 78,
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: '#242032',
+  },
+  familyValueCol: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
+  familyTagsText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    color: '#7545ED',
+  },
+  familyPlaceholderText: {
+    fontFamily: 'Poppins_400Regular',
+    color: '#9185AA',
+  },
+  familyAddIcon: {
+    marginLeft: 'auto',
+  },
+  familyDivider: {
+    height: 1,
+    backgroundColor: '#F1EDF7',
+  },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    gap: 16,
+    maxHeight: '70%',
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  bloodText: {
+  modalTitle: {
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
-    fontWeight: '700',
-    color: '#171717',
+    color: '#242032',
   },
-  chevron: {
-    fontSize: 12,
-    color: '#8E929A',
-    marginRight: 4,
+  modalCloseBtn: {
+    padding: 4,
   },
-  dropdownPicker: {
+  modalChipsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    backgroundColor: '#FBFAFC',
-    borderWidth: 1.5,
-    borderColor: '#ECEAEF',
-    borderRadius: 16,
-    padding: 12,
-    marginTop: -4,
+    marginVertical: 8,
   },
-  dropdownItem: {
-    paddingVertical: 8,
+  modalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E0E1E6',
+    borderColor: '#E5E0EC',
+    backgroundColor: '#FFFFFF',
   },
-  dropdownItemSelected: {
-    backgroundColor: '#7545ED',
+  modalChipSelected: {
+    backgroundColor: '#E8F8CE',
     borderColor: '#7545ED',
+    borderWidth: 1.5,
   },
-  dropdownText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#171717',
+  modalDoneBtn: {
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#7545ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
-  dropdownTextSelected: {
+  modalDoneBtnText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
     color: '#FFFFFF',
   },
 });

@@ -69,7 +69,7 @@ export default function DashboardRoute() {
         {
           backgroundColor: pageBg,
           paddingTop: Math.max(insets.top, 20) + 8,
-          paddingBottom: Math.max(insets.bottom, 20) + 16,
+          paddingBottom: Math.max(insets.bottom, 20) + 96,
         },
       ]}>
       {/* Top Header Bar: Reovita Leaf Logo + Notification Bell */}
@@ -103,17 +103,17 @@ export default function DashboardRoute() {
         </View>
       </View>
 
-      {/* Critical Findings / Escalate Banner (Screen 2) */}
-      <CriticalHealthBanner />
+      {/* Critical Findings banner: only when the server flags critical values */}
+      {data?.critical_banner ? <CriticalHealthBanner /> : null}
 
-      {/* Profile Incomplete Banner (Screen 2) */}
-      <CompletenessBanner />
+      {/* Profile Incomplete Banner: shown only when the server asks for it */}
+      {data?.banner === 'amber' ? <CompletenessBanner /> : null}
 
-      {/* Health Score Card with Pulsing Heart */}
-      <HealthScoreCard score={data?.health_score ?? null} />
+      {/* Health Score Card: real score, or the unlock hint until a report is confirmed */}
+      <HealthScoreCard score={data?.health_score ?? null} unlockLine={data?.unlock_lines[0]} />
 
-      {/* Latest Daily Briefing Card */}
-      <LatestBriefingCard briefing={data?.briefing ?? null} />
+      {/* Latest Daily Briefing Card: only when the server has a briefing */}
+      {data?.briefing ? <LatestBriefingCard briefing={data.briefing} /> : null}
 
       {/* Timeline of Reports */}
       {data?.recent_flags && data.recent_flags.length > 0 && (

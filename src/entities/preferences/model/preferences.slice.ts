@@ -6,7 +6,8 @@ export interface PreferencesState {
   themeMode: ThemeMode;
 }
 
-const initialState: PreferencesState = { themeMode: 'system' };
+// Light mode by default. The user can still switch to dark or system from the theme toggle.
+const initialState: PreferencesState = { themeMode: 'light' };
 
 export const preferencesSlice = createSlice({
   name: 'preferences',

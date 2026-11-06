@@ -12,7 +12,7 @@ export const sessionSlice = createSlice({
   name: 'session',
   initialState,
   reducers: {
-    sessionReady(state, action: PayloadAction<{ subjectId: string; codename: string }>) {
+    sessionReady(state, action: PayloadAction<{ subjectId: string | null; codename: string | null }>) {
       state.status = 'ready';
       state.subjectId = action.payload.subjectId;
       state.codename = action.payload.codename;

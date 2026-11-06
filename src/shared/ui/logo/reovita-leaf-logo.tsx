@@ -22,6 +22,10 @@ interface ReovitaLeafLogoProps {
   wordmarkSize?: number;
   /** Overrides the wordmark colour. Defaults to the theme text colour. */
   wordmarkColor?: string;
+  /** Custom tagline font size if needed. */
+  taglineSize?: number;
+  /** Overrides the tagline colour. Defaults to theme textSecondary. */
+  taglineColor?: string;
   /** Whether to render the 'Reovita' wordmark. */
   showWordmark?: boolean;
   /** Whether to render the 'Your Health, Our DNA' tagline. */
@@ -41,6 +45,8 @@ export function ReovitaLeafLogo({
   size = 56,
   wordmarkSize,
   wordmarkColor,
+  taglineSize,
+  taglineColor,
   showWordmark = true,
   showTagline = true,
   layout = 'vertical',
@@ -90,8 +96,8 @@ export function ReovitaLeafLogo({
               style={[
                 styles.tagline,
                 {
-                  fontSize: isRow ? 12 : 14 * scale,
-                  color: theme.textSecondary,
+                  fontSize: taglineSize ?? (isRow ? 12 : 14 * scale),
+                  color: taglineColor ?? theme.textSecondary,
                 },
               ]}>
               Your Health, Our DNA

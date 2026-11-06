@@ -10,12 +10,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
  * - "Your cholesterol levels are elevated. Consider discussing with your doctor." message
  * - Right chevron '>'
  */
-export function LatestBriefingCard({ briefing }: { briefing: string | null }) {
+export function LatestBriefingCard({ briefing }: { briefing: string }) {
   const router = useRouter();
-
-  const text =
-    briefing ??
-    'Your cholesterol levels are elevated. Consider discussing with your doctor.';
 
   return (
     <Pressable
@@ -25,13 +21,10 @@ export function LatestBriefingCard({ briefing }: { briefing: string | null }) {
       style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>Daily Briefing</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>High</Text>
-        </View>
       </View>
 
       <View style={styles.bodyRow}>
-        <Text style={styles.body}>{text}</Text>
+        <Text style={styles.body}>{briefing}</Text>
         <Text style={styles.chevron}>›</Text>
       </View>
     </Pressable>

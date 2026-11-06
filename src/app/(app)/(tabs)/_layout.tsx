@@ -1,65 +1,51 @@
 import { Tabs } from 'expo-router';
 
-import {
-  TabHomeIcon,
-  TabInsightsIcon,
-  TabProfileIcon,
-  TabReportsIcon,
-} from '@shared/ui';
+import { BottomDock } from '@shared/ui';
 
 /**
  * Reovita App Shell Tab Navigator.
- * Matches Screen 2 from the Reovita Design System:
+ * Matches the floating bottom dock design from Figma:
  * - Home (dashboard)
- * - Reports (timeline)
  * - Insights (medications & biomarkers)
+ * - [Center Sprout FAB: Upload Report]
+ * - Records (timeline)
  * - Profile (settings & consents)
  */
 export default function TabsLayout() {
   return (
     <Tabs
+      tabBar={(props) => <BottomDock {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#7545ED',
-        tabBarInactiveTintColor: '#8E929A',
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#ECEAF0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          position: 'absolute',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
         },
       }}>
       <Tabs.Screen
         name="dashboard"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <TabHomeIcon color={color} size={20} />,
-        }}
-      />
-      <Tabs.Screen
-        name="timeline"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color }) => <TabReportsIcon color={color} size={20} />,
         }}
       />
       <Tabs.Screen
         name="medications"
         options={{
           title: 'Insights',
-          tabBarIcon: ({ color }) => <TabInsightsIcon color={color} size={20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="timeline"
+        options={{
+          title: 'Records',
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <TabProfileIcon color={color} size={20} />,
         }}
       />
     </Tabs>

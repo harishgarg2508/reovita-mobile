@@ -1,19 +1,12 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@shared/ui/chip';
 
+import { useLifestyleDraft } from '../model/use-onboarding-drafts';
 import type { LifestyleInput } from '../model/onboarding.types';
 
 type Choice<T> = { value: T; label: string };
-type Draft = {
-  sleep: number | null;
-  stress: number | null;
-  diet: LifestyleInput['diet'] | null;
-  smoking: LifestyleInput['smoking'] | null;
-  alcohol: LifestyleInput['alcohol'] | null;
-  exercise: LifestyleInput['exercise'] | null;
-};
 
 const SLEEP: Choice<number>[] = [5, 6, 7, 8, 9].map((h) => ({ value: h, label: `${h} h` }));
 const STRESS: Choice<number>[] = [1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }));
@@ -42,7 +35,7 @@ const EXERCISE: Choice<LifestyleInput['exercise']>[] = [
   { value: '5_plus_week', label: '5+ a week' },
 ];
 
-function ChoiceRow<T>({ choices, value, onPick }: { choices: Choice<T>[]; value: T | null; onPick: (v: T) => void }) {
+function ChoiceRow<T>({ choices, value, onPick }: { choices: Choice<T>[]; value: unknown; onPick: (v: T) => void }) {
   return (
     <View style={styles.chips}>
       {choices.map((c) => (
@@ -54,14 +47,17 @@ function ChoiceRow<T>({ choices, value, onPick }: { choices: Choice<T>[]; value:
 
 // Sleep and stress are chip scales rather than sliders, so every value is reachable with one tap.
 export function StepLifestyleForm({ onChange }: { onChange: (value: LifestyleInput | null) => void }) {
-  const [draft, setDraft] = useState<Draft>({ sleep: null, stress: null, diet: null, smoking: null, alcohol: null, exercise: null });
+  const [draft, patchDraft] = useLifestyleDraft();
 
-  function set<K extends keyof Draft>(key: K, value: Draft[K]) {
-    const next = { ...draft, [key]: value };
-    setDraft(next);
-    const complete = Object.values(next).every((v) => v !== null);
-    onChange(complete ? (next as LifestyleInput) : null);
+  function set<K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) {
+    patchDraft({ [key]: value } as Partial<typeof draft>);
   }
+
+  // Report the step as complete only when every choice has been made.
+  useEffect(() => {
+    const complete = Object.values(draft).every((v) => v !== null);
+    onChange(complete ? (draft as LifestyleInput) : null);
+  }, [draft, onChange]);
 
   return (
     <View style={styles.form}>

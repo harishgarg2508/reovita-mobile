@@ -9,14 +9,33 @@ import {
   PURGE,
   REGISTER,
   REHYDRATE,
+  createMigrate,
 } from 'redux-persist';
 
 import { consentReducer } from '@/entities/consent';
+import { onboardingReducer } from '@/entities/onboarding';
 import { preferencesReducer } from '@/entities/preferences';
 import { sessionReducer } from '@/entities/session';
 import { pendingUploadsReducer } from '@/features/report-upload';
 
 // The session is not saved on the device. It is restored from the refresh token and confirmed with the server.
+// Onboarding form values survive app restarts.
+const persistedOnboardingReducer = persistReducer(
+  {
+    key: 'onboarding',
+    storage: AsyncStorage,
+    version: 2,
+    // v2 changed the history draft shape. Drafts saved by v1 are reset to the initial state.
+    migrate: createMigrate({
+      2: (state) => ({
+        ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v2' }),
+        _persist: state?._persist ?? { version: 2, rehydrated: true },
+      }),
+    }),
+  },
+  onboardingReducer,
+);
+
 // The consent flow (current screen and each consent choice) survives app restarts.
 const persistedConsentReducer = persistReducer(
   { key: 'consent', storage: AsyncStorage, version: 1 },
@@ -29,6 +48,7 @@ const rootReducer = combineReducers({
   pendingUploads: pendingUploadsReducer,
   preferences: preferencesReducer,
   consent: persistedConsentReducer,
+  onboarding: persistedOnboardingReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
