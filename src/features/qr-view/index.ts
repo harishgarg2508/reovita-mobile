@@ -1,2 +1,1 @@
-// index.ts - placeholder
-export {};
+export { SubjectQr } from './ui/subject-qr';

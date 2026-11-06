@@ -2,7 +2,10 @@ import type React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter, type Tabs } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Dimensions,
   Image,
   Pressable,
   StyleSheet,
@@ -21,6 +24,9 @@ const CREST_SVG = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.w3.or
 </svg>`;
 
 const CREST_URI = `data:image/svg+xml;utf8,${encodeURIComponent(CREST_SVG)}`;
+
+const INDICATOR_WIDTH = 26;
+const INITIAL_DOCK_WIDTH = Dimensions.get('window').width - 28;
 
 interface TabMeta {
   label: string;
@@ -52,15 +58,125 @@ const TAB_META: Record<string, TabMeta> = {
   },
 };
 
+const TAB_INDEX_MAP: Record<string, number> = {
+  dashboard: 0,
+  medications: 1,
+  timeline: 2,
+  settings: 3,
+};
+
+/**
+ * Calculates the exact center X position for tab at logical index (0..3) within dockSurface.
+ */
+function getTabCenterX(index: number, dockWidth: number): number {
+  const paddingLeft = 6;
+  const centerGap = 58;
+  const availableWidth = Math.max(0, dockWidth - 12 - centerGap);
+  const tabWidth = availableWidth / 4;
+
+  if (index === 0) return paddingLeft + tabWidth * 0.5;
+  if (index === 1) return paddingLeft + tabWidth * 1.5;
+  if (index === 2) return paddingLeft + tabWidth * 2 + centerGap + tabWidth * 0.5;
+  return paddingLeft + tabWidth * 2 + centerGap + tabWidth * 1.5;
+}
+
+/**
+ * Animated individual tab item with subtle lift & spring scale pop on select.
+ */
+function AnimatedTabItem({
+  route,
+  isFocused,
+  meta,
+  onPress,
+}: {
+  route: TabRoute;
+  isFocused: boolean;
+  meta: TabMeta;
+  onPress: () => void;
+}) {
+  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const [liftAnim] = useState(() => new Animated.Value(isFocused ? -2.5 : 0));
+
+  useEffect(() => {
+    if (isFocused) {
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.15,
+            duration: 120,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 4,
+            tension: 100,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.spring(liftAnim, {
+          toValue: -2.5,
+          friction: 6,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 5,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(liftAnim, {
+          toValue: 0,
+          friction: 6,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isFocused, scaleAnim, liftAnim]);
+
+  const color = isFocused ? '#7545ED' : '#8E8B99';
+
+  return (
+    <Pressable
+      key={route.key}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isFocused }}
+      accessibilityLabel={meta.label}
+      onPress={onPress}
+      style={styles.tabBtn}>
+      <Animated.View
+        style={[
+          styles.tabIconWrap,
+          {
+            transform: [{ translateY: liftAnim }, { scale: scaleAnim }],
+          },
+        ]}>
+        {meta.renderIcon(color, isFocused)}
+      </Animated.View>
+      <Text
+        style={[
+          styles.tabLabel,
+          { color },
+          isFocused ? styles.tabLabelActive : null,
+        ]}>
+        {meta.label}
+      </Text>
+      <View style={styles.indicatorSpacer} />
+    </Pressable>
+  );
+}
+
 /**
  * Reovita Floating Bottom Dock Navigation Bar.
- * Exact recreation of the Figma design:
- * - Floating rounded white pill dock with soft shadow and subtle border
- * - Curved center crest embracing the central purple action button
- * - Center FAB: royal purple circle (#7545ED) with white Reovita dual-leaf sprout emblem
+ * Exact recreation of the Figma design with smooth shifting animations:
+ * - Fluid sliding & stretching active underline indicator that shifts horizontally across tabs
+ * - Active tab icon spring lift and bounce
+ * - Center FAB: royal purple circle with white Reovita dual-leaf sprout emblem and spring press response
  * - Tabs: Home, Insights, [Center Sprout FAB], Records, Profile
- * - Active tab: royal purple color (#7545ED) with matching purple underline pill
- * - Inactive tab: neutral grey (#8E8B99)
  */
 export function BottomDock({
   state,
@@ -70,6 +186,74 @@ export function BottomDock({
   insets,
 }: BottomTabBarProps) {
   const router = useRouter();
+  const [dockWidth, setDockWidth] = useState(INITIAL_DOCK_WIDTH);
+
+  // Determine active logical tab index (0: Home, 1: Insights, 2: Records, 3: Profile)
+  const activeRouteName = state.routes[state.index]?.name ?? 'dashboard';
+  const activeLogicalIndex = TAB_INDEX_MAP[activeRouteName] ?? 0;
+
+  // Sliding active indicator values held in state per React 19 guidelines
+  const [indicatorX] = useState(
+    () =>
+      new Animated.Value(
+        getTabCenterX(activeLogicalIndex, INITIAL_DOCK_WIDTH) - INDICATOR_WIDTH / 2
+      )
+  );
+  const [indicatorScaleX] = useState(() => new Animated.Value(1));
+  const isInitialMountRef = useRef(true);
+
+  // Center FAB tactile spring scale
+  const [fabScale] = useState(() => new Animated.Value(1));
+
+  // Fluid sliding animation whenever active tab or dock width changes
+  useEffect(() => {
+    const targetX = getTabCenterX(activeLogicalIndex, dockWidth) - INDICATOR_WIDTH / 2;
+
+    if (!isInitialMountRef.current) {
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(indicatorScaleX, {
+            toValue: 1.35,
+            duration: 110,
+            useNativeDriver: true,
+          }),
+          Animated.spring(indicatorScaleX, {
+            toValue: 1,
+            friction: 5,
+            tension: 90,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.spring(indicatorX, {
+          toValue: targetX,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      isInitialMountRef.current = false;
+      indicatorX.setValue(targetX);
+    }
+  }, [activeLogicalIndex, dockWidth, indicatorX, indicatorScaleX]);
+
+  const handleFabPressIn = () => {
+    Animated.spring(fabScale, {
+      toValue: 0.9,
+      friction: 5,
+      tension: 140,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleFabPressOut = () => {
+    Animated.spring(fabScale, {
+      toValue: 1,
+      friction: 4,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const handleFabPress = () => {
     tapConfirm();
@@ -92,8 +276,6 @@ export function BottomDock({
       renderIcon: (color: string) => <Ionicons name="ellipse" size={18} color={color} />,
     };
 
-    const color = isFocused ? '#7545ED' : '#8E8B99';
-
     const onPress = () => {
       const event = emitter.emit({
         type: 'tabPress',
@@ -108,29 +290,13 @@ export function BottomDock({
     };
 
     return (
-      <Pressable
+      <AnimatedTabItem
         key={route.key}
-        accessibilityRole="button"
-        accessibilityState={{ selected: isFocused }}
-        accessibilityLabel={meta.label}
+        route={route}
+        isFocused={isFocused}
+        meta={meta}
         onPress={onPress}
-        style={styles.tabBtn}>
-        <View style={styles.tabIconWrap}>{meta.renderIcon(color, isFocused)}</View>
-        <Text
-          style={[
-            styles.tabLabel,
-            { color },
-            isFocused ? styles.tabLabelActive : null,
-          ]}>
-          {meta.label}
-        </Text>
-        <View
-          style={[
-            styles.activeIndicator,
-            { backgroundColor: isFocused ? '#7545ED' : 'transparent' },
-          ]}
-        />
-      </Pressable>
+      />
     );
   };
 
@@ -144,7 +310,9 @@ export function BottomDock({
         },
       ]}>
       {/* Floating White Dock Surface */}
-      <View style={styles.dockSurface}>
+      <View
+        style={styles.dockSurface}
+        onLayout={(e) => setDockWidth(e.nativeEvent.layout.width)}>
         {/* Center Crest SVG that swells upward */}
         <View pointerEvents="none" style={styles.crestWrap}>
           <ExpoImage
@@ -153,6 +321,20 @@ export function BottomDock({
             contentFit="contain"
           />
         </View>
+
+        {/* Sliding & Stretching Active Indicator Pill */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.slidingIndicator,
+            {
+              transform: [
+                { translateX: indicatorX },
+                { scaleX: indicatorScaleX },
+              ],
+            },
+          ]}
+        />
 
         {/* Left Tabs: Home, Insights */}
         <View style={styles.halfTabs}>
@@ -169,17 +351,27 @@ export function BottomDock({
       </View>
 
       {/* Center Floating Action Button with White Dual-Leaf Sprout */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Upload medical report"
-        onPress={handleFabPress}
-        style={styles.fabBtn}>
-        <Image
-          source={require('../../assets/images/reovita-sprout.png')}
-          style={styles.fabIcon}
-          resizeMode="contain"
-        />
-      </Pressable>
+      <Animated.View
+        style={[
+          styles.fabWrap,
+          {
+            transform: [{ scale: fabScale }],
+          },
+        ]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Upload medical report"
+          onPressIn={handleFabPressIn}
+          onPressOut={handleFabPressOut}
+          onPress={handleFabPress}
+          style={styles.fabBtn}>
+          <Image
+            source={require('../../assets/images/reovita-sprout.png')}
+            style={styles.fabIcon}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -223,6 +415,16 @@ const styles = StyleSheet.create({
     width: 104,
     height: 28,
   },
+  slidingIndicator: {
+    position: 'absolute',
+    left: 0,
+    bottom: 4,
+    width: INDICATOR_WIDTH,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: '#7545ED',
+    zIndex: 5,
+  },
   halfTabs: {
     flex: 1,
     flexDirection: 'row',
@@ -257,16 +459,18 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     fontFamily: 'Poppins_600SemiBold',
   },
-  activeIndicator: {
+  indicatorSpacer: {
     width: 26,
     height: 2.5,
-    borderRadius: 2,
     marginTop: 3,
   },
-  fabBtn: {
+  fabWrap: {
     position: 'absolute',
     top: -12,
     alignSelf: 'center',
+    zIndex: 10,
+  },
+  fabBtn: {
     width: 52,
     height: 52,
     borderRadius: 26,
@@ -278,7 +482,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 10,
     elevation: 12,
-    zIndex: 10,
   },
   fabIcon: {
     width: 28,

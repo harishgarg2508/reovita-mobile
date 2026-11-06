@@ -17,6 +17,7 @@ export default function TabsLayout() {
       tabBar={(props) => <BottomDock {...props} />}
       screenOptions={{
         headerShown: false,
+        animation: 'shift',
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',

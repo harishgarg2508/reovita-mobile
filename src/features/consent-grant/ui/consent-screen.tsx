@@ -107,7 +107,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
       router.replace('/(app)/(tabs)/dashboard');
     } catch (err) {
       if (isApiError(err) && err.status === 428) {
-        router.replace('/onboarding/index');
+        router.replace('/onboarding');
       } else {
         router.replace('/(app)/(tabs)/dashboard');
       }
