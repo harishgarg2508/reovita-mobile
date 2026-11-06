@@ -1,0 +1,2 @@
+// flags.ts - placeholder
+export {};

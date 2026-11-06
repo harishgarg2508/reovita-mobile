@@ -1,0 +1,34 @@
+:root {
+  /* Brand palette (Reovita — Your Health, Our DNA). Named by hex so no role is assumed. */
+  --color-171717: #171717;
+  --color-ffffff: #ffffff;
+  --color-7545ed: #7545ed;
+  --color-d4ff3f: #d4ff3f;
+  --color-fbfaff: #fbfaff;
+  --color-3d5500: #3d5500;
+  --color-e34255: #e34255;
+  --color-c22f43: #c22f43;
+  --color-fdeef0: #fdeef0;
+  --color-f4ffd6: #f4ffd6;
+  --color-14121c: #14121c;
+  --color-f3f1f7: #f3f1f7;
+  --color-f7f5f0: #f7f5f0;
+  --color-7aa800: #7aa800;
+  --color-d4a64a: #d4a64a;
+
+  --font-display:
+    'Poppins', 'Poppins Fallback', ui-sans-serif, system-ui, sans-serif,
+    Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+
+  /* Typography: Poppins for headings (sans serif). */
+  --font-heading: 'Poppins', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+}

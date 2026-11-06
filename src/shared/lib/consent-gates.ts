@@ -1,0 +1,2 @@
+// consent.ts - placeholder
+export {};
