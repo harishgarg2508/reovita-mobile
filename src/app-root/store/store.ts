@@ -16,12 +16,7 @@ import { preferencesReducer } from '@/entities/preferences';
 import { sessionReducer } from '@/entities/session';
 import { pendingUploadsReducer } from '@/features/report-upload';
 
-// The signed-in session survives app restarts, so the user stays signed in until they sign out.
-const persistedSessionReducer = persistReducer(
-  { key: 'session', storage: AsyncStorage, version: 1 },
-  sessionReducer,
-);
-
+// The session is not saved on the device. It is restored from the refresh token and confirmed with the server.
 // The consent flow (current screen and each consent choice) survives app restarts.
 const persistedConsentReducer = persistReducer(
   { key: 'consent', storage: AsyncStorage, version: 1 },
@@ -30,7 +25,7 @@ const persistedConsentReducer = persistReducer(
 
 // Root reducer. Each slice is owned by its FSD layer and reached only through its index.ts.
 const rootReducer = combineReducers({
-  session: persistedSessionReducer,
+  session: sessionReducer,
   pendingUploads: pendingUploadsReducer,
   preferences: preferencesReducer,
   consent: persistedConsentReducer,

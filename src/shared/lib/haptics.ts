@@ -4,3 +4,9 @@ import * as Haptics from 'expo-haptics';
 export function tapConfirm(): void {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
 }
+
+// Subtle selection tap for wheel pickers and dialers.
+export function tapSelection(): void {
+  Haptics.selectionAsync().catch(() => undefined);
+}
+

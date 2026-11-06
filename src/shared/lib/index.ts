@@ -1,1 +1,1 @@
-export { tapConfirm } from './haptics';
+export { tapConfirm, tapSelection } from './haptics';

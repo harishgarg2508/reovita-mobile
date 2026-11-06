@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,7 +18,7 @@ import { StepIdentityForm } from './step-identity-form';
 import { StepLifestyleForm } from './step-lifestyle-form';
 
 const STEP_DATA = [
-  { title: 'Tell us about you', subtitle: "Let's start with some basic details" },
+  { title: 'Vitals', subtitle: 'A few basics. A better picture of you.' },
   { title: 'Your Health Details', subtitle: 'Help us understand your health' },
   { title: 'Lifestyle & Habits', subtitle: 'Tell us about your daily routines' },
   { title: 'Your First Report', subtitle: 'Upload a lab report to get instant interpretation' },
@@ -70,6 +71,7 @@ export function OnboardingStepper({ step }: { step: number }) {
   return (
     <View style={styles.screen}>
       <ScrollView
+        nestedScrollEnabled={true}
         contentContainerStyle={[
           styles.container,
           {
@@ -77,23 +79,13 @@ export function OnboardingStepper({ step }: { step: number }) {
             paddingBottom: Math.max(insets.bottom, 20) + 16,
           },
         ]}>
-        {/* Top Header: Back & Skip */}
-        {step > 1 ? (
-          <View style={styles.headerBar}>
-            <Pressable accessibilityRole="button" onPress={back} style={styles.headerBtn}>
-              <Text style={styles.backChevron}>←</Text>
-            </Pressable>
+
+        {/* Intro: step context row, heading, description */}
+        <View style={styles.intro}>
+          <View style={styles.contextRow}>
+            <Text style={styles.stepBadge}>STEP {step} OF 4</Text>
+            <Text style={styles.requirement}>{step === 1 ? 'Mandatory' : 'Optional'}</Text>
           </View>
-        ) : null}
-
-        {/* Progress Bar */}
-        <View style={styles.progressWrap}>
-          <ProgressBar percent={percent} color="#84CC16" />
-        </View>
-
-        {/* Step Indicator & Header */}
-        <View style={styles.titleSection}>
-          <Text style={styles.stepBadge}>Step {step} of 4</Text>
           <Text style={styles.title}>{current.title}</Text>
           <Text style={styles.subtitle}>{current.subtitle}</Text>
         </View>
@@ -117,16 +109,24 @@ export function OnboardingStepper({ step }: { step: number }) {
         </View>
 
         {/* Footer Actions */}
+      </ScrollView>
+      <View style={[styles.footerFixed, { paddingBottom: Math.max(insets.bottom, 20) + 8 }]}>
         <View style={styles.actionWrap}>
+          {step === 1 ? <Text style={styles.footerNote}>All fields required</Text> : null}
           <View style={styles.buttonGroup}>
             {step > 1 ? (
-              <Pressable accessibilityRole="button" onPress={next} style={styles.skipButton}>
-                <Text style={styles.skipButtonText}>Skip</Text>
-              </Pressable>
+              <>
+                <Pressable accessibilityRole="button" onPress={back} style={styles.skipButton}>
+                  <Text style={styles.skipButtonText}>Back</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={next} style={styles.skipButton}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </Pressable>
+              </>
             ) : null}
             <View style={styles.nextGroupItem}>
               <Button
-                label={step === 4 ? 'Complete Onboarding' : 'Next'}
+                label={step === 4 ? 'Complete Onboarding' : step === 1 ? 'Continue' : 'Next'}
                 disabled={!canSave || save.isPending}
                 onPress={step === 4 ? next : onSave}
               />
@@ -137,7 +137,7 @@ export function OnboardingStepper({ step }: { step: number }) {
         {save.isError ? (
           <Text style={styles.errorText}>Could not save this step. Please check your entries.</Text>
         ) : null}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -186,10 +186,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#171717',
-    letterSpacing: -0.5,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -1.1,
+    color: '#242032',
   },
   subtitle: {
     fontSize: 15,
@@ -199,6 +200,7 @@ const styles = StyleSheet.create({
   },
   stepBody: {
     flex: 1,
+    marginTop: 24,
     marginBottom: 24,
   },
   reportUploadSection: {
@@ -209,6 +211,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: '#171717',
+  },
+  navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60 },
+  navSide: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  navSideRight: { width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
+  navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 },
+  dotActive: { width: 20, height: 6, borderRadius: 999, backgroundColor: '#7545ED', marginHorizontal: 12 },
+  dotDone: { width: 6, height: 6, borderRadius: 999, backgroundColor: '#D4FF3F', marginHorizontal: 19 },
+  dotUpcoming: { width: 6, height: 6, borderRadius: 999, backgroundColor: '#E5E0EC', marginHorizontal: 19 },
+  percentText: { fontFamily: 'Poppins_500Medium', fontSize: 11, color: '#6B7280' },
+  intro: { gap: 8 },
+  contextRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  requirement: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: '#6B7280' },
+  footerNote: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280', marginBottom: 8 },
+  footerFixed: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E0EC',
   },
   actionWrap: {
     width: '100%',

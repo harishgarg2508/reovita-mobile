@@ -1,21 +1,32 @@
-import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, type PropsWithChildren } from 'react';
 
 import { useAppDispatch } from '@app-root/store';
-import { sessionCleared } from '@entities/session';
-import { getFirebaseAuth } from '@shared/lib/firebase';
+import { sessionCleared, sessionReady } from '@entities/session';
+import { api, refreshSession } from '@shared/api';
 
-// Keeps the app's session in step with Firebase. If Firebase has no signed-in user
-// (signed out, or the saved login was removed), the session is cleared and the gate sends the user to login.
+// On start-up the session is restored from the stored refresh token, then confirmed with the server.
+// The app is signed in only when the server accepts the access token.
 export function SessionProvider({ children }: PropsWithChildren) {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) return undefined;
-    return onAuthStateChanged(auth, (user) => {
-      if (!user) dispatch(sessionCleared());
-    });
+    let cancelled = false;
+    (async () => {
+      const session = await refreshSession();
+      if (!session) {
+        if (!cancelled) dispatch(sessionCleared());
+        return;
+      }
+      try {
+        await api.get('/v1/onboarding/status');
+        if (!cancelled) dispatch(sessionReady({ subjectId: session.codename, codename: session.codename }));
+      } catch {
+        if (!cancelled) dispatch(sessionCleared());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   return <>{children}</>;
