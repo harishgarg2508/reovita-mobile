@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -13,7 +14,6 @@ import { ThemeToggle, useResolvedScheme } from '@shared/ui/theme';
 import { Brand } from '@shared/ui/theme/tokens';
 import { CompletenessBanner } from '@widgets/completeness-banner';
 import { CriticalHealthBanner } from '@widgets/critical-health-banner';
-import { HealthScoreCard } from '@widgets/health-score-card';
 import { LatestBriefingCard } from '@widgets/latest-briefing-card';
 import { ReportTimelineList } from '@widgets/report-timeline-list';
 
@@ -41,11 +41,11 @@ export default function DashboardRoute() {
   useEffect(() => {
     const shakeAnim = Animated.sequence([
       Animated.delay(400),
-      Animated.timing(bellShake, { toValue: -12, duration: 80, useNativeDriver: true }),
-      Animated.timing(bellShake, { toValue: 12, duration: 80, useNativeDriver: true }),
-      Animated.timing(bellShake, { toValue: -8, duration: 80, useNativeDriver: true }),
-      Animated.timing(bellShake, { toValue: 8, duration: 80, useNativeDriver: true }),
-      Animated.timing(bellShake, { toValue: 0, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellShake, { toValue: -12, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(bellShake, { toValue: 12, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(bellShake, { toValue: -8, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(bellShake, { toValue: 8, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(bellShake, { toValue: 0, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
     ]);
     shakeAnim.start();
   }, [bellShake]);
@@ -107,10 +107,7 @@ export default function DashboardRoute() {
       {data?.critical_banner ? <CriticalHealthBanner /> : null}
 
       {/* Profile Incomplete Banner: shown only when the server asks for it */}
-      {data?.banner === 'amber' ? <CompletenessBanner /> : null}
-
-      {/* Health Score Card: real score, or the unlock hint until a report is confirmed */}
-      <HealthScoreCard score={data?.health_score ?? null} unlockLine={data?.unlock_lines[0]} />
+      {data && data.percent < 100 ? <CompletenessBanner percent={data.percent} /> : null}
 
       {/* Latest Daily Briefing Card: only when the server has a briefing */}
       {data?.briefing ? <LatestBriefingCard briefing={data.briefing} /> : null}

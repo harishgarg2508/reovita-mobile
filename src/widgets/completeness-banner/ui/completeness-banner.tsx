@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileAvatarBadge } from '@shared/ui';
+import { ProgressBar } from '@shared/ui/progress-bar';
 
 const STEP_NUMBER: Record<OnboardingStepKey, OnboardingStepNumber> = {
   basics: 1,
@@ -20,7 +21,7 @@ const STEP_NUMBER: Record<OnboardingStepKey, OnboardingStepNumber> = {
  * - "Complete Your Profile" title & "Get better insights" subtitle
  * - "Complete" royal purple pill button
  */
-export function CompletenessBanner() {
+export function CompletenessBanner({ percent }: { percent?: number }) {
   const router = useRouter();
   const status = useProfileCompleteness();
   const nextStep = status.data?.next_step ?? 'basics';
@@ -37,6 +38,12 @@ export function CompletenessBanner() {
       <View style={styles.textWrap}>
         <Text style={styles.title}>Complete Your Profile</Text>
         <Text style={styles.subtitle}>Get better insights</Text>
+        {percent !== undefined ? (
+          <View style={{ marginTop: 8, gap: 4 }}>
+            <ProgressBar percent={percent} />
+            <Text style={styles.subtitle}>{percent}% complete</Text>
+          </View>
+        ) : null}
       </View>
       <Pressable
         accessibilityRole="button"

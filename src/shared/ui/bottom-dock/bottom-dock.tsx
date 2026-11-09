@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import type React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -104,20 +105,20 @@ function AnimatedTabItem({
           Animated.timing(scaleAnim, {
             toValue: 1.15,
             duration: 120,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.spring(scaleAnim, {
             toValue: 1,
             friction: 4,
             tension: 100,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
         Animated.spring(liftAnim, {
           toValue: -2.5,
           friction: 6,
           tension: 80,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
     } else {
@@ -126,13 +127,13 @@ function AnimatedTabItem({
           toValue: 1,
           friction: 5,
           tension: 100,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.spring(liftAnim, {
           toValue: 0,
           friction: 6,
           tension: 80,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
     }
@@ -215,20 +216,20 @@ export function BottomDock({
           Animated.timing(indicatorScaleX, {
             toValue: 1.35,
             duration: 110,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.spring(indicatorScaleX, {
             toValue: 1,
             friction: 5,
             tension: 90,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
         Animated.spring(indicatorX, {
           toValue: targetX,
           friction: 7,
           tension: 70,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
     } else {
@@ -242,7 +243,7 @@ export function BottomDock({
       toValue: 0.9,
       friction: 5,
       tension: 140,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   };
 
@@ -251,7 +252,7 @@ export function BottomDock({
       toValue: 1,
       friction: 4,
       tension: 100,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   };
 

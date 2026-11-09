@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +26,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
     Animated.timing(animFade, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
 
     const timer = Animated.timing(progress, {

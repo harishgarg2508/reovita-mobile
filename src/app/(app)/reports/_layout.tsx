@@ -1,6 +1,6 @@
-// Route placeholder. Replace with the screen.
-import { View } from 'react-native';
+import { Stack } from 'expo-router';
 
-export default function Screen() {
-  return <View />;
+// Reports stack: upload, manual entry, retake, and report detail. Headers are drawn by each screen.
+export default function ReportsLayout() {
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFFFFF' } }} />;
 }

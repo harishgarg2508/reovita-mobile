@@ -30,7 +30,13 @@ function bmiCategory(bmi: number): 'Under' | 'Healthy' | 'Over' | 'Obese' {
 const CATEGORY_ORDER: ('Under' | 'Healthy' | 'Over' | 'Obese')[] = ['Under', 'Healthy', 'Over', 'Obese'];
 
 // Step 1: birth year, sex, height and weight. BMI is worked out from height and weight.
-export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput | null) => void }) {
+export function StepIdentityForm({
+  onChange,
+  showErrors = false,
+}: {
+  onChange: (value: BasicsInput | null) => void;
+  showErrors?: boolean;
+}) {
   const [draft, patchDraft] = useBasicsDraft();
 
   function update(patch: Partial<typeof draft>) {
@@ -55,6 +61,10 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
   const kg = Number(draft.weight);
   const bmi = cm >= 50 && kg >= 20 ? kg / ((cm / 100) * (cm / 100)) : null;
   const category = bmi !== null ? bmiCategory(bmi) : null;
+  // Required fields that are still empty or out of range are highlighted, only after Continue was pressed.
+  const sexMissing = showErrors && draft.sex === null;
+  const heightMissing = showErrors && !(cm >= 50 && cm <= 260);
+  const weightMissing = showErrors && !(kg >= 20 && kg <= 400);
 
   return (
     <View style={styles.form}>
@@ -77,7 +87,7 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
           </View>
           <Text style={styles.label}>Sex *</Text>
         </View>
-        <View style={styles.segments}>
+        <View style={[styles.segments, sexMissing && styles.fieldError]}>
           {SEX_SEGMENTS.map((seg) => {
             const selected = draft.sex === seg.value;
             return (
@@ -103,7 +113,7 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
             </View>
             <Text style={styles.label}>Height *</Text>
           </View>
-          <View style={styles.numeric}>
+          <View style={[styles.numeric, heightMissing && styles.fieldError]}>
             <TextInput
               style={styles.numericValue}
               keyboardType="decimal-pad"
@@ -122,7 +132,7 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
             </View>
             <Text style={styles.label}>Weight *</Text>
           </View>
-          <View style={styles.numeric}>
+          <View style={[styles.numeric, weightMissing && styles.fieldError]}>
             <TextInput
               style={styles.numericValue}
               keyboardType="decimal-pad"
@@ -167,6 +177,7 @@ export function StepIdentityForm({ onChange }: { onChange: (value: BasicsInput |
 }
 
 const styles = StyleSheet.create({
+  fieldError: { borderColor: '#C22F43', borderWidth: 1.5 },
   form: { gap: 24 },
   block: { gap: 8 },
   labelRow: {

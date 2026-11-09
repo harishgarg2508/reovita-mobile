@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -22,22 +23,22 @@ export function HealthScoreCard({ score, unlockLine }: { score: string | null; u
         Animated.timing(heartScale, {
           toValue: 1.18,
           duration: 350,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(heartScale, {
           toValue: 1,
           duration: 350,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(heartScale, {
           toValue: 1.1,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(heartScale, {
           toValue: 1,
           duration: 850,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     );
@@ -118,6 +119,8 @@ const styles = StyleSheet.create({
   },
   scoreCol: {
     justifyContent: 'center',
+    flex: 1,
+    paddingRight: 12,
   },
   scoreNumberRow: {
     flexDirection: 'row',
@@ -183,6 +186,8 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   unlockText: {
+    width: '100%',
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
     color: '#60646C',

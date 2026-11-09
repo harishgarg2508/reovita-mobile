@@ -1,17 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@shared/ui/button';
 import { tapConfirm } from '@shared/lib';
 
+import { useProfileCompleteness } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '../model/step-href';
 import { useSaveStep } from '../model/use-save-step';
 import type { BasicsInput, HistoryInput, LifestyleInput } from '../model/onboarding.types';
 import { StepConditionsForm } from './step-conditions-form';
-import { StepHeaderBadge } from './step-header-badge';
+import { StepHeaderBadge } from '@shared/ui/step-header-badge';
 import { StepIdentityForm } from './step-identity-form';
 import { StepLifestyleForm } from './step-lifestyle-form';
 import { StepReportPrompt } from './step-report-prompt';
@@ -31,6 +32,14 @@ export function OnboardingStepper({ step }: { step: number }) {
   const [basics, setBasics] = useState<BasicsInput | null>(null);
   const [history, setHistory] = useState<HistoryInput | null>(null);
   const [lifestyle, setLifestyle] = useState<LifestyleInput | null>(null);
+  // Set on the first Continue press that finds missing fields, so they can be highlighted.
+  const [attempted, setAttempted] = useState(false);
+  // Once the report step is complete on the server, Step 4 is not shown again.
+  const status = useProfileCompleteness();
+  const reportsDone = status.data?.steps.reports === true;
+  useEffect(() => {
+    if (step === 4 && reportsDone) router.replace('/(app)/(tabs)/dashboard');
+  }, [step, reportsDone, router]);
 
   const current = STEP_DATA[Math.min(step - 1, STEP_DATA.length - 1)];
 
@@ -52,6 +61,12 @@ export function OnboardingStepper({ step }: { step: number }) {
 
   async function onSave() {
     tapConfirm();
+    // Check the required fields here first. No request is sent until they are valid.
+    const valid = (step === 1 && basics) || (step === 2 && history) || (step === 3 && lifestyle);
+    if (!valid) {
+      setAttempted(true);
+      return;
+    }
     if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
     if (step === 2 && history) await save.mutateAsync({ step: 2, body: history });
     if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
@@ -112,12 +127,12 @@ export function OnboardingStepper({ step }: { step: number }) {
 
         {/* Step Content */}
         <View style={styles.stepBody}>
-          {step === 1 ? <StepIdentityForm onChange={setBasics} /> : null}
+          {step === 1 ? <StepIdentityForm onChange={setBasics} showErrors={attempted} /> : null}
           {step === 2 ? <StepConditionsForm onChange={setHistory} /> : null}
           {step === 3 ? <StepLifestyleForm onChange={setLifestyle} /> : null}
           {step === 4 ? (
             <StepReportPrompt
-              onChoose={() => router.push('/(app)/reports/upload')}
+              onChoose={() => router.push({ pathname: '/onboarding/upload', params: { pick: '1' } })}
               onSkip={() => router.replace('/(app)/(tabs)/dashboard')}
             />
           ) : null}
@@ -147,12 +162,18 @@ export function OnboardingStepper({ step }: { step: number }) {
             <View style={styles.nextGroupItem}>
               <Button
                 label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
-                disabled={!canSave || save.isPending}
+                disabled={save.isPending}
                 onPress={step === 4 ? next : onSave}
               />
             </View>
           </View>
         </View>
+
+        {attempted && !canSave ? (
+          <View style={styles.errorRow}>
+            <Text style={styles.errorText}>Please fill the highlighted fields.</Text>
+          </View>
+        ) : null}
 
         {save.isError ? (
           <View style={styles.errorRow}>

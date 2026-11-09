@@ -18,7 +18,9 @@ export function useConfirmReport() {
       });
       return data;
     },
-    onSuccess: (_result, { reportId }) => {
+    onSuccess: (result, { reportId }) => {
+      // Kept for the report's detail view, so it never has to fetch the observations again.
+      queryClient.setQueryData(queryKeys.report.confirmed(reportId), result);
       queryClient.invalidateQueries({ queryKey: queryKeys.report.root });
       queryClient.invalidateQueries({ queryKey: queryKeys.home.root });
       queryClient.invalidateQueries({ queryKey: queryKeys.score.root });
