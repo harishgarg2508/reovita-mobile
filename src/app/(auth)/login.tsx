@@ -23,6 +23,7 @@ export default function LoginRoute() {
   function onSignIn() {
     signIn.mutate(undefined, {
       onSuccess: (session) => {
+        if (!session) return; // user closed the account picker
         dispatch(sessionReady({ subjectId: session.codename, codename: session.codename }));
         router.replace('/(app)/(tabs)/dashboard');
       },

@@ -210,6 +210,11 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         },
         onError: (err) => {
           setSimulatedAnalyzing(false);
+          // The report was already confirmed (it is DONE): show its interpretation instead of an error.
+          if (isApiError(err, 'invalid_report_state')) {
+            router.replace({ pathname: '/(app)/reports/interpretation/[id]', params: { id: reportId } });
+            return;
+          }
           if (isApiError(err, 'llm_consent_required')) {
             setLlmSheetOpen(true);
           }
@@ -541,6 +546,16 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       </View>
 
       {/* Dual Action Buttons: [ Edit ] and [ Confirm ] */}
+      {status === 'DONE' ? (
+        <View style={styles.dualActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace({ pathname: '/(app)/reports/interpretation/[id]', params: { id: reportId } })}
+            style={[styles.confirmBtn, { flex: 1 }]}>
+            <Text style={styles.confirmBtnText}>View analysis</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.dualActionRow}>
         <Animated.View style={[{ flex: 1 }, { transform: [{ scale: btnScale1 }] }]}>
           <Pressable
@@ -564,6 +579,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           </Pressable>
         </Animated.View>
       </View>
+      )}
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}

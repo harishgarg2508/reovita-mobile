@@ -32,9 +32,13 @@ export function NotificationCenter() {
   const hasUnread = items.some((item) => item.read_at === null);
 
   function open(item: NotificationItem) {
-    if (item.read_at === null) markRead.mutate(item.id);
+    // Already read: it was opened before, so a tap does not open the report again.
+    if (item.read_at !== null) return;
+    markRead.mutate(item.id);
     if (item.report_id) {
-      router.push({ pathname: '/(app)/reports/[id]', params: { id: item.report_id } });
+      // A finished analysis opens its interpretation; other report notifications open the review.
+      const route = item.type === 'REPORT_DONE' ? '/(app)/reports/interpretation/[id]' : '/(app)/reports/[id]';
+      router.push({ pathname: route, params: { id: item.report_id } });
     }
   }
 
