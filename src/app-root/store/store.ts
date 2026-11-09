@@ -24,12 +24,17 @@ const persistedOnboardingReducer = persistReducer(
   {
     key: 'onboarding',
     storage: AsyncStorage,
-    version: 2,
-    // v2 changed the history draft shape. Drafts saved by v1 are reset to the initial state.
+    version: 3,
+    // v2 changed the history draft shape, and v3 removes the sample step-2 selections.
+    // Drafts saved before are reset to the initial state.
     migrate: createMigrate({
       2: (state) => ({
         ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v2' }),
         _persist: state?._persist ?? { version: 2, rehydrated: true },
+      }),
+      3: (state) => ({
+        ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v3' }),
+        _persist: state?._persist ?? { version: 3, rehydrated: true },
       }),
     }),
   },

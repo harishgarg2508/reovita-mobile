@@ -21,6 +21,8 @@ export const queryKeys = {
     root: ['report'] as const,
     observations: (id: string) => [...queryKeys.report.root, 'observations', id] as const,
     interpretation: (id: string) => [...queryKeys.report.root, 'interpretation', id] as const,
+    confirmed: (id: string) => [...queryKeys.report.root, 'confirmed', id] as const,
+    list: () => [...queryKeys.report.root, 'list'] as const,
   },
   knowledge: {
     root: ['knowledge'] as const,

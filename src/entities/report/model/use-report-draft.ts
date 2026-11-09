@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { queryKeys } from '@shared/api';
+import { isApiError, queryKeys } from '@shared/api';
 
 import { fetchReportObservations } from './report.api';
 
-// While OCR is still running the draft is not ready, so poll every 2 seconds until it arrives.
-export function useReportDraft(reportId: string) {
+// Observations are fetched once, when the report is ready (see useReportStatus). Nothing polls.
+export function useReportDraft(reportId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.report.observations(reportId),
     queryFn: () => fetchReportObservations(reportId),
-    enabled: reportId.length > 0,
-    refetchInterval: (query) => (query.state.data ? false : 2000),
-    retry: false,
+    enabled: reportId.length > 0 && (options?.enabled ?? true),
+    // 409 report_processing means the report is still being read. Retry a bounded number of times, then stop.
+    retry: (failureCount, error) => isApiError(error) && error.status === 409 && failureCount < 40,
+    retryDelay: 3000,
   });
 }

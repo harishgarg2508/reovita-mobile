@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useMemo, useState } from 'react';
 import {
   Animated,
@@ -59,7 +60,7 @@ export function GetStartedButton({
             Animated.timing(translateX, {
               toValue: currentMax,
               duration: 150,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }).start(() => {
               tapConfirm();
               onPress();
@@ -74,13 +75,13 @@ export function GetStartedButton({
               Animated.timing(translateX, {
                 toValue: Math.min(36, currentMax * 0.3),
                 duration: 160,
-                useNativeDriver: true,
+                useNativeDriver: USE_NATIVE_DRIVER,
               }),
               Animated.spring(translateX, {
                 toValue: 0,
                 bounciness: 9,
                 speed: 18,
-                useNativeDriver: true,
+                useNativeDriver: USE_NATIVE_DRIVER,
               }),
             ]).start();
           } else {
@@ -88,7 +89,7 @@ export function GetStartedButton({
               toValue: 0,
               bounciness: 6,
               speed: 20,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }).start();
           }
         },

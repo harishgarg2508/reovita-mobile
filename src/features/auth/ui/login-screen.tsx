@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -62,24 +63,24 @@ export function LoginScreen({ onSignIn, pending, errorMessage }: LoginScreenProp
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.spring(animTitle, {
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(animDivider, {
         toValue: 1,
         duration: 350,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.spring(animButton, {
         toValue: 1,
         tension: 70,
         friction: 7,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
   }, [animLogo, animTitle, animDivider, animButton]);
@@ -87,7 +88,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage }: LoginScreenProp
   function onPressIn() {
     Animated.spring(btnScale, {
       toValue: 0.97,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   }
 
@@ -96,7 +97,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage }: LoginScreenProp
       toValue: 1,
       tension: 100,
       friction: 5,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   }
 

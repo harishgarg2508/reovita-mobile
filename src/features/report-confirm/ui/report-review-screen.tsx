@@ -1,85 +1,106 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useConfirmedReport, useReportDraft } from '@entities/report';
+import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
+import { isApiError } from '@shared/api';
 import {
-  useReportDraft,
-  type Observation,
-} from '@entities/report';
-import {
-  ConfettiCelebrationBadge,
+  BottomWaveMist,
   ReviewInfoIcon,
-  SparklesHaloGraphic,
-  SparklineGraphic,
 } from '@shared/ui';
 import { tapConfirm } from '@shared/lib';
+import { Skeleton } from '@shared/ui/skeleton';
+import { ExplanationCard } from '@shared/ui/explanation-card';
+import { CelebrationCheck } from '@shared/ui/celebration-check';
 
 import { useConfirmReport } from '../model/use-confirm-report';
 
-const DEFAULT_MOCK_OBSERVATIONS: Observation[] = [
-  {
-    biomarker_code: 'hgb',
-    name_raw: 'Hemoglobin',
-    value_num: 14.2,
-    unit: 'g/dL',
-    status: 'Normal',
-    source: 'ocr',
-    confidence: 0.98,
-  },
-  {
-    biomarker_code: 'chol',
-    name_raw: 'Cholesterol',
-    value_num: 180,
-    unit: 'mg/dL',
-    status: 'Normal',
-    source: 'ocr',
-    confidence: 0.95,
-  },
-  {
-    biomarker_code: 'vit_d',
-    name_raw: 'Vitamin D',
-    value_num: 32,
-    unit: 'ng/mL',
-    status: 'Normal',
-    source: 'ocr',
-    confidence: 0.92,
-  },
-];
+// Shown while OCR is still running (the server answers 409 report_processing until then).
+const loadingStyles = StyleSheet.create({
+  container: { gap: 16 },
+  title: { fontSize: 18, fontWeight: '800', color: '#171717' },
+  subtitle: { fontSize: 14, color: '#60646C' },
+  error: { fontSize: 14, color: '#C22F43' },
+});
+
+const HERO_CHART_SVG = `<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="80" cy="80" r="76" fill="#F4EFFE" />
+  <rect x="52" y="74" width="8" height="22" rx="4" fill="#7545ED" />
+  <rect x="65" y="44" width="8" height="52" rx="4" fill="#7545ED" />
+  <rect x="78" y="62" width="8" height="34" rx="4" fill="#7545ED" />
+  <rect x="91" y="52" width="8" height="44" rx="4" fill="#7545ED" />
+  <circle cx="103" cy="91" r="13" fill="#F4EFFE" />
+  <line x1="109" y1="97" x2="119" y2="107" stroke="#F4EFFE" stroke-width="7" stroke-linecap="round" />
+  <circle cx="103" cy="91" r="10" stroke="#7545ED" stroke-width="3" fill="#F4EFFE" />
+  <line x1="109" y1="97" x2="119" y2="107" stroke="#7545ED" stroke-width="3.2" stroke-linecap="round" />
+</svg>`;
+const HERO_CHART_URI = `data:image/svg+xml;utf8,${encodeURIComponent(HERO_CHART_SVG)}`;
+
+const SPINNER_RING_SVG = `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="22" cy="22" r="18" stroke="#EDE8F8" stroke-width="3.5" fill="none" />
+  <path d="M 22 4 A 18 18 0 0 1 40 22" stroke="#7545ED" stroke-width="3.5" stroke-linecap="round" fill="none" />
+</svg>`;
+const SPINNER_RING_URI = `data:image/svg+xml;utf8,${encodeURIComponent(SPINNER_RING_SVG)}`;
+
+const DIAMOND_STAR_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 0 C12 6.6 6.6 12 0 12 C6.6 12 12 17.4 12 24 C12 17.4 17.4 12 24 12 C17.4 12 12 6.6 12 0 Z" fill="#9D7BFA" />
+</svg>`;
+const DIAMOND_STAR_URI = `data:image/svg+xml;utf8,${encodeURIComponent(DIAMOND_STAR_SVG)}`;
 
 /**
  * Reovita Review Results & AI Translation Flow.
  * Exact recreation of Image 1, Image 2, and Image 3 with rich animations:
  * - Screen 1: Review Results Table (2-column bordered grid with Hemoglobin, Cholesterol, Vitamin D)
- * - Screen 2: Claude AI is translating your results... (Sparkles halo & floating star over purple mist)
+ * - Screen 2: LLM is processing your results... (Sparkles halo & floating star over purple mist)
  * - Screen 3: Your Report is Ready! (Confetti check badge, "All Normal" pill, Health score wave, Key insights)
  */
 export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const draft = useReportDraft(reportId);
+  // The confirm result is cached by useConfirmReport. Once it exists, observations are not requested again.
+  const confirmed = useConfirmedReport(reportId);
+  // Observations are requested directly (GET). Nothing streams them.
+  const draft = useReportDraft(reportId, { enabled: !confirmed.data });
+  const interpretation = confirmed.data?.interpretation.output_json;
+  const explanations = (interpretation?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
   const confirm = useConfirmReport();
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
   const [showFinalReport, setShowFinalReport] = useState(false);
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
 
-  // Observations to show (use real draft or fallback to exact Figma reference values)
-  const observations =
-    draft.data && draft.data.length > 0
-      ? draft.data
-      : DEFAULT_MOCK_OBSERVATIONS;
+  // Only the server's observations are shown. Until they arrive, the loading state is rendered below.
+  const observations = confirmed.data?.observations ?? draft.data ?? [];
+  const flaggedCount = observations.filter((obs) => obs.status !== 'Normal').length;
 
-  // Animation values for Screen 2 (Sparkles & Floating Mist Star)
+  // Editing happens on this screen. Edited rows replace the server rows, and Confirm sends them.
+  const [editing, setEditing] = useState(false);
+  const [editedRows, setEditedRows] = useState<typeof observations | null>(null);
+  const rows = editedRows ?? observations;
+
+  function editValue(index: number, text: string) {
+    const parsed = Number(text.replace(',', '.'));
+    if (!Number.isFinite(parsed)) return;
+    setEditedRows(rows.map((row, i) => (i === index ? { ...row, value_num: parsed } : row)));
+  }
+
+  // Animation values for Screen 2 (Sparkles & Floating Mist Star & Spinner)
   const [sparkleScale] = useState(() => new Animated.Value(1));
   const [mistStarY] = useState(() => new Animated.Value(0));
+  const [spinAnim] = useState(() => new Animated.Value(0));
 
   // Animation value for Screen 3 (Celebration Pop)
   const [celebrationScale] = useState(() => new Animated.Value(0.7));
@@ -94,14 +115,14 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       const sparkleAnim = Animated.loop(
         Animated.sequence([
           Animated.timing(sparkleScale, {
-            toValue: 1.14,
-            duration: 1200,
-            useNativeDriver: true,
+            toValue: 1.05,
+            duration: 1300,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.timing(sparkleScale, {
             toValue: 1,
-            duration: 1200,
-            useNativeDriver: true,
+            duration: 1300,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ])
       );
@@ -113,23 +134,35 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           Animated.timing(mistStarY, {
             toValue: -8,
             duration: 1400,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.timing(mistStarY, {
             toValue: 0,
             duration: 1400,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ])
       );
       mistStarAnim.start();
 
+      // Looping continuous rotation for spinner ring
+      const spinAnimation = Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        })
+      );
+      spinAnimation.start();
+
       return () => {
         sparkleAnim.stop();
         mistStarAnim.stop();
+        spinAnimation.stop();
       };
     }
-  }, [confirm.isPending, simulatedAnalyzing, sparkleScale, mistStarY]);
+  }, [confirm.isPending, simulatedAnalyzing, sparkleScale, mistStarY, spinAnim]);
 
   useEffect(() => {
     if (showFinalReport) {
@@ -137,70 +170,145 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         toValue: 1,
         tension: 60,
         friction: 6,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }).start();
     }
   }, [showFinalReport, celebrationScale]);
 
-  function onConfirmValues() {
-    tapConfirm();
+  // Opens the AI consent sheet when the server says llm_processing consent is missing.
+  const [llmSheetOpen, setLlmSheetOpen] = useState(false);
+  const grantLlm = useGrantLlmConsent();
+
+  function runConfirm() {
     setSimulatedAnalyzing(true);
 
     confirm.mutate(
-      { reportId, observations },
+      { reportId, observations: rows },
       {
-        onSettled: () => {
-          setTimeout(() => {
-            setSimulatedAnalyzing(false);
-            setShowFinalReport(true);
-          }, 2400);
+        // Keep the loading view until the confirm request answers. A 200 shows the result right away.
+        onSuccess: () => {
+          setSimulatedAnalyzing(false);
+          setShowFinalReport(true);
+        },
+        onError: (err) => {
+          setSimulatedAnalyzing(false);
+          if (isApiError(err, 'llm_consent_required')) {
+            setLlmSheetOpen(true);
+          }
         },
       }
     );
   }
 
+  function onConfirmValues() {
+    tapConfirm();
+    runConfirm();
+  }
+
+  async function onAllowLlm() {
+    try {
+      await grantLlm.mutateAsync();
+    } catch {
+      return; // The sheet stays open so the user can try again.
+    }
+    setLlmSheetOpen(false);
+    runConfirm();
+  }
+
+  function onDeclineLlm() {
+    setLlmSheetOpen(false);
+  }
+
   function onPressIn(anim: Animated.Value) {
-    Animated.spring(anim, { toValue: 0.97, useNativeDriver: true }).start();
+    Animated.spring(anim, { toValue: 0.97, useNativeDriver: USE_NATIVE_DRIVER }).start();
   }
 
   function onPressOut(anim: Animated.Value) {
-    Animated.spring(anim, { toValue: 1, tension: 80, friction: 5, useNativeDriver: true }).start();
+    Animated.spring(anim, { toValue: 1, tension: 80, friction: 5, useNativeDriver: USE_NATIVE_DRIVER }).start();
+  }
+
+  // Loading: the report is still being read (409 report_processing), so show skeletons until a 200 arrives.
+  if (!confirmed.data && !draft.data) {
+    const failed = draft.isError;
+    return (
+      <ScrollView
+        contentContainerStyle={[
+          loadingStyles.container,
+          {
+            paddingHorizontal: 24,
+            paddingTop: Math.max(insets.top, 20) + 8,
+            paddingBottom: Math.max(insets.bottom, 20) + 16,
+          },
+        ]}>
+        <Text style={loadingStyles.title}>Review Results</Text>
+        {failed ? (
+          <Text style={loadingStyles.error}>
+            {isApiError(draft.error, 'report_not_readable')
+              ? 'We could not read this report. Please upload it again.'
+              : 'We could not load this report. Go back and try again.'}
+          </Text>
+        ) : (
+          <>
+            <Text style={loadingStyles.subtitle}>
+              Reading your report. We&apos;ll notify you when your observations are ready.
+            </Text>
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+          </>
+        )}
+      </ScrollView>
+    );
   }
 
   // =========================================================================
-  // SCREEN 2: AI Loading ("Claude AI is translating your results...")
+  // SCREEN 2: LLM processing
   // =========================================================================
   if (confirm.isPending || simulatedAnalyzing) {
+    const spinInterpolate = spinAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg'],
+    });
+
     return (
       <View
         style={[
           styles.screenCenter,
           {
             paddingTop: Math.max(insets.top, 24) + 16,
-            paddingBottom: Math.max(insets.bottom, 24),
+            paddingBottom: insets.bottom,
           },
         ]}>
         <View style={styles.centerHeroSection}>
-          {/* Animated Sparkles Halo Graphic */}
-          <Animated.View
-            style={[
-              styles.sparklesWrap,
-              {
-                transform: [{ scale: sparkleScale }],
-              },
-            ]}>
-            <SparklesHaloGraphic size={114} />
+          {/* Lavender circle with the analysis icon, gently pulsing */}
+          <Animated.View style={[styles.aiLoadingHalo, { transform: [{ scale: sparkleScale }] }]}>
+            <ExpoImage
+              source={{ uri: HERO_CHART_URI }}
+              style={styles.heroChartSvg}
+              contentFit="contain"
+            />
           </Animated.View>
 
           {/* Heading */}
           <Text style={styles.aiLoadingTitle}>
-            Claude AI is{'\n'}translating your{'\n'}results...
+            Our LLM is <Text style={styles.aiLoadingAccent}>processing</Text>
+            {'\n'}your results...
           </Text>
           <Text style={styles.aiLoadingSubtitle}>This may take a moment.</Text>
-        </View>
 
-        {/* Ethereal Wavy Purple Mist & Floating Diamond Star at Bottom */}
-        <View style={styles.mistContainer}>
+          {/* Smooth Animated Spinner Ring */}
+          <View style={styles.spinnerWrap}>
+            <Animated.View style={{ transform: [{ rotate: spinInterpolate }] }}>
+              <ExpoImage
+                source={{ uri: SPINNER_RING_URI }}
+                style={styles.spinnerRing}
+                contentFit="contain"
+              />
+            </Animated.View>
+          </View>
+
           {/* Floating Diamond Star */}
           <Animated.View
             style={[
@@ -209,15 +317,16 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
                 transform: [{ translateY: mistStarY }],
               },
             ]}>
-            <Text style={styles.mistStarText}>✦</Text>
+            <ExpoImage
+              source={{ uri: DIAMOND_STAR_URI }}
+              style={styles.diamondStar}
+              contentFit="contain"
+            />
           </Animated.View>
-
-          {/* Wavy Purple Mist Backdrop */}
-          <View style={styles.wavyMistShape}>
-            <View style={styles.mistCurve1} />
-            <View style={styles.mistCurve2} />
-          </View>
         </View>
+
+        {/* Signature Ethereal Wavy Purple Mist Backdrop */}
+        <BottomWaveMist height={160} />
       </View>
     );
   }
@@ -225,7 +334,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 3: Final Analysis ("Your Report is Ready!")
   // =========================================================================
-  if (showFinalReport) {
+  if (showFinalReport || confirmed.data) {
     return (
       <ScrollView
         contentContainerStyle={[
@@ -243,7 +352,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
               transform: [{ scale: celebrationScale }],
             },
           ]}>
-          <ConfettiCelebrationBadge size={76} />
+          <CelebrationCheck size={76} />
         </Animated.View>
 
         <Text style={styles.readyTitle}>Your Report is Ready!</Text>
@@ -254,44 +363,45 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           <View style={styles.allNormalDot}>
             <View style={styles.allNormalInnerDot} />
           </View>
-          <Text style={styles.allNormalText}>All Normal</Text>
-        </View>
-
-        {/* Health Score Card with Vector Green Wave Sparkline */}
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreCol}>
-            <Text style={styles.scoreCardLabel}>Health Score</Text>
-            <View style={styles.scoreNumRow}>
-              <Text style={styles.scoreBig}>92</Text>
-              <Text style={styles.scoreUpArrow}>↑</Text>
-              <Text style={styles.scoreDenominator}>/100</Text>
-            </View>
-          </View>
-
-          {/* Green Bezier Trend Sparkline */}
-          <View style={styles.sparklineCol}>
-            <SparklineGraphic width={135} height={50} />
-          </View>
+          <Text style={styles.allNormalText}>{flaggedCount === 0 ? 'All Normal' : `${flaggedCount} need attention`}</Text>
         </View>
 
         {/* Key Insights Section */}
         <View style={styles.insightsSection}>
           <Text style={styles.insightsTitle}>Key Insights</Text>
 
-          <View style={styles.insightItem}>
-            <View style={styles.greenCheckCircle}>
-              <Text style={styles.greenCheckText}>✓</Text>
-            </View>
-            <Text style={styles.insightText}>Your values are within normal range.</Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <View style={styles.greenCheckCircle}>
-              <Text style={styles.greenCheckText}>✓</Text>
-            </View>
-            <Text style={styles.insightText}>Keep up the healthy habits!</Text>
-          </View>
+          {interpretation?.summary ? <Text style={styles.insightText}>{interpretation.summary}</Text> : null}
         </View>
+
+        {/* Explanation for each result */}
+        {explanations.length > 0 ? (
+          <View style={styles.insightsSection}>
+            <Text style={styles.insightsTitle}>Explanation</Text>
+            {explanations.map((item, index) => (
+              <ExplanationCard
+                key={`${item.biomarker_code ?? 'item'}-${index}`}
+                status={item.status}
+                biomarkerCode={item.biomarker_code}
+                text={item.text}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Action points, after the explanations */}
+        {(interpretation?.action_points ?? []).length > 0 ? (
+          <View style={styles.insightsSection}>
+            <Text style={styles.insightsTitle}>Action points</Text>
+            {(interpretation?.action_points ?? []).map((point) => (
+              <View key={point} style={styles.insightItem}>
+                <View style={styles.greenCheckCircle}>
+                  <Text style={styles.greenCheckText}>✓</Text>
+                </View>
+                <Text style={styles.insightText}>{point}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {/* Detailed Breakdown Toggle */}
         {showDetailedBreakdown && (
@@ -377,8 +487,8 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 
       {/* 2-Column Observation Table Card with dividers */}
       <View style={styles.tableCard}>
-        {observations.map((obs, index) => {
-          const isLast = index === observations.length - 1;
+        {rows.map((obs, index) => {
+          const isLast = index === rows.length - 1;
           return (
             <View
               key={`${obs.biomarker_code}-${index}`}
@@ -393,9 +503,33 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 
               {/* Right Column: Extracted Value */}
               <View style={styles.valueColumn}>
-                <Text style={styles.biomarkerValue}>
-                  {obs.value_num} {obs.unit}
-                </Text>
+                {editing ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TextInput
+                      defaultValue={String(obs.value_num)}
+                      onChangeText={(text) => editValue(index, text)}
+                      keyboardType="decimal-pad"
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: 15,
+                        fontWeight: '600',
+                        color: '#171717',
+                        paddingHorizontal: 10,
+                        paddingVertical: 7,
+                        borderWidth: 1.5,
+                        borderColor: '#7545ED',
+                        borderRadius: 10,
+                        backgroundColor: '#F8F5FF',
+                      }}
+                    />
+                    <Text style={styles.biomarkerValue}>{obs.unit}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.biomarkerValue}>
+                    {obs.value_num} {obs.unit}
+                  </Text>
+                )}
               </View>
             </View>
           );
@@ -409,9 +543,9 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
             accessibilityRole="button"
             onPressIn={() => onPressIn(btnScale1)}
             onPressOut={() => onPressOut(btnScale1)}
-            onPress={() => router.push('/(app)/reports/manual')}
+            onPress={() => setEditing((value) => !value)}
             style={styles.editBtn}>
-            <Text style={styles.editBtnText}>Edit</Text>
+            <Text style={styles.editBtnText}>{editing ? 'Done' : 'Edit'}</Text>
           </Pressable>
         </Animated.View>
 
@@ -426,11 +560,31 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           </Pressable>
         </Animated.View>
       </View>
+      <LlmConsentSheet
+        visible={llmSheetOpen}
+        pending={grantLlm.isPending}
+        onAllow={onAllowLlm}
+        onDecline={onDeclineLlm}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  aiLoadingHalo: {
+    width: 160,
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroChartSvg: {
+    width: 160,
+    height: 160,
+  },
+  aiLoadingAccent: {
+    color: '#7545ED',
+    fontFamily: 'Poppins_700Bold',
+  },
   container: {
     paddingHorizontal: 24,
     backgroundColor: '#FFFFFF',
@@ -441,8 +595,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 32,
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    position: 'relative',
+    overflow: 'hidden',
   },
   headerBar: {
     flexDirection: 'row',
@@ -575,7 +731,9 @@ const styles = StyleSheet.create({
   centerHeroSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 80,
+    width: '100%',
+    zIndex: 1,
+    paddingBottom: 40,
   },
   sparklesWrap: {
     alignItems: 'center',
@@ -583,68 +741,47 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   aiLoadingTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 26,
     color: '#171717',
     textAlign: 'center',
-    lineHeight: 36,
-    marginBottom: 12,
+    lineHeight: 35,
+    letterSpacing: -0.3,
+    marginTop: 26,
   },
   aiLoadingSubtitle: {
+    fontFamily: 'Poppins_400Regular',
     fontSize: 15,
-    color: '#60646C',
+    color: '#6B7280',
     textAlign: 'center',
+    marginTop: 8,
+    letterSpacing: 0.1,
   },
-  mistContainer: {
-    width: '100%',
+  spinnerWrap: {
+    marginTop: 26,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: 120,
-    position: 'relative',
+    justifyContent: 'center',
+    height: 44,
+  },
+  spinnerRing: {
+    width: 40,
+    height: 40,
   },
   floatingStarWrap: {
-    position: 'absolute',
-    top: 10,
-    alignSelf: 'center',
-    zIndex: 2,
+    marginTop: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 28,
   },
-  mistStarText: {
-    fontSize: 22,
-    color: '#C4B5FD',
-  },
-  wavyMistShape: {
-    width: '120%',
-    height: 70,
-    backgroundColor: '#F3EEFD',
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
-    opacity: 0.85,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  mistCurve1: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 200,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#EBE2FD',
-  },
-  mistCurve2: {
-    position: 'absolute',
-    bottom: -15,
-    right: -20,
-    width: 220,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#E6DCFC',
+  diamondStar: {
+    width: 22,
+    height: 22,
   },
   celebrationWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: 0,
+    marginBottom: 4,
   },
   readyTitle: {
     fontSize: 25,

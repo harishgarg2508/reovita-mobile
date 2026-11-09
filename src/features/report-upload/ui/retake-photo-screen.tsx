@@ -1,3 +1,4 @@
+import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -33,11 +34,11 @@ export function RetakePhotoScreen() {
     // 1. Initial attention shake
     const shakeAnim = Animated.sequence([
       Animated.delay(300),
-      Animated.timing(shakeX, { toValue: -8, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 8, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: -6, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 6, duration: 80, useNativeDriver: true }),
-      Animated.timing(shakeX, { toValue: 0, duration: 80, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -8, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(shakeX, { toValue: 8, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(shakeX, { toValue: -6, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(shakeX, { toValue: 6, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(shakeX, { toValue: 0, duration: 80, useNativeDriver: USE_NATIVE_DRIVER }),
     ]);
     shakeAnim.start();
 
@@ -47,12 +48,12 @@ export function RetakePhotoScreen() {
         Animated.timing(badgeScale, {
           toValue: 1.15,
           duration: 900,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(badgeScale, {
           toValue: 1,
           duration: 900,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     );

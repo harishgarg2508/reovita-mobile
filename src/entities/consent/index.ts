@@ -4,3 +4,5 @@ export { consentReducer, consentScreenSet, consentSelectedSet, consentSaving, co
 export type { ConsentFlowState, ConsentRecord, ConsentScreenId, ConsentSaveStatus } from './model/consent.slice';
 export { selectConsentScreen, selectConsentRecords, selectConsentRecord } from './model/consent.selectors';
 export { useConsentGrants } from './model/use-consent-grants';
+export { useGrantLlmConsent, LLM_CONSENT_VERSION } from './model/use-grant-llm-consent';
+export { LlmConsentSheet } from './ui/llm-consent-sheet';

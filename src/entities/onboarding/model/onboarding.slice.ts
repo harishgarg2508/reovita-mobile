@@ -38,12 +38,13 @@ export const DEFAULT_BIRTH_YEAR = 1995;
 
 const initialState: OnboardingState = {
   basics: { year: DEFAULT_BIRTH_YEAR, sex: null, height: '', weight: '' },
+  // Step 2 starts empty. The user picks each item.
   history: {
-    conditions: ['Asthma'],
+    conditions: [],
     otherText: '',
-    medications: ['Salbutamol', 'Cetirizine'],
-    father: ['Hypertension'],
-    mother: ['Diabetes'],
+    medications: [],
+    father: [],
+    mother: [],
     sibling: [],
   },
   lifestyle: { sleep: null, stress: null, diet: null, smoking: null, alcohol: null, exercise: null },

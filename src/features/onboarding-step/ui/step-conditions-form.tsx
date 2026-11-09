@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -10,12 +9,22 @@ import {
 } from 'react-native';
 
 import { tapSelection } from '@shared/lib';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 
 import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
 const INITIAL_CONDITIONS = ['Asthma', 'Diabetes', 'Hypertension', 'Thyroid', 'None'];
 const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD'];
+
+// Server tags for the conditions that have one. Other labels are sent as 'other' with the label as free text.
+const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'cvd' | 'ckd'> = {
+  Diabetes: 'diabetes',
+  Hypertension: 'hypertension',
+  Thyroid: 'thyroid',
+  'Heart Disease': 'cvd',
+  'Kidney Disease': 'ckd',
+};
 
 const MEDICATION_SUGGESTIONS = [
   'Salbutamol',
@@ -80,7 +89,11 @@ export function StepConditionsForm({
     ];
     const conditionItems = selectedConditions
       .filter((c) => c !== 'None')
-      .map((tag) => ({ tag, free_text: otherText ? otherText : undefined }));
+      .map((label) => {
+        const tag = CONDITION_TAG[label];
+        if (tag) return { tag, free_text: otherText ? otherText : undefined };
+        return { tag: 'other' as const, free_text: [label, otherText].filter(Boolean).join(': ') };
+      });
 
     onChange({
       conditions: conditionItems.length > 0 ? { items: conditionItems } : undefined,
@@ -338,15 +351,8 @@ export function StepConditionsForm({
       </View>
 
       {/* Modal / Sheet for Family Condition Selection */}
-      <Modal
-        visible={activeFamilyRelation !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActiveFamilyRelation(null)}>
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setActiveFamilyRelation(null)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+      <BottomSheet visible={activeFamilyRelation !== null} onClose={() => setActiveFamilyRelation(null)}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {activeFamilyRelation === 'father'
@@ -394,8 +400,7 @@ export function StepConditionsForm({
               <Text style={styles.modalDoneBtnText}>Done</Text>
             </Pressable>
           </View>
-        </Pressable>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -582,7 +587,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   familyRelation: {
-    width: 78,
+    width: 104,
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
     color: '#242032',
@@ -634,6 +639,9 @@ const styles = StyleSheet.create({
   },
   modalCloseBtn: {
     padding: 4,
+  },
+  modalContent: {
+    gap: 16,
   },
   modalChipsWrap: {
     flexDirection: 'row',
