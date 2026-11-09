@@ -19,4 +19,18 @@ export interface LifestyleInput {
   smoking: 'never' | 'former' | 'current';
   alcohol: 'never' | 'occasional' | 'regular';
   exercise: 'none' | '1_2_week' | '3_4_week' | '5_plus_week';
+  occupation: Occupation;
+  activity_level: ActivityLevel;
 }
+
+// Work type and how active it is. Used to estimate daily physical activity.
+export type Occupation =
+  | 'desk'
+  | 'mostly_standing'
+  | 'manual_field'
+  | 'heavy_labour'
+  | 'healthcare'
+  | 'student_homemaker'
+  | 'retired'
+  | 'other';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'heavy';

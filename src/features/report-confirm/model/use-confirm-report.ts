@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { ConfirmReportResult, Observation } from '@entities/report';
+import type { Observation } from '@entities/report';
 import { api, queryKeys } from '@shared/api';
 
 export interface ConfirmReportInput {
@@ -12,15 +12,15 @@ export function useConfirmReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ reportId, observations }: ConfirmReportInput): Promise<ConfirmReportResult> => {
-      const { data } = await api.post<ConfirmReportResult>(`/v1/health/reports/${reportId}/confirm`, {
+    mutationFn: async ({ reportId, observations }: ConfirmReportInput): Promise<{ report_id: string; status: string }> => {
+      const { data } = await api.post<{ report_id: string; status: string }>(`/v1/health/reports/${reportId}/confirm`, {
         observations,
       });
       return data;
     },
-    onSuccess: (result, { reportId }) => {
-      // Kept for the report's detail view, so it never has to fetch the observations again.
-      queryClient.setQueryData(queryKeys.report.confirmed(reportId), result);
+    onSuccess: (_result, { reportId, observations }) => {
+      // The confirmed values are kept locally, so the final view never fetches the observations again.
+      queryClient.setQueryData(queryKeys.report.confirmed(reportId), { observations });
       queryClient.invalidateQueries({ queryKey: queryKeys.report.root });
       queryClient.invalidateQueries({ queryKey: queryKeys.home.root });
       queryClient.invalidateQueries({ queryKey: queryKeys.score.root });

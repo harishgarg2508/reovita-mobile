@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RetakeCameraGraphic } from '@shared/ui';
+import { goBackOr, RetakeCameraGraphic } from '@shared/ui';
 
 /**
  * Reovita Retake Photo Screen.
@@ -78,7 +78,7 @@ export function RetakePhotoScreen() {
       <View style={styles.headerBar}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/reports/upload')}
           style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -117,7 +117,7 @@ export function RetakePhotoScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/reports/upload')}
           style={styles.backLink}>
           <Text style={styles.backLinkText}>Back</Text>
         </Pressable>

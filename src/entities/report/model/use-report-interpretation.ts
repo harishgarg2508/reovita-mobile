@@ -4,11 +4,11 @@ import { queryKeys } from '@shared/api';
 
 import { fetchReportInterpretation } from './report.api';
 
-export function useReportInterpretation(reportId: string) {
+export function useReportInterpretation(reportId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.report.interpretation(reportId),
     queryFn: () => fetchReportInterpretation(reportId),
-    enabled: reportId.length > 0,
+    enabled: reportId.length > 0 && (options?.enabled ?? true),
     // 404 interpretation_not_found means the report is not confirmed yet. That is an answer, not a failure.
     retry: false,
   });

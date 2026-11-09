@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCurrentSubject } from '@entities/subject';
 import { SubjectQr } from '@features/qr-view';
+import { Skeleton } from '@shared/ui/skeleton';
 
 // Profile tab: the subject's code as a QR code, and log out.
 export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
@@ -16,7 +17,7 @@ export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
       <Text style={styles.title}>Profile</Text>
       <Text style={styles.subtitle}>Show this code to link your health records.</Text>
 
-      {subject.isLoading ? <ActivityIndicator /> : null}
+      {subject.isLoading ? <Skeleton height={230} /> : null}
       {subject.data ? <SubjectQr codename={subject.data.codename} /> : null}
       {subject.isError ? <Text style={styles.error}>Could not load your code. Reopen this tab to try again.</Text> : null}
 

@@ -1,6 +1,5 @@
-// Route placeholder. Replace with the screen.
-import { View } from 'react-native';
+import { NotificationCenter } from '@features/notification-center';
 
-export default function Screen() {
-  return <View />;
+export default function NotificationsRoute() {
+  return <NotificationCenter />;
 }

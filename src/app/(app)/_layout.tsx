@@ -7,6 +7,7 @@ import { useActiveConsent } from '@entities/consent';
 import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
+import { ScreenBackButton } from '@shared/ui';
 
 // Gatekeeper for every screen under (app): sign-in, then health consent, then onboarding step 1.
 export default function AppLayout() {
@@ -46,5 +47,20 @@ export default function AppLayout() {
   if (!status.data?.dashboard_access) {
     return <Redirect href="/onboarding/step-1" />;
   }
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Pushed screens get a back arrow in the header. Falls back to the dashboard when there is no history.
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: true,
+        headerTitle: '',
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerLeft: () => <ScreenBackButton fallback="/(app)/(tabs)/dashboard" />,
+      }}>
+      {/* Tabs draw their own chrome. Reports draw their own headers per screen (see reports/_layout). */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="reports" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
+    </Stack>
+  );
 }

@@ -83,7 +83,8 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
     if (slideIndex > 0) {
       setDirection('back');
       back();
-    } else {
+    } else if (router.canGoBack()) {
+      // Consent is reached by a redirect from the (app) guard, so there is often no history.
       router.back();
     }
   }

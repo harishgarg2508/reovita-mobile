@@ -1,2 +1,1 @@
-// index.ts - placeholder
-export {};
+export { NotificationCenter } from './ui/notification-center';

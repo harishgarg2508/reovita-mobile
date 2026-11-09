@@ -14,6 +14,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 
 import { AppProviders } from '@app-root/providers/app-providers';
+import { AuthGuard } from '@app-root/providers/auth-guard';
 import { ThemeBridge } from '@app-root/providers/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
@@ -56,7 +57,9 @@ export default function RootLayout() {
   return (
     <AppProviders>
       <ThemeBridge>
-        <Stack screenOptions={{ headerShown: false }} />
+        <AuthGuard>
+          <Stack screenOptions={{ headerShown: false }} />
+        </AuthGuard>
       </ThemeBridge>
     </AppProviders>
   );

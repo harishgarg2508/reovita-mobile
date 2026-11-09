@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { goBackOr } from '@shared/ui';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -52,7 +53,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         },
       ]}>
       <View style={styles.headerBar}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable accessibilityRole="button" onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Interpretation</Text>

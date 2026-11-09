@@ -11,6 +11,7 @@ import { ReportDropZone } from '@shared/ui/report-drop-zone';
 import { StepHeaderBadge } from '@shared/ui/step-header-badge';
 
 import { useUploadReport } from '../model/use-upload-report';
+import { Skeleton } from '@shared/ui/skeleton';
 import { ReportList } from './report-list';
 import { UploadWaiting } from './upload-waiting';
 
@@ -140,6 +141,13 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
 
       <View style={styles.body}>
         <ReportDropZone onChoose={onPick} disabled={upload.isPending} />
+        {reports.isPending ? (
+          <View style={[styles.listWrap, { gap: 10 }]}>
+            <Skeleton height={56} />
+            <Skeleton height={56} />
+            <Skeleton height={56} />
+          </View>
+        ) : null}
         {hasReports ? (
           <View style={styles.listWrap}>
             <ReportList

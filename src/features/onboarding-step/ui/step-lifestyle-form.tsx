@@ -28,6 +28,22 @@ const ALCOHOL: Choice<LifestyleInput['alcohol']>[] = [
   { value: 'occasional', label: 'Occasional' },
   { value: 'regular', label: 'Regular' },
 ];
+const OCCUPATION: Choice<LifestyleInput['occupation']>[] = [
+  { value: 'desk', label: 'Desk / office' },
+  { value: 'mostly_standing', label: 'Mostly standing or walking' },
+  { value: 'manual_field', label: 'Manual or field work' },
+  { value: 'heavy_labour', label: 'Heavy labour' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'student_homemaker', label: 'Student / homemaker' },
+  { value: 'retired', label: 'Retired / not working' },
+  { value: 'other', label: 'Other' },
+];
+const ACTIVITY: Choice<LifestyleInput['activity_level']>[] = [
+  { value: 'sedentary', label: 'Mostly sitting' },
+  { value: 'light', label: 'Light movement' },
+  { value: 'moderate', label: 'Moderately active' },
+  { value: 'heavy', label: 'Very physical' },
+];
 const EXERCISE: Choice<LifestyleInput['exercise']>[] = [
   { value: 'none', label: 'None' },
   { value: '1_2_week', label: '1-2 a week' },
@@ -73,6 +89,10 @@ export function StepLifestyleForm({ onChange }: { onChange: (value: LifestyleInp
       <ChoiceRow choices={ALCOHOL} value={draft.alcohol} onPick={(v) => set('alcohol', v)} />
       <Text style={styles.label}>Exercise</Text>
       <ChoiceRow choices={EXERCISE} value={draft.exercise} onPick={(v) => set('exercise', v)} />
+      <Text style={styles.label}>Occupation</Text>
+      <ChoiceRow choices={OCCUPATION} value={draft.occupation} onPick={(v) => set('occupation', v)} />
+      <Text style={styles.label}>How active is your work?</Text>
+      <ChoiceRow choices={ACTIVITY} value={draft.activity_level} onPick={(v) => set('activity_level', v)} />
     </View>
   );
 }

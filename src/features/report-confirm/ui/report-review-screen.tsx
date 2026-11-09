@@ -1,7 +1,8 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { goBackOr } from '@shared/ui';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useConfirmedReport, useReportDraft } from '@entities/report';
+import { useConfirmedReport, useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError } from '@shared/api';
 import {
@@ -67,6 +68,15 @@ const DIAMOND_STAR_URI = `data:image/svg+xml;utf8,${encodeURIComponent(DIAMOND_S
  * - Screen 2: LLM is processing your results... (Sparkles halo & floating star over purple mist)
  * - Screen 3: Your Report is Ready! (Confetti check badge, "All Normal" pill, Health score wave, Key insights)
  */
+// Listens to the report's status stream while the server interprets it. Renders nothing.
+function WatchInterpretation({ reportId, onDone }: { reportId: string; onDone: () => void }) {
+  const status = useReportStatus(reportId);
+  useEffect(() => {
+    if (status === 'DONE') onDone();
+  }, [status, onDone]);
+  return null;
+}
+
 export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -74,12 +84,19 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const confirmed = useConfirmedReport(reportId);
   // Observations are requested directly (GET). Nothing streams them.
   const draft = useReportDraft(reportId, { enabled: !confirmed.data });
-  const interpretation = confirmed.data?.interpretation.output_json;
-  const explanations = (interpretation?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
   const confirm = useConfirmReport();
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
   const [showFinalReport, setShowFinalReport] = useState(false);
+  // The interpretation is requested once the server reports DONE (see WatchInterpretation).
+  const interpretationQuery = useReportInterpretation(reportId, { enabled: showFinalReport });
+  const interpretation = interpretationQuery.data?.output_json;
+  const [interpreting, setInterpreting] = useState(false);
+  const onInterpretationDone = useCallback(() => {
+    setInterpreting(false);
+    setShowFinalReport(true);
+  }, []);
+  const explanations = (interpretation?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
 
   // Only the server's observations are shown. Until they arrive, the loading state is rendered below.
@@ -110,7 +127,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const [btnScale2] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
-    if (confirm.isPending || simulatedAnalyzing) {
+    if (confirm.isPending || simulatedAnalyzing || interpreting) {
       // Looping pulse on sparkles halo
       const sparkleAnim = Animated.loop(
         Animated.sequence([
@@ -162,7 +179,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         spinAnimation.stop();
       };
     }
-  }, [confirm.isPending, simulatedAnalyzing, sparkleScale, mistStarY, spinAnim]);
+  }, [confirm.isPending, simulatedAnalyzing, interpreting, sparkleScale, mistStarY, spinAnim]);
 
   useEffect(() => {
     if (showFinalReport) {
@@ -187,8 +204,9 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       {
         // Keep the loading view until the confirm request answers. A 200 shows the result right away.
         onSuccess: () => {
+          // The server interprets the report in the background. Keep the loading view until it is DONE.
           setSimulatedAnalyzing(false);
-          setShowFinalReport(true);
+          setInterpreting(true);
         },
         onError: (err) => {
           setSimulatedAnalyzing(false);
@@ -266,7 +284,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 2: LLM processing
   // =========================================================================
-  if (confirm.isPending || simulatedAnalyzing) {
+  if (confirm.isPending || simulatedAnalyzing || interpreting) {
     const spinInterpolate = spinAnim.interpolate({
       inputRange: [0, 1],
       outputRange: ['0deg', '360deg'],
@@ -281,6 +299,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
             paddingBottom: insets.bottom,
           },
         ]}>
+        <WatchInterpretation reportId={reportId} onDone={onInterpretationDone} />
         <View style={styles.centerHeroSection}>
           {/* Lavender circle with the analysis icon, gently pulsing */}
           <Animated.View style={[styles.aiLoadingHalo, { transform: [{ scale: sparkleScale }] }]}>
@@ -308,21 +327,6 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
               />
             </Animated.View>
           </View>
-
-          {/* Floating Diamond Star */}
-          <Animated.View
-            style={[
-              styles.floatingStarWrap,
-              {
-                transform: [{ translateY: mistStarY }],
-              },
-            ]}>
-            <ExpoImage
-              source={{ uri: DIAMOND_STAR_URI }}
-              style={styles.diamondStar}
-              contentFit="contain"
-            />
-          </Animated.View>
         </View>
 
         {/* Signature Ethereal Wavy Purple Mist Backdrop */}
@@ -334,7 +338,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 3: Final Analysis ("Your Report is Ready!")
   // =========================================================================
-  if (showFinalReport || confirmed.data) {
+  if (showFinalReport) {
     return (
       <ScrollView
         contentContainerStyle={[
@@ -466,7 +470,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       <View style={styles.headerBar}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')}
           style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>

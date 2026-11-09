@@ -17,6 +17,7 @@ export interface HistoryDraft {
   father: string[];
   mother: string[];
   sibling: string[];
+  wife: string[];
 }
 
 export interface LifestyleDraft {
@@ -26,6 +27,8 @@ export interface LifestyleDraft {
   smoking: string | null;
   alcohol: string | null;
   exercise: string | null;
+  occupation: string | null;
+  activity_level: string | null;
 }
 
 export interface OnboardingState {
@@ -46,8 +49,9 @@ const initialState: OnboardingState = {
     father: [],
     mother: [],
     sibling: [],
+    wife: [],
   },
-  lifestyle: { sleep: null, stress: null, diet: null, smoking: null, alcohol: null, exercise: null },
+  lifestyle: { sleep: null, stress: null, diet: null, smoking: null, alcohol: null, exercise: null, occupation: null, activity_level: null },
 };
 
 export const onboardingSlice = createSlice({
