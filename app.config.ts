@@ -27,15 +27,34 @@ function resolveGoogleServicesFile(): string {
   return GENERATED_GOOGLE_SERVICES;
 }
 
+// The OAuth web client id (client_type 3) that Google Sign-In needs on Android to get an ID token.
+// Firebase writes it into google-services.json once a SHA fingerprint and the Google provider exist.
+function readGoogleWebClientId(servicesPath: string): string | undefined {
+  try {
+    const json = JSON.parse(fs.readFileSync(servicesPath, 'utf8'));
+    const clients: { client_type: number; client_id: string }[] =
+      json.client?.[0]?.oauth_client ?? [];
+    return clients.find((client) => client.client_type === 3)?.client_id;
+  } catch {
+    return undefined;
+  }
+}
+
 // Expo loads .env and .env.local before this file runs. Only the names listed in
 // .env.example are passed through, so nothing else leaks into the app bundle.
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const googleServicesFile = resolveGoogleServicesFile();
+  return {
   ...(config as ExpoConfig),
+  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js'],
   android: {
     ...(config as ExpoConfig).android,
-    googleServicesFile: resolveGoogleServicesFile(),
+    googleServicesFile,
   },
   extra: {
+    // Keep app.json's extra (EAS project id, router options) alongside the values below.
+    ...(config as ExpoConfig).extra,
+    googleWebClientId: readGoogleWebClientId(googleServicesFile),
     firebase: {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -47,4 +66,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000',
   },
-});
+  };
+};

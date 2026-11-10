@@ -1,3 +1,4 @@
+import { svgDataUri } from '@shared/lib';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import type React from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,8 +30,8 @@ const CREST_SVG_DARK = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.
   <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#2B2846" stroke-width="1.2" fill="none" />
 </svg>`;
 
-const CREST_URI = `data:image/svg+xml;utf8,${encodeURIComponent(CREST_SVG)}`;
-const CREST_URI_DARK = `data:image/svg+xml;utf8,${encodeURIComponent(CREST_SVG_DARK)}`;
+const CREST_URI = svgDataUri(CREST_SVG);
+const CREST_URI_DARK = svgDataUri(CREST_SVG_DARK);
 
 const INDICATOR_WIDTH = 26;
 const INITIAL_DOCK_WIDTH = Dimensions.get('window').width - 28;

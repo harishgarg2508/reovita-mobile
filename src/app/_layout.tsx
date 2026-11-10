@@ -10,6 +10,8 @@ import {
 } from '@expo-google-fonts/poppins';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
+
+import { usePalette } from '@shared/ui/theme';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 
@@ -58,9 +60,15 @@ export default function RootLayout() {
     <AppProviders>
       <ThemeBridge>
         <AuthGuard>
-          <Stack screenOptions={{ headerShown: false }} />
+          <ThemedStack />
         </AuthGuard>
       </ThemeBridge>
     </AppProviders>
   );
+}
+
+// The root stack takes its background from the theme, so every screen without its own background follows the toggle.
+function ThemedStack() {
+  const p = usePalette();
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: p.bg } }} />;
 }

@@ -1,3 +1,4 @@
+import { svgDataUri } from '@shared/lib';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
@@ -22,7 +23,7 @@ const SVG_MIST = `<svg viewBox="0 0 400 190" fill="none" xmlns="http://www.w3.or
   />
 </svg>`;
 
-const SVG_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(SVG_MIST)}`;
+const SVG_DATA_URI = svgDataUri(SVG_MIST);
 
 /**
  * Reovita Signature Bottom Wave Mist.

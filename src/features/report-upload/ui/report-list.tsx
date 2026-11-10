@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text } from 'react-native';
 
 import type { ReportListItem } from '@entities/report';
 
-// The subject's reports, newest first. Each row opens the report.
+// The subject's reports, newest first. Only this list scrolls. The next page loads when the user
+// reaches the end of the list.
 export function ReportList({
   items,
   hasMore,
@@ -17,24 +18,27 @@ export function ReportList({
   onOpen: (id: string) => void;
 }) {
   return (
-    <View style={styles.wrap}>
-      {items.map((item) => (
+    <FlatList
+      data={items}
+      keyExtractor={(item) => item.id}
+      style={styles.list}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      onEndReachedThreshold={0.4}
+      onEndReached={() => {
+        if (hasMore && !loadingMore) onLoadMore();
+      }}
+      ListFooterComponent={loadingMore ? <ActivityIndicator color="#7545ED" style={styles.footer} /> : undefined}
+      renderItem={({ item }) => (
         <Pressable
-          key={item.id}
           accessibilityRole="button"
           onPress={() => onOpen(item.id)}
           style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
           <Text style={styles.label}>Report</Text>
           <Text style={styles.date}>{formatDate(item.created_at)}</Text>
         </Pressable>
-      ))}
-
-      {hasMore ? (
-        <Pressable accessibilityRole="button" disabled={loadingMore} onPress={onLoadMore} style={styles.more}>
-          <Text style={styles.moreText}>{loadingMore ? 'Loading...' : 'Load more'}</Text>
-        </Pressable>
-      ) : null}
-    </View>
+      )}
+    />
   );
 }
 
@@ -46,7 +50,8 @@ function formatDate(iso: string): string {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 10 },
+  list: { flex: 1 },
+  content: { gap: 10, paddingBottom: 16 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,6 +66,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   label: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#242032' },
   date: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#655F74' },
-  more: { alignItems: 'center', paddingVertical: 12 },
-  moreText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#7545ED' },
+  footer: { paddingVertical: 12 },
 });

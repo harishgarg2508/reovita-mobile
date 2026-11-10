@@ -40,6 +40,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "firebase": {},
+      "apiBaseUrl": "http://localhost:3000",
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "05f612c8-791d-4757-90df-f779689ab5b6"
+      }
     }
   }
 }

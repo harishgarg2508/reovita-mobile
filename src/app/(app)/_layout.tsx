@@ -1,15 +1,24 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { AppDrawerContent } from '@app-root/navigation/app-drawer-content';
 import { useAppDispatch, useAppSelector } from '@app-root/store';
 import { useActiveConsent } from '@entities/consent';
 import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
-import { ScreenBackButton } from '@shared/ui';
+
+const ACCENT = '#7545ED';
+
+// Screens that exist only as pushed detail pages. They stay out of the side menu.
+const HIDDEN_FROM_MENU = {
+  drawerItemStyle: { display: 'none' as const },
+};
 
 // Gatekeeper for every screen under (app): sign-in, then health consent, then onboarding step 1.
+// Signed-in screens sit behind a side drawer.
 export default function AppLayout() {
   const dispatch = useAppDispatch();
   const signedIn = useAppSelector(selectIsSignedIn);
@@ -47,20 +56,32 @@ export default function AppLayout() {
   if (!status.data?.dashboard_access) {
     return <Redirect href="/onboarding/step-1" />;
   }
-  // Pushed screens get a back arrow in the header. Falls back to the dashboard when there is no history.
+
   return (
-    <Stack
+    <Drawer
+      drawerContent={(props) => <AppDrawerContent {...props} />}
       screenOptions={{
         headerShown: true,
         headerTitle: '',
         headerShadowVisible: false,
         headerStyle: { backgroundColor: '#FFFFFF' },
-        headerLeft: () => <ScreenBackButton fallback="/(app)/(tabs)/dashboard" />,
+        drawerActiveTintColor: ACCENT,
+        drawerLabelStyle: { fontWeight: '600' },
       }}>
-      {/* Tabs draw their own chrome. Reports draw their own headers per screen (see reports/_layout). */}
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="reports" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
-    </Stack>
+      {/* Bottom-dock tabs draw their own chrome. */}
+      <Drawer.Screen name="(tabs)" options={{ headerShown: false, drawerLabel: 'Home' }} />
+      <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score' }} />
+      <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings' }} />
+      <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />
+      <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
+      <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
+
+      {/* Reports draw their own headers per screen (see reports/_layout). */}
+      <Drawer.Screen name="reports" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="settings" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="biomarkers/[code]" options={HIDDEN_FROM_MENU} />
+      <Drawer.Screen name="notifications/[id]" options={HIDDEN_FROM_MENU} />
+      <Drawer.Screen name="critical-escalation/[report-id]" options={HIDDEN_FROM_MENU} />
+    </Drawer>
   );
 }
