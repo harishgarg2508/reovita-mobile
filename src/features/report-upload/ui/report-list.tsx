@@ -28,7 +28,7 @@ export function ReportList({
       onEndReached={() => {
         if (hasMore && !loadingMore) onLoadMore();
       }}
-      ListFooterComponent={loadingMore ? <ActivityIndicator color="#7545ED" style={styles.footer} /> : undefined}
+      ListFooterComponent={loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined}
       renderItem={({ item }) => (
         <Pressable
           accessibilityRole="button"

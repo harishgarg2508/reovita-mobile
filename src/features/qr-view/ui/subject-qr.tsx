@@ -42,7 +42,7 @@ export function SubjectQr({ codename }: { codename: string }) {
           accessibilityLabel="Copy code"
           onPress={copyCode}
           style={styles.iconBtn}>
-          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color="#7545ED" />
+          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color="#1F6F3F" />
         </Pressable>
       </View>
 
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     height: 46,
     paddingHorizontal: 22,
     borderRadius: 999,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
   },
   shareText: {
     fontSize: 14,

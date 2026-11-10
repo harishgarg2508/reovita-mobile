@@ -16,7 +16,7 @@ export function ReportDropZone({
     <View style={styles.wrap}>
       <View style={styles.dropZone}>
         <View style={styles.iconBox}>
-          <Ionicons name="document-attach-outline" size={28} color="#7545ED" />
+          <Ionicons name="document-attach-outline" size={28} color="#1F6F3F" />
         </View>
         <Text style={styles.dropTitle}>Drop your report here</Text>
         <Text style={styles.dropHint}>PDF, JPG or PNG · Up to 20 MB</Text>
@@ -25,7 +25,7 @@ export function ReportDropZone({
           disabled={disabled}
           onPress={onChoose}
           style={({ pressed }) => [styles.chooseBtn, pressed && styles.pressed, disabled && styles.disabled]}>
-          <Ionicons name="add" size={16} color="#7545ED" />
+          <Ionicons name="add" size={16} color="#1F6F3F" />
           <Text style={styles.chooseText}>Choose file</Text>
         </Pressable>
       </View>
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   dropZone: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     borderRadius: 20,
     paddingVertical: 32,
     paddingHorizontal: 24,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#F1EDF7',
   },
-  chooseText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#7545ED' },
+  chooseText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#1F6F3F' },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.5 },
   banner: {
@@ -96,5 +96,5 @@ const styles = StyleSheet.create({
   },
   bannerText: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: '#3D5500' },
   later: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280', textAlign: 'center', marginTop: 8 },
-  skip: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#7545ED', textAlign: 'center' },
+  skip: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#1F6F3F', textAlign: 'center' },
 });

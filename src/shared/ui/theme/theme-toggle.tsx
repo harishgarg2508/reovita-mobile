@@ -18,7 +18,7 @@ export function ThemeToggle({ scheme, onToggle }: ThemeToggleProps) {
       onPress={onToggle}
       hitSlop={8}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-      <Ionicons name={toDark ? 'moon' : 'sunny'} size={19} color="#7545ED" />
+      <Ionicons name={toDark ? 'moon' : 'sunny'} size={19} color="#1F6F3F" />
     </Pressable>
   );
 }

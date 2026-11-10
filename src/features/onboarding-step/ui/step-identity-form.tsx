@@ -72,7 +72,7 @@ export function StepIdentityForm({
       <View style={styles.block}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
-            <Ionicons name="calendar-outline" size={13} color="#7545ED" />
+            <Ionicons name="calendar-outline" size={13} color="#1F6F3F" />
           </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
@@ -83,7 +83,7 @@ export function StepIdentityForm({
       <View style={styles.block}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
-            <Ionicons name="male-female-outline" size={13} color="#7545ED" />
+            <Ionicons name="male-female-outline" size={13} color="#1F6F3F" />
           </View>
           <Text style={styles.label}>Sex *</Text>
         </View>
@@ -109,7 +109,7 @@ export function StepIdentityForm({
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
-              <Ionicons name="resize-outline" size={13} color="#7545ED" />
+              <Ionicons name="resize-outline" size={13} color="#1F6F3F" />
             </View>
             <Text style={styles.label}>Height *</Text>
           </View>
@@ -128,7 +128,7 @@ export function StepIdentityForm({
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
-              <Ionicons name="speedometer-outline" size={13} color="#7545ED" />
+              <Ionicons name="speedometer-outline" size={13} color="#1F6F3F" />
             </View>
             <Text style={styles.label}>Weight *</Text>
           </View>
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   segment: { flex: 1, minWidth: 0, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   segmentWide: { flex: 2.4 },
-  segmentOn: { backgroundColor: '#7545ED' },
+  segmentOn: { backgroundColor: '#1F6F3F' },
   segmentText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#655F74' },
   segmentTextOn: { fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF' },
 
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   bmiBands: { flexDirection: 'row', gap: 4 },
   band: { flex: 1, alignItems: 'center', gap: 4 },
   bandBar: { height: 4, alignSelf: 'stretch', borderRadius: 999, backgroundColor: '#E5E0EC' },
-  bandBarOn: { backgroundColor: '#7545ED' },
+  bandBarOn: { backgroundColor: '#1F6F3F' },
   bandText: { fontFamily: 'Poppins_400Regular', fontSize: 10, color: '#6B7280' },
-  bandTextOn: { color: '#7545ED' },
+  bandTextOn: { color: '#1F6F3F' },
 });

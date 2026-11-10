@@ -8,7 +8,7 @@ interface ReovitaCrossLogoProps {
 /**
  * Reovita Brand Medical Cross Emblem.
  * Recreates the two-tone medical plus from the welcome design using Reovita's
- * signature Royal Violet (#7545ED) and Volt Lime (#D4FF3F / #7AA800).
+ * signature Royal Violet (#1F6F3F) and Volt Lime (#D4FF3F / #7AA800).
  */
 export function ReovitaCrossLogo({ size = 44 }: ReovitaCrossLogoProps) {
   const scale = size / 44;
@@ -32,7 +32,7 @@ export function ReovitaCrossLogo({ size = 44 }: ReovitaCrossLogoProps) {
             top: centerOffset,
             left: 0,
             borderRadius: radius,
-            backgroundColor: '#7545ED',
+            backgroundColor: '#1F6F3F',
           },
         ]}>
         <View
@@ -60,7 +60,7 @@ export function ReovitaCrossLogo({ size = 44 }: ReovitaCrossLogoProps) {
             top: 0,
             left: centerOffset,
             borderRadius: radius,
-            backgroundColor: '#7545ED',
+            backgroundColor: '#1F6F3F',
           },
         ]}>
         <View
@@ -87,7 +87,7 @@ export function ReovitaCrossLogo({ size = 44 }: ReovitaCrossLogoProps) {
             height: barThickness,
             top: centerOffset,
             left: centerOffset,
-            backgroundColor: '#7545ED',
+            backgroundColor: '#1F6F3F',
             opacity: 0.15,
           },
         ]}
