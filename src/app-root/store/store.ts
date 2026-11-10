@@ -24,7 +24,9 @@ const persistedOnboardingReducer = persistReducer(
   {
     key: 'onboarding',
     storage: AsyncStorage,
-    version: 3,
+    version: 5,
+    // v5 adds the wife family relation. Older drafts are reset.
+    // v4 adds occupation and activity level to the lifestyle step. Older drafts are reset.
     // v2 changed the history draft shape, and v3 removes the sample step-2 selections.
     // Drafts saved before are reset to the initial state.
     migrate: createMigrate({
@@ -35,6 +37,14 @@ const persistedOnboardingReducer = persistReducer(
       3: (state) => ({
         ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v3' }),
         _persist: state?._persist ?? { version: 3, rehydrated: true },
+      }),
+      4: (state) => ({
+        ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v4' }),
+        _persist: state?._persist ?? { version: 4, rehydrated: true },
+      }),
+      5: (state) => ({
+        ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v5' }),
+        _persist: state?._persist ?? { version: 5, rehydrated: true },
       }),
     }),
   },

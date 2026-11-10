@@ -1,7 +1,9 @@
+import { svgDataUri } from '@shared/lib';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { goBackOr } from '@shared/ui';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -14,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useConfirmedReport, useReportDraft } from '@entities/report';
+import { isReportReady, useConfirmedReport, useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError } from '@shared/api';
 import {
@@ -27,6 +29,8 @@ import { ExplanationCard } from '@shared/ui/explanation-card';
 import { CelebrationCheck } from '@shared/ui/celebration-check';
 
 import { useConfirmReport } from '../model/use-confirm-report';
+import { ReportNotReadablePanel } from './report-not-readable-panel';
+import { ReportProcessingPanel } from './report-processing-panel';
 
 // Shown while OCR is still running (the server answers 409 report_processing until then).
 const loadingStyles = StyleSheet.create({
@@ -38,27 +42,27 @@ const loadingStyles = StyleSheet.create({
 
 const HERO_CHART_SVG = `<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="80" cy="80" r="76" fill="#F4EFFE" />
-  <rect x="52" y="74" width="8" height="22" rx="4" fill="#7545ED" />
-  <rect x="65" y="44" width="8" height="52" rx="4" fill="#7545ED" />
-  <rect x="78" y="62" width="8" height="34" rx="4" fill="#7545ED" />
-  <rect x="91" y="52" width="8" height="44" rx="4" fill="#7545ED" />
+  <rect x="52" y="74" width="8" height="22" rx="4" fill="#1F6F3F" />
+  <rect x="65" y="44" width="8" height="52" rx="4" fill="#1F6F3F" />
+  <rect x="78" y="62" width="8" height="34" rx="4" fill="#1F6F3F" />
+  <rect x="91" y="52" width="8" height="44" rx="4" fill="#1F6F3F" />
   <circle cx="103" cy="91" r="13" fill="#F4EFFE" />
   <line x1="109" y1="97" x2="119" y2="107" stroke="#F4EFFE" stroke-width="7" stroke-linecap="round" />
-  <circle cx="103" cy="91" r="10" stroke="#7545ED" stroke-width="3" fill="#F4EFFE" />
-  <line x1="109" y1="97" x2="119" y2="107" stroke="#7545ED" stroke-width="3.2" stroke-linecap="round" />
+  <circle cx="103" cy="91" r="10" stroke="#1F6F3F" stroke-width="3" fill="#F4EFFE" />
+  <line x1="109" y1="97" x2="119" y2="107" stroke="#1F6F3F" stroke-width="3.2" stroke-linecap="round" />
 </svg>`;
-const HERO_CHART_URI = `data:image/svg+xml;utf8,${encodeURIComponent(HERO_CHART_SVG)}`;
+const HERO_CHART_URI = svgDataUri(HERO_CHART_SVG);
 
 const SPINNER_RING_SVG = `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="22" cy="22" r="18" stroke="#EDE8F8" stroke-width="3.5" fill="none" />
-  <path d="M 22 4 A 18 18 0 0 1 40 22" stroke="#7545ED" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <path d="M 22 4 A 18 18 0 0 1 40 22" stroke="#1F6F3F" stroke-width="3.5" stroke-linecap="round" fill="none" />
 </svg>`;
-const SPINNER_RING_URI = `data:image/svg+xml;utf8,${encodeURIComponent(SPINNER_RING_SVG)}`;
+const SPINNER_RING_URI = svgDataUri(SPINNER_RING_SVG);
 
 const DIAMOND_STAR_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M12 0 C12 6.6 6.6 12 0 12 C6.6 12 12 17.4 12 24 C12 17.4 17.4 12 24 12 C17.4 12 12 6.6 12 0 Z" fill="#9D7BFA" />
+  <path d="M12 0 C12 6.6 6.6 12 0 12 C6.6 12 12 17.4 12 24 C12 17.4 17.4 12 24 12 C17.4 12 12 6.6 12 0 Z" fill="#5CC47F" />
 </svg>`;
-const DIAMOND_STAR_URI = `data:image/svg+xml;utf8,${encodeURIComponent(DIAMOND_STAR_SVG)}`;
+const DIAMOND_STAR_URI = svgDataUri(DIAMOND_STAR_SVG);
 
 /**
  * Reovita Review Results & AI Translation Flow.
@@ -67,19 +71,37 @@ const DIAMOND_STAR_URI = `data:image/svg+xml;utf8,${encodeURIComponent(DIAMOND_S
  * - Screen 2: LLM is processing your results... (Sparkles halo & floating star over purple mist)
  * - Screen 3: Your Report is Ready! (Confetti check badge, "All Normal" pill, Health score wave, Key insights)
  */
+// Listens to the report's status stream while the server interprets it. Renders nothing.
+function WatchInterpretation({ reportId, onDone }: { reportId: string; onDone: () => void }) {
+  const status = useReportStatus(reportId);
+  useEffect(() => {
+    if (status === 'DONE') onDone();
+  }, [status, onDone]);
+  return null;
+}
+
 export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   // The confirm result is cached by useConfirmReport. Once it exists, observations are not requested again.
   const confirmed = useConfirmedReport(reportId);
   // Observations are requested directly (GET). Nothing streams them.
-  const draft = useReportDraft(reportId, { enabled: !confirmed.data });
-  const interpretation = confirmed.data?.interpretation.output_json;
-  const explanations = (interpretation?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
+  // Live status from the event stream. Observations are requested only once the report is ready.
+  const processing = useReportStatus(reportId);
+  const draft = useReportDraft(reportId, { enabled: !confirmed.data && isReportReady(processing) });
   const confirm = useConfirmReport();
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
   const [showFinalReport, setShowFinalReport] = useState(false);
+  // The interpretation is requested once the server reports DONE (see WatchInterpretation).
+  const interpretationQuery = useReportInterpretation(reportId, { enabled: showFinalReport });
+  const interpretation = interpretationQuery.data?.output_json;
+  const [interpreting, setInterpreting] = useState(false);
+  const onInterpretationDone = useCallback(() => {
+    setInterpreting(false);
+    setShowFinalReport(true);
+  }, []);
+  const explanations = (interpretation?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
 
   // Only the server's observations are shown. Until they arrive, the loading state is rendered below.
@@ -110,7 +132,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const [btnScale2] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
-    if (confirm.isPending || simulatedAnalyzing) {
+    if (confirm.isPending || simulatedAnalyzing || interpreting) {
       // Looping pulse on sparkles halo
       const sparkleAnim = Animated.loop(
         Animated.sequence([
@@ -162,7 +184,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         spinAnimation.stop();
       };
     }
-  }, [confirm.isPending, simulatedAnalyzing, sparkleScale, mistStarY, spinAnim]);
+  }, [confirm.isPending, simulatedAnalyzing, interpreting, sparkleScale, mistStarY, spinAnim]);
 
   useEffect(() => {
     if (showFinalReport) {
@@ -187,11 +209,17 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       {
         // Keep the loading view until the confirm request answers. A 200 shows the result right away.
         onSuccess: () => {
+          // The server interprets the report in the background. Keep the loading view until it is DONE.
           setSimulatedAnalyzing(false);
-          setShowFinalReport(true);
+          setInterpreting(true);
         },
         onError: (err) => {
           setSimulatedAnalyzing(false);
+          // The report was already confirmed (it is DONE): show its interpretation instead of an error.
+          if (isApiError(err, 'invalid_report_state')) {
+            router.replace({ pathname: '/(app)/reports/interpretation/[id]', params: { id: reportId } });
+            return;
+          }
           if (isApiError(err, 'llm_consent_required')) {
             setLlmSheetOpen(true);
           }
@@ -228,6 +256,17 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   }
 
   // Loading: the report is still being read (409 report_processing), so show skeletons until a 200 arrives.
+  // Not ready yet: wait on the event stream. A failed or unreadable report gets the upload panel.
+  if (!confirmed.data && !isReportReady(processing)) {
+    if (processing === 'FAILED' || processing === 'NEEDS_RETAKE') {
+      return <ReportNotReadablePanel reportId={reportId} />;
+    }
+    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
+  }
+  if (isApiError(draft.error, 'report_not_readable')) {
+    return <ReportNotReadablePanel reportId={reportId} />;
+  }
+
   if (!confirmed.data && !draft.data) {
     const failed = draft.isError;
     return (
@@ -266,7 +305,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 2: LLM processing
   // =========================================================================
-  if (confirm.isPending || simulatedAnalyzing) {
+  if (confirm.isPending || simulatedAnalyzing || interpreting) {
     const spinInterpolate = spinAnim.interpolate({
       inputRange: [0, 1],
       outputRange: ['0deg', '360deg'],
@@ -281,6 +320,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
             paddingBottom: insets.bottom,
           },
         ]}>
+        <WatchInterpretation reportId={reportId} onDone={onInterpretationDone} />
         <View style={styles.centerHeroSection}>
           {/* Lavender circle with the analysis icon, gently pulsing */}
           <Animated.View style={[styles.aiLoadingHalo, { transform: [{ scale: sparkleScale }] }]}>
@@ -308,21 +348,6 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
               />
             </Animated.View>
           </View>
-
-          {/* Floating Diamond Star */}
-          <Animated.View
-            style={[
-              styles.floatingStarWrap,
-              {
-                transform: [{ translateY: mistStarY }],
-              },
-            ]}>
-            <ExpoImage
-              source={{ uri: DIAMOND_STAR_URI }}
-              style={styles.diamondStar}
-              contentFit="contain"
-            />
-          </Animated.View>
         </View>
 
         {/* Signature Ethereal Wavy Purple Mist Backdrop */}
@@ -334,7 +359,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 3: Final Analysis ("Your Report is Ready!")
   // =========================================================================
-  if (showFinalReport || confirmed.data) {
+  if (showFinalReport) {
     return (
       <ScrollView
         contentContainerStyle={[
@@ -466,7 +491,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       <View style={styles.headerBar}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')}
           style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -518,7 +543,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
                         paddingHorizontal: 10,
                         paddingVertical: 7,
                         borderWidth: 1.5,
-                        borderColor: '#7545ED',
+                        borderColor: '#1F6F3F',
                         borderRadius: 10,
                         backgroundColor: '#F8F5FF',
                       }}
@@ -537,6 +562,16 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       </View>
 
       {/* Dual Action Buttons: [ Edit ] and [ Confirm ] */}
+      {status === 'DONE' ? (
+        <View style={styles.dualActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace({ pathname: '/(app)/reports/interpretation/[id]', params: { id: reportId } })}
+            style={[styles.confirmBtn, { flex: 1 }]}>
+            <Text style={styles.confirmBtnText}>View analysis</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.dualActionRow}>
         <Animated.View style={[{ flex: 1 }, { transform: [{ scale: btnScale1 }] }]}>
           <Pressable
@@ -560,6 +595,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           </Pressable>
         </Animated.View>
       </View>
+      )}
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}
@@ -582,7 +618,7 @@ const styles = StyleSheet.create({
     height: 160,
   },
   aiLoadingAccent: {
-    color: '#7545ED',
+    color: '#1F6F3F',
     fontFamily: 'Poppins_700Bold',
   },
   container: {
@@ -701,7 +737,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 1.8,
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -709,15 +745,15 @@ const styles = StyleSheet.create({
   editBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   confirmBtn: {
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -934,10 +970,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,

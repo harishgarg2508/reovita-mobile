@@ -1,3 +1,4 @@
+import { svgDataUri } from '@shared/lib';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import type React from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 
 import { tapConfirm, tapSelection } from '@shared/lib';
+import { useResolvedScheme } from '@shared/ui/theme';
 
 export type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 type TabRoute = BottomTabBarProps['state']['routes'][number];
@@ -23,8 +25,13 @@ const CREST_SVG = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.w3.or
   <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#FFFFFF" />
   <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#EDE8F5" stroke-width="1.2" fill="none" />
 </svg>`;
+const CREST_SVG_DARK = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#16142A" />
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#2B2846" stroke-width="1.2" fill="none" />
+</svg>`;
 
-const CREST_URI = `data:image/svg+xml;utf8,${encodeURIComponent(CREST_SVG)}`;
+const CREST_URI = svgDataUri(CREST_SVG);
+const CREST_URI_DARK = svgDataUri(CREST_SVG_DARK);
 
 const INDICATOR_WIDTH = 26;
 const INITIAL_DOCK_WIDTH = Dimensions.get('window').width - 28;
@@ -139,7 +146,9 @@ function AnimatedTabItem({
     }
   }, [isFocused, scaleAnim, liftAnim]);
 
-  const color = isFocused ? '#7545ED' : '#8E8B99';
+  const scheme = useResolvedScheme();
+  const dark = scheme === 'dark';
+  const color = isFocused ? (dark ? '#6FD08C' : '#1F6F3F') : dark ? '#9A96B0' : '#8E8B99';
 
   return (
     <Pressable
@@ -186,6 +195,8 @@ export function BottomDock({
   navigateToTab,
   insets,
 }: BottomTabBarProps) {
+  const dockScheme = useResolvedScheme();
+  const dockDark = dockScheme === 'dark';
   const router = useRouter();
   const [dockWidth, setDockWidth] = useState(INITIAL_DOCK_WIDTH);
 
@@ -312,12 +323,12 @@ export function BottomDock({
       ]}>
       {/* Floating White Dock Surface */}
       <View
-        style={styles.dockSurface}
+        style={[styles.dockSurface, dockDark ? styles.dockSurfaceDark : null]}
         onLayout={(e) => setDockWidth(e.nativeEvent.layout.width)}>
         {/* Center Crest SVG that swells upward */}
         <View pointerEvents="none" style={styles.crestWrap}>
           <ExpoImage
-            source={{ uri: CREST_URI }}
+            source={{ uri: dockDark ? CREST_URI_DARK : CREST_URI }}
             style={styles.crestSvg}
             contentFit="contain"
           />
@@ -385,6 +396,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 100,
   },
+  dockSurfaceDark: {
+    backgroundColor: '#16142A',
+    borderColor: '#2B2846',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+  },
   dockSurface: {
     width: '100%',
     height: 64,
@@ -423,7 +440,7 @@ const styles = StyleSheet.create({
     width: INDICATOR_WIDTH,
     height: 2.5,
     borderRadius: 2,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     zIndex: 5,
   },
   halfTabs: {
@@ -475,10 +492,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 10,

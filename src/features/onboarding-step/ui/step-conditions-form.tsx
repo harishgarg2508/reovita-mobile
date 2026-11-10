@@ -74,11 +74,12 @@ export function StepConditionsForm({
   const fatherConditions = draft.father;
   const motherConditions = draft.mother;
   const siblingConditions = draft.sibling;
+  const wifeConditions = draft.wife;
 
   const [showMoreConditions, setShowMoreConditions] = useState(false);
   const [medQuery, setMedQuery] = useState('');
   const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
-  const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | null>(null);
+  const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);
 
   // Emit the payload whenever the saved draft changes (also on mount, to restore the step).
   useEffect(() => {
@@ -86,6 +87,7 @@ export function StepConditionsForm({
       ...fatherConditions.map((condition) => ({ relation: 'father', condition })),
       ...motherConditions.map((condition) => ({ relation: 'mother', condition })),
       ...siblingConditions.map((condition) => ({ relation: 'sibling', condition })),
+      ...wifeConditions.map((condition) => ({ relation: 'wife', condition })),
     ];
     const conditionItems = selectedConditions
       .filter((c) => c !== 'None')
@@ -146,7 +148,9 @@ export function StepConditionsForm({
         ? { father: next }
         : activeFamilyRelation === 'mother'
         ? { mother: next }
-        : { sibling: next };
+        : activeFamilyRelation === 'sibling'
+        ? { sibling: next }
+        : { wife: next };
     patchDraft(patch);
   };
 
@@ -243,7 +247,7 @@ export function StepConditionsForm({
               <Ionicons
                 name={medsDropdownOpen ? 'chevron-up' : 'chevron-down'}
                 size={18}
-                color="#7545ED"
+                color="#1F6F3F"
               />
             </Pressable>
           </View>
@@ -266,7 +270,7 @@ export function StepConditionsForm({
                   onPress={() => addMedication(med)}
                   style={styles.suggestionItem}>
                   <Text style={styles.suggestionText}>{med}</Text>
-                  <Ionicons name="add" size={16} color="#7545ED" />
+                  <Ionicons name="add" size={16} color="#1F6F3F" />
                 </Pressable>
               ))}
             </View>
@@ -283,7 +287,7 @@ export function StepConditionsForm({
                   onPress={() => removeMedication(med)}
                   style={styles.medTag}>
                   <Text style={styles.medTagText}>{med}</Text>
-                  <Ionicons name="close" size={14} color="#7545ED" style={styles.medTagClose} />
+                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
                 </Pressable>
               ))}
             </View>
@@ -303,11 +307,15 @@ export function StepConditionsForm({
             style={styles.familyRow}>
             <Text style={styles.familyRelation}>Father</Text>
             <View style={styles.familyValueCol}>
-              <Text style={styles.familyTagsText}>
+              <Text
+                style={[
+                  styles.familyTagsText,
+                  fatherConditions.length === 0 && styles.familyPlaceholderText,
+                ]}>
                 {fatherConditions.length > 0 ? fatherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -320,11 +328,15 @@ export function StepConditionsForm({
             style={styles.familyRow}>
             <Text style={styles.familyRelation}>Mother</Text>
             <View style={styles.familyValueCol}>
-              <Text style={styles.familyTagsText}>
+              <Text
+                style={[
+                  styles.familyTagsText,
+                  motherConditions.length === 0 && styles.familyPlaceholderText,
+                ]}>
                 {motherConditions.length > 0 ? motherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -345,7 +357,28 @@ export function StepConditionsForm({
                 {siblingConditions.length > 0 ? siblingConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
+          </Pressable>
+
+          <View style={styles.familyDivider} />
+
+          {/* Wife Row */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit Wife medical history"
+            onPress={() => setActiveFamilyRelation('wife')}
+            style={styles.familyRow}>
+            <Text style={styles.familyRelation}>Wife</Text>
+            <View style={styles.familyValueCol}>
+              <Text
+                style={[
+                  styles.familyTagsText,
+                  wifeConditions.length === 0 && styles.familyPlaceholderText,
+                ]}>
+                {wifeConditions.length > 0 ? wifeConditions.join(', ') : 'Add tags'}
+              </Text>
+            </View>
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
         </View>
       </View>
@@ -359,6 +392,8 @@ export function StepConditionsForm({
                   ? 'Father\'s Health'
                   : activeFamilyRelation === 'mother'
                   ? 'Mother\'s Health'
+                  : activeFamilyRelation === 'wife'
+                  ? "Wife's Health"
                   : 'Sibling(s) Health'}
               </Text>
               <Pressable
@@ -376,6 +411,8 @@ export function StepConditionsForm({
                     ? fatherConditions
                     : activeFamilyRelation === 'mother'
                     ? motherConditions
+                    : activeFamilyRelation === 'wife'
+                    ? wifeConditions
                     : siblingConditions;
                 const isSelected = currentList.includes(cond);
                 return (
@@ -434,7 +471,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: '#E8F8CE',
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     borderWidth: 1.5,
   },
   chipCheck: {
@@ -495,6 +532,10 @@ const styles = StyleSheet.create({
   /* Meds Box */
   medsBox: {
     gap: 10,
+    position: 'relative',
+    zIndex: 60,
+    elevation: 60,
+    overflow: 'visible',
   },
   medSearchBar: {
     flexDirection: 'row',
@@ -519,13 +560,23 @@ const styles = StyleSheet.create({
   dropdownChevron: {
     padding: 4,
   },
+  // Overlay under the search bar: it floats over the content below and does not push it down.
   suggestionsDropdown: {
+    position: 'absolute',
+    top: 52,
+    left: 0,
+    right: 0,
+    zIndex: 70,
+    elevation: 70,
     borderWidth: 1,
     borderColor: '#E5E0EC',
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     paddingVertical: 4,
-    marginTop: -4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -544,7 +595,7 @@ const styles = StyleSheet.create({
   addCustomMedText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   selectedMedsWrap: {
     flexDirection: 'row',
@@ -561,7 +612,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#E8F8CE',
     borderWidth: 1.5,
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
   },
   medTagText: {
     fontFamily: 'Poppins_500Medium',
@@ -599,7 +650,7 @@ const styles = StyleSheet.create({
   familyTagsText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 12,
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   familyPlaceholderText: {
     fontFamily: 'Poppins_400Regular',
@@ -661,13 +712,13 @@ const styles = StyleSheet.create({
   },
   modalChipSelected: {
     backgroundColor: '#E8F8CE',
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     borderWidth: 1.5,
   },
   modalDoneBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,

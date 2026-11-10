@@ -30,3 +30,5 @@ export {
   TabInsightsIcon,
   TabProfileIcon,
 } from './icons';
+export { goBackOr } from './screen-back/screen-back-button';
+export { ConfirmDialog } from './confirm-dialog/confirm-dialog';

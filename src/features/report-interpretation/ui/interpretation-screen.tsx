@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
+import { goBackOr } from '@shared/ui';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useReportInterpretation } from '@entities/report';
+import { useReportInterpretation, useReportStatus } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { DISCLAIMER_V1 } from '@shared/config/constants';
 import { Chip } from '@shared/ui/chip';
@@ -21,15 +22,20 @@ const STATUS_COLOR: Record<string, string> = {
 export function InterpretationScreen({ reportId }: { reportId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const interpretation = useReportInterpretation(reportId);
+  // Pipeline order: upload, then observations, then confirm, then interpretation. The status comes first.
+  // The interpretation exists only after confirmation, so it is requested only for those states.
+  const status = useReportStatus(reportId);
+  const confirmed = status === 'INTERPRETING' || status === 'DONE';
+  const interpretation = useReportInterpretation(reportId, { enabled: confirmed });
 
-  // No interpretation yet: the report still has to be confirmed. Open the review screen to do that.
+  // Not confirmed yet (or needs the user): the review screen handles observations, confirm and retakes.
+  const needsReview = status === 'AWAITING_CONFIRMATION' || status === 'NEEDS_RETAKE' || status === 'FAILED';
   const notConfirmed = isApiError(interpretation.error, 'interpretation_not_found');
   useEffect(() => {
-    if (notConfirmed) {
+    if (needsReview || notConfirmed) {
       router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
     }
-  }, [notConfirmed, reportId, router]);
+  }, [needsReview, notConfirmed, reportId, router]);
 
   const output = interpretation.data?.output_json;
   const explanations = (output?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
@@ -52,7 +58,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         },
       ]}>
       <View style={styles.headerBar}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable accessibilityRole="button" onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Interpretation</Text>

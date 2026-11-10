@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RetakeCameraGraphic } from '@shared/ui';
+import { goBackOr, RetakeCameraGraphic } from '@shared/ui';
 
 /**
  * Reovita Retake Photo Screen.
@@ -78,7 +78,7 @@ export function RetakePhotoScreen() {
       <View style={styles.headerBar}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/reports/upload')}
           style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -117,7 +117,7 @@ export function RetakePhotoScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, '/(app)/reports/upload')}
           style={styles.backLink}>
           <Text style={styles.backLinkText}>Back</Text>
         </Pressable>
@@ -191,10 +191,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   backLinkText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
 });
 

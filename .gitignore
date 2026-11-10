@@ -32,7 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
-
+.env*.cloud
 # typescript
 *.tsbuildinfo
 
@@ -46,3 +46,4 @@ example
 # Firebase Android config: keep the JSON out of git
 google-services.json
 .generated/
+.env.cloud

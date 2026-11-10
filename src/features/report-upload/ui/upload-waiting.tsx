@@ -95,6 +95,6 @@ const styles = StyleSheet.create({
   laterText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
 });

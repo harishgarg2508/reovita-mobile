@@ -11,7 +11,7 @@ import { tapConfirm } from '@shared/lib';
 
 import { useConsentFlow } from '../model/use-consent-flow';
 
-const VIOLET = '#7545ed';
+const VIOLET = '#1F6F3F';
 const LIME = '#d4ff3f';
 const INK = '#242032';
 const INK_SECONDARY = '#655f74';
@@ -83,7 +83,8 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
     if (slideIndex > 0) {
       setDirection('back');
       back();
-    } else {
+    } else if (router.canGoBack()) {
+      // Consent is reached by a redirect from the (app) guard, so there is often no history.
       router.back();
     }
   }
