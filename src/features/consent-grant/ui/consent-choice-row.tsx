@@ -22,7 +22,7 @@ export function ConsentChoiceRow({ choice, value, onChange }: ConsentChoiceRowPr
         value={value}
         disabled={choice.required}
         onValueChange={onChange}
-        trackColor={{ false: '#D1D5DB', true: '#7545ED' }}
+        trackColor={{ false: '#D1D5DB', true: '#1F6F3F' }}
         thumbColor="#FFFFFF"
       />
     </View>

@@ -15,6 +15,8 @@ export const API_ERROR_CODES = [
   'report_processing',
   'report_not_readable',
   'report_not_retryable',
+  'report_not_replaceable',
+  'account_deactivated',
   'invalid_report_state',
   'no_observations',
   'interpretation_not_found',

@@ -5,13 +5,13 @@ import { isApiError, queryKeys } from '@shared/api';
 import { fetchReportObservations } from './report.api';
 
 // Observations are fetched once, when the report is ready (see useReportStatus). Nothing polls.
+// Only report_processing (OCR still running) is retried. report_not_readable is final and shown to the user.
 export function useReportDraft(reportId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.report.observations(reportId),
     queryFn: () => fetchReportObservations(reportId),
     enabled: reportId.length > 0 && (options?.enabled ?? true),
-    // 409 report_processing means the report is still being read. Retry a bounded number of times, then stop.
-    retry: (failureCount, error) => isApiError(error) && error.status === 409 && failureCount < 40,
+    retry: (failureCount, error) => isApiError(error, 'report_processing') && failureCount < 40,
     retryDelay: 3000,
   });
 }

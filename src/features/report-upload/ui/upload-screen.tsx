@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
@@ -108,9 +108,9 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   }
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
+    // Fixed page: the header and upload area stay put. Only the reports list scrolls.
+    <View
+      style={[
         styles.container,
         {
           paddingTop: Math.max(insets.top, 20) + 8,
@@ -139,7 +139,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         )}
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, styles.bodyFill]}>
         <ReportDropZone onChoose={onPick} disabled={upload.isPending} />
         {reports.isPending ? (
           <View style={[styles.listWrap, { gap: 10 }]}>
@@ -148,8 +148,10 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
             <Skeleton height={56} />
           </View>
         ) : null}
+        {upload.isPending ? <Text style={styles.uploading}>Uploading and scanning report...</Text> : null}
+        {message ? <Text style={styles.error}>{message}</Text> : null}
         {hasReports ? (
-          <View style={styles.listWrap}>
+          <View style={styles.listFill}>
             <ReportList
               items={reportItems}
               hasMore={reports.hasNextPage}
@@ -159,8 +161,6 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
             />
           </View>
         ) : null}
-        {upload.isPending ? <Text style={styles.uploading}>Uploading and scanning report...</Text> : null}
-        {message ? <Text style={styles.error}>{message}</Text> : null}
       </View>
       <LlmConsentSheet
         visible={llmSheetOpen}
@@ -168,12 +168,13 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onAllow={onAllowLlm}
         onDecline={() => setLlmSheetOpen(false)}
       />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     paddingHorizontal: 24,
     flexGrow: 1,
     backgroundColor: '#FFFFFF',
@@ -228,13 +229,22 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 24,
   },
+  bodyFill: {
+    flex: 1,
+    minHeight: 0,
+  },
   listWrap: {
+    marginTop: 20,
+  },
+  listFill: {
+    flex: 1,
+    minHeight: 0,
     marginTop: 20,
   },
   uploading: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#7545ED',
+    color: '#1F6F3F',
     textAlign: 'center',
     marginTop: 16,
   },

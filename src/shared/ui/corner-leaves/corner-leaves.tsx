@@ -1,3 +1,4 @@
+import { svgDataUri } from '@shared/lib';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
@@ -36,8 +37,8 @@ const BOTTOM_RIGHT_LEAVES_SVG = `<svg viewBox="0 0 220 200" fill="none" xmlns="h
   />
 </svg>`;
 
-const TOP_RIGHT_URI = `data:image/svg+xml;utf8,${encodeURIComponent(TOP_RIGHT_LEAVES_SVG)}`;
-const BOTTOM_RIGHT_URI = `data:image/svg+xml;utf8,${encodeURIComponent(BOTTOM_RIGHT_LEAVES_SVG)}`;
+const TOP_RIGHT_URI = svgDataUri(TOP_RIGHT_LEAVES_SVG);
+const BOTTOM_RIGHT_URI = svgDataUri(BOTTOM_RIGHT_LEAVES_SVG);
 
 /**
  * Top-Right Botanical Leaf Petals.

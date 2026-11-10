@@ -6,3 +6,5 @@ export { selectConsentScreen, selectConsentRecords, selectConsentRecord } from '
 export { useConsentGrants } from './model/use-consent-grants';
 export { useGrantLlmConsent, LLM_CONSENT_VERSION } from './model/use-grant-llm-consent';
 export { LlmConsentSheet } from './ui/llm-consent-sheet';
+export { useRevokeConsent } from './model/use-revoke-consent';
+export { useGrantConsentType } from './model/use-grant-consent-type';

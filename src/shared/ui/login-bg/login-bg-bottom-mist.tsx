@@ -1,3 +1,4 @@
+import { svgDataUri } from '@shared/lib';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
@@ -38,7 +39,7 @@ const SVG_BOTTOM_MIST = `<svg viewBox="0 0 400 210" fill="none" xmlns="http://ww
   />
 </svg>`;
 
-const DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(SVG_BOTTOM_MIST)}`;
+const DATA_URI = svgDataUri(SVG_BOTTOM_MIST);
 
 /**
  * Exact vector organic lavender mist curves for the bottom of the login screen.

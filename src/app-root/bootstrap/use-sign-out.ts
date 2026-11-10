@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import { useAppDispatch, persistor } from '@app-root/store';
 import { consentFlowReset } from '@entities/consent';
@@ -27,6 +28,12 @@ export function useSignOut() {
 
     await clearRefreshToken();
     signOutLocally();
+    // Clears the Google account choice so the next sign-in shows the picker again. Best effort.
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // Ignored: the VITA session is already cleared.
+    }
 
     dispatch(sessionCleared());
     dispatch(consentFlowReset());

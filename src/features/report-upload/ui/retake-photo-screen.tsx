@@ -191,10 +191,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   backLinkText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
 });
 

@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 /**
  * Decorative corner organic leaf shapes from the Reovita Design System.
- * Floats translucent purple (#7545ED) and volt lime (#D4FF3F) leaf silhouettes
+ * Floats translucent purple (#1F6F3F) and volt lime (#D4FF3F) leaf silhouettes
  * in the background for a fresh, modern wellness atmosphere.
  */
 export function LeafBackdrop() {
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderTopRightRadius: 80,
     borderBottomLeftRadius: 80,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     opacity: 0.08,
     transform: [{ rotate: '-30deg' }],
   },
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderTopRightRadius: 80,
     borderBottomLeftRadius: 80,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     opacity: 0.09,
     transform: [{ rotate: '35deg' }],
   },

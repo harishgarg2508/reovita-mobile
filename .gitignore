@@ -46,3 +46,4 @@ example
 # Firebase Android config: keep the JSON out of git
 google-services.json
 .generated/
+.env.cloud

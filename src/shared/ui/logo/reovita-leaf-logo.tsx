@@ -38,7 +38,7 @@ interface ReovitaLeafLogoProps {
 /**
  * Official Reovita Leaf Sprout Logo Emblem.
  * Recreates the two-leaf organic DNA sprout from the Reovita Design System:
- * - Left Leaf: Royal Purple (#7545ED)
+ * - Left Leaf: Royal Purple (#1F6F3F)
  * - Right Leaf: Volt Lime (#D4FF3F) with Emerald stem accent (#7AA800)
  */
 export function ReovitaLeafLogo({
@@ -66,7 +66,7 @@ export function ReovitaLeafLogo({
       style={[styles.container, isRow ? styles.rowContainer : styles.colContainer]}>
       {/* Brand emblem: the official Reovita logo from shared/assets */}
       <Image
-        source={require('../../assets/images/reovita-sprout.png')}
+        source={require('../../assets/images/reovita-logo.webp')}
         accessibilityIgnoresInvertColors
         style={{ width: size, height: size * 0.95 }}
         resizeMode="contain"
