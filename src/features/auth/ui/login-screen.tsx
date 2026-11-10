@@ -29,7 +29,7 @@ interface LoginScreenProps {
   onRecover?: () => void;
 }
 
-const ROYAL_PURPLE = '#7545ED';
+const ROYAL_PURPLE = '#1F6F3F';
 const INK_DARK = '#14121C';
 const TEXT_MUTED = '#60646C';
 
@@ -251,7 +251,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRe
           ) : null}
           {showRecover && onRecover ? (
             <Pressable accessibilityRole="button" onPress={onRecover} disabled={pending} style={{ marginTop: 12, alignSelf: 'center', padding: 8 }}>
-              <Text style={{ color: '#7545ED', fontWeight: '700', fontSize: 15 }}>Recover my account</Text>
+              <Text style={{ color: '#1F6F3F', fontWeight: '700', fontSize: 15 }}>Recover my account</Text>
             </Pressable>
           ) : null}
         </Animated.View>
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   purpleText: {
-    color: ROYAL_PURPLE,
+    color: "#1F6F3F",
     fontFamily: Font.bold,
     fontWeight: '700',
   },

@@ -208,7 +208,7 @@ export function YearWheel({ value, minYear, maxYear, onChange }: YearWheelProps)
           <Ionicons
             name="chevron-back"
             size={18}
-            color={currentYear <= minYear ? '#C5BDD4' : '#7545ED'}
+            color={currentYear <= minYear ? '#C5BDD4' : '#1F6F3F'}
           />
         </Pressable>
         <Pressable
@@ -221,7 +221,7 @@ export function YearWheel({ value, minYear, maxYear, onChange }: YearWheelProps)
           <Ionicons
             name="chevron-forward"
             size={18}
-            color={currentYear >= maxYear ? '#C5BDD4' : '#7545ED'}
+            color={currentYear >= maxYear ? '#C5BDD4' : '#1F6F3F'}
           />
         </Pressable>
       </View>
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   yearSelected: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 24,
-    color: '#7545ED',
+    color: '#1F6F3F',
     includeFontPadding: false,
     textAlignVertical: 'center',
   },

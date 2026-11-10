@@ -24,6 +24,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: '#1F1A2E' },
   body: { fontSize: 14, lineHeight: 20, color: '#5B5470' },
   spacer: { flex: 1 },
-  button: { backgroundColor: '#7545ED', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
+  button: { backgroundColor: '#1F6F3F', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
   buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

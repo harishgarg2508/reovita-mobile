@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useReplaceReportFile } from '@entities/report';
 import { isApiError } from '@shared/api';
 
-const VIOLET = '#7545ED';
+const VIOLET = '#1F6F3F';
 
 // Shown when OCR could not read the stored file. The user uploads a new copy into the same report.
 export function ReportNotReadablePanel({ reportId }: { reportId: string }) {

@@ -42,25 +42,25 @@ const loadingStyles = StyleSheet.create({
 
 const HERO_CHART_SVG = `<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="80" cy="80" r="76" fill="#F4EFFE" />
-  <rect x="52" y="74" width="8" height="22" rx="4" fill="#7545ED" />
-  <rect x="65" y="44" width="8" height="52" rx="4" fill="#7545ED" />
-  <rect x="78" y="62" width="8" height="34" rx="4" fill="#7545ED" />
-  <rect x="91" y="52" width="8" height="44" rx="4" fill="#7545ED" />
+  <rect x="52" y="74" width="8" height="22" rx="4" fill="#1F6F3F" />
+  <rect x="65" y="44" width="8" height="52" rx="4" fill="#1F6F3F" />
+  <rect x="78" y="62" width="8" height="34" rx="4" fill="#1F6F3F" />
+  <rect x="91" y="52" width="8" height="44" rx="4" fill="#1F6F3F" />
   <circle cx="103" cy="91" r="13" fill="#F4EFFE" />
   <line x1="109" y1="97" x2="119" y2="107" stroke="#F4EFFE" stroke-width="7" stroke-linecap="round" />
-  <circle cx="103" cy="91" r="10" stroke="#7545ED" stroke-width="3" fill="#F4EFFE" />
-  <line x1="109" y1="97" x2="119" y2="107" stroke="#7545ED" stroke-width="3.2" stroke-linecap="round" />
+  <circle cx="103" cy="91" r="10" stroke="#1F6F3F" stroke-width="3" fill="#F4EFFE" />
+  <line x1="109" y1="97" x2="119" y2="107" stroke="#1F6F3F" stroke-width="3.2" stroke-linecap="round" />
 </svg>`;
 const HERO_CHART_URI = svgDataUri(HERO_CHART_SVG);
 
 const SPINNER_RING_SVG = `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="22" cy="22" r="18" stroke="#EDE8F8" stroke-width="3.5" fill="none" />
-  <path d="M 22 4 A 18 18 0 0 1 40 22" stroke="#7545ED" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <path d="M 22 4 A 18 18 0 0 1 40 22" stroke="#1F6F3F" stroke-width="3.5" stroke-linecap="round" fill="none" />
 </svg>`;
 const SPINNER_RING_URI = svgDataUri(SPINNER_RING_SVG);
 
 const DIAMOND_STAR_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M12 0 C12 6.6 6.6 12 0 12 C6.6 12 12 17.4 12 24 C12 17.4 17.4 12 24 12 C17.4 12 12 6.6 12 0 Z" fill="#9D7BFA" />
+  <path d="M12 0 C12 6.6 6.6 12 0 12 C6.6 12 12 17.4 12 24 C12 17.4 17.4 12 24 12 C17.4 12 12 6.6 12 0 Z" fill="#5CC47F" />
 </svg>`;
 const DIAMOND_STAR_URI = svgDataUri(DIAMOND_STAR_SVG);
 
@@ -543,7 +543,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
                         paddingHorizontal: 10,
                         paddingVertical: 7,
                         borderWidth: 1.5,
-                        borderColor: '#7545ED',
+                        borderColor: '#1F6F3F',
                         borderRadius: 10,
                         backgroundColor: '#F8F5FF',
                       }}
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     height: 160,
   },
   aiLoadingAccent: {
-    color: '#7545ED',
+    color: '#1F6F3F',
     fontFamily: 'Poppins_700Bold',
   },
   container: {
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 1.8,
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -745,15 +745,15 @@ const styles = StyleSheet.create({
   editBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   confirmBtn: {
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -970,10 +970,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,

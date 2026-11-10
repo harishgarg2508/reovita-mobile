@@ -6,10 +6,10 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 // Dots that drift outward from the check, at these angles (degrees) and colors.
 const DOTS = [
   { angle: -60, color: '#D4FF3F' },
-  { angle: -15, color: '#7545ED' },
+  { angle: -15, color: '#1F6F3F' },
   { angle: 30, color: '#D4A64A' },
   { angle: 110, color: '#84CC16' },
-  { angle: 160, color: '#7545ED' },
+  { angle: 160, color: '#1F6F3F' },
   { angle: 210, color: '#E34255' },
 ];
 

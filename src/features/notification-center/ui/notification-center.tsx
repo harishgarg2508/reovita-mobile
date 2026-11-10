@@ -82,7 +82,7 @@ export function NotificationCenter() {
           list.isPending || list.isError ? undefined : <Text style={styles.empty}>No notifications yet.</Text>
         }
         ListFooterComponent={
-          list.isFetchingNextPage ? <ActivityIndicator color="#7545ED" style={styles.footer} /> : undefined
+          list.isFetchingNextPage ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
@@ -117,14 +117,14 @@ const styles = StyleSheet.create({
   },
   allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#171717' },
-  markAll: { fontSize: 13, fontWeight: '600', color: '#7545ED' },
+  markAll: { fontSize: 13, fontWeight: '600', color: '#1F6F3F' },
   disabled: { color: '#B8B3C7' },
   list: { paddingHorizontal: 24, paddingTop: 4 },
   separator: { height: 12 },
   card: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#ECEAEF', gap: 6 },
   cardUnread: { backgroundColor: '#F8F5FF', borderColor: '#DCD3F5' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7545ED' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1F6F3F' },
   title: { fontSize: 15, fontWeight: '700', color: '#171717', flexShrink: 1 },
   body: { fontSize: 14, color: '#3C3A46' },
   when: { fontSize: 12, color: '#8A8694' },

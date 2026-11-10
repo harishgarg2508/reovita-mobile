@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   uploading: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#7545ED',
+    color: '#1F6F3F',
     textAlign: 'center',
     marginTop: 16,
   },

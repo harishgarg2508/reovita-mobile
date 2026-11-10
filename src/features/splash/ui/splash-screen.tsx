@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#7545ED', // Reovita Royal Purple
+    backgroundColor: '#1F6F3F', // Reovita Royal Purple
     borderRadius: 999,
   },
 });

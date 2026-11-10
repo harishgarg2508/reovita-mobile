@@ -144,7 +144,7 @@ export function OnboardingStepper({ step }: { step: number }) {
         <View style={styles.actionWrap}>
           {step === 1 ? (
             <View style={styles.requiredPill}>
-              <Ionicons name="information-circle-outline" size={15} color="#7545ED" />
+              <Ionicons name="information-circle-outline" size={15} color="#1F6F3F" />
               <Text style={styles.requiredPillText}>All fields required</Text>
             </View>
           ) : null}
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   stepBadge: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 12,
-    color: '#7545ED',
+    color: '#1F6F3F',
     letterSpacing: 0.2,
   },
   stepTrack: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   stepFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
   },
   title: {
     fontFamily: 'Poppins_700Bold',

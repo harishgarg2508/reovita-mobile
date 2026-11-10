@@ -321,10 +321,10 @@ export function ConfettiCelebrationBadge({ size = 76 }: { size?: number }) {
     <View style={styles.confettiContainer}>
       {/* Floating confetti flakes */}
       <View style={[styles.confettiFlake, { top: -8, left: 16, backgroundColor: '#84CC16', transform: [{ rotate: '25deg' }] }]} />
-      <View style={[styles.confettiFlake, { top: -14, left: 62, backgroundColor: '#7545ED', transform: [{ rotate: '-35deg' }] }]} />
+      <View style={[styles.confettiFlake, { top: -14, left: 62, backgroundColor: '#1F6F3F', transform: [{ rotate: '-35deg' }] }]} />
       <View style={[styles.confettiFlake, { top: 12, left: -14, backgroundColor: '#F59E0B', transform: [{ rotate: '45deg' }] }]} />
       <View style={[styles.confettiFlake, { top: 22, right: -16, backgroundColor: '#84CC16', transform: [{ rotate: '-20deg' }] }]} />
-      <View style={[styles.confettiFlake, { bottom: 6, left: -10, backgroundColor: '#7545ED', transform: [{ rotate: '30deg' }] }]} />
+      <View style={[styles.confettiFlake, { bottom: 6, left: -10, backgroundColor: '#1F6F3F', transform: [{ rotate: '30deg' }] }]} />
       <View style={[styles.confettiFlake, { bottom: 12, right: -12, backgroundColor: '#F59E0B', transform: [{ rotate: '-45deg' }] }]} />
       <View style={[styles.confettiFlake, { top: -6, right: 22, backgroundColor: '#06B6D4', transform: [{ rotate: '15deg' }] }]} />
       <View style={[styles.confettiFlake, { bottom: -10, left: 40, backgroundColor: '#84CC16', transform: [{ rotate: '-10deg' }] }]} />
@@ -364,7 +364,7 @@ export function SparklineGraphic({ width = 130, height = 50 }: { width?: number;
 /**
  * Tab Bar Icons matching Figma Screen 2.
  */
-export function TabHomeIcon({ color = '#7545ED', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabHomeIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'flex-end' }}>
       <View
@@ -397,7 +397,7 @@ export function TabHomeIcon({ color = '#7545ED', size = 20 }: { color?: ColorVal
   );
 }
 
-export function TabReportsIcon({ color = '#7545ED', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabReportsIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View
@@ -418,7 +418,7 @@ export function TabReportsIcon({ color = '#7545ED', size = 20 }: { color?: Color
   );
 }
 
-export function TabInsightsIcon({ color = '#7545ED', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabInsightsIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
       <View style={{ width: 2, height: size * 0.5, backgroundColor: color, borderRadius: 1 }} />
@@ -429,7 +429,7 @@ export function TabInsightsIcon({ color = '#7545ED', size = 20 }: { color?: Colo
   );
 }
 
-export function TabProfileIcon({ color = '#7545ED', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabProfileIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View
@@ -690,10 +690,10 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   infoBadge: {
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7545ED',
+    shadowColor: '#1F6F3F',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -711,11 +711,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   sparkleMain: {
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   sparkleSatellite: {
     position: 'absolute',
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   confettiContainer: {
     alignItems: 'center',

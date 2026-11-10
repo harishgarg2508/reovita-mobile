@@ -247,7 +247,7 @@ export function StepConditionsForm({
               <Ionicons
                 name={medsDropdownOpen ? 'chevron-up' : 'chevron-down'}
                 size={18}
-                color="#7545ED"
+                color="#1F6F3F"
               />
             </Pressable>
           </View>
@@ -270,7 +270,7 @@ export function StepConditionsForm({
                   onPress={() => addMedication(med)}
                   style={styles.suggestionItem}>
                   <Text style={styles.suggestionText}>{med}</Text>
-                  <Ionicons name="add" size={16} color="#7545ED" />
+                  <Ionicons name="add" size={16} color="#1F6F3F" />
                 </Pressable>
               ))}
             </View>
@@ -287,7 +287,7 @@ export function StepConditionsForm({
                   onPress={() => removeMedication(med)}
                   style={styles.medTag}>
                   <Text style={styles.medTagText}>{med}</Text>
-                  <Ionicons name="close" size={14} color="#7545ED" style={styles.medTagClose} />
+                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
                 </Pressable>
               ))}
             </View>
@@ -315,7 +315,7 @@ export function StepConditionsForm({
                 {fatherConditions.length > 0 ? fatherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -336,7 +336,7 @@ export function StepConditionsForm({
                 {motherConditions.length > 0 ? motherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -357,7 +357,7 @@ export function StepConditionsForm({
                 {siblingConditions.length > 0 ? siblingConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -378,7 +378,7 @@ export function StepConditionsForm({
                 {wifeConditions.length > 0 ? wifeConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#7545ED" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
           </Pressable>
         </View>
       </View>
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: '#E8F8CE',
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     borderWidth: 1.5,
   },
   chipCheck: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   addCustomMedText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   selectedMedsWrap: {
     flexDirection: 'row',
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#E8F8CE',
     borderWidth: 1.5,
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
   },
   medTagText: {
     fontFamily: 'Poppins_500Medium',
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   familyTagsText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 12,
-    color: '#7545ED',
+    color: '#1F6F3F',
   },
   familyPlaceholderText: {
     fontFamily: 'Poppins_400Regular',
@@ -712,13 +712,13 @@ const styles = StyleSheet.create({
   },
   modalChipSelected: {
     backgroundColor: '#E8F8CE',
-    borderColor: '#7545ED',
+    borderColor: '#1F6F3F',
     borderWidth: 1.5,
   },
   modalDoneBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#7545ED',
+    backgroundColor: '#1F6F3F',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,

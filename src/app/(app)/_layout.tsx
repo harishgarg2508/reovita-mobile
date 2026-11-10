@@ -10,7 +10,7 @@ import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
 
-const ACCENT = '#7545ED';
+const ACCENT = '#1F6F3F';
 
 // Screens that exist only as pushed detail pages. They stay out of the side menu.
 const HIDDEN_FROM_MENU = {
