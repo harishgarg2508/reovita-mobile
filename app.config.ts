@@ -46,11 +46,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesFile = resolveGoogleServicesFile();
   return {
   ...(config as ExpoConfig),
+  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js'],
   android: {
     ...(config as ExpoConfig).android,
     googleServicesFile,
   },
   extra: {
+    // Keep app.json's extra (EAS project id, router options) alongside the values below.
+    ...(config as ExpoConfig).extra,
     googleWebClientId: readGoogleWebClientId(googleServicesFile),
     firebase: {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

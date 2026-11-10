@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomRightLeaves, ReovitaLeafLogo, TopRightLeaves } from '@shared/ui';
+import { BottomRightLeaves, LoginBgTopLeaves, ReovitaLeafLogo } from '@shared/ui';
 
 const DURATION_MS = 2400;
 
@@ -53,8 +53,8 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       accessibilityLabel="Tap to continue"
       onPress={onDone}
       style={styles.container}>
-      {/* Decorative botanical translucent leaves in top-right and bottom-right */}
-      <TopRightLeaves size={260} />
+      {/* Top-right leaves: the same asset as the login screen. */}
+      <LoginBgTopLeaves />
       <BottomRightLeaves size={280} />
 
       <Animated.View

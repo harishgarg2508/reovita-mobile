@@ -24,6 +24,9 @@ interface LoginScreenProps {
   pending: boolean;
   errorMessage: string | null;
   onBack?: () => void;
+  // Shown when the account was deactivated: signing in again recovers it.
+  showRecover?: boolean;
+  onRecover?: () => void;
 }
 
 const ROYAL_PURPLE = '#7545ED';
@@ -44,7 +47,7 @@ const TEXT_MUTED = '#60646C';
  * - Official 4-color Google "G" vector SVG icon
  * - Staggered cascade entrance and tactile spring press animations
  */
-export function LoginScreen({ onSignIn, pending, errorMessage }: LoginScreenProps) {
+export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRecover }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
 
   // Entrance animations
@@ -245,6 +248,11 @@ export function LoginScreen({ onSignIn, pending, errorMessage }: LoginScreenProp
           {/* Error Message Feedback */}
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+          {showRecover && onRecover ? (
+            <Pressable accessibilityRole="button" onPress={onRecover} disabled={pending} style={{ marginTop: 12, alignSelf: 'center', padding: 8 }}>
+              <Text style={{ color: '#7545ED', fontWeight: '700', fontSize: 15 }}>Recover my account</Text>
+            </Pressable>
           ) : null}
         </Animated.View>
       </View>

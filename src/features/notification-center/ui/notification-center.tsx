@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
-import { goBackOr } from '@shared/ui';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -19,7 +18,8 @@ function formatWhen(iso: string): string {
     : date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-// Inbox: newest first. Tapping a report notification marks it read and opens the report.
+// Inbox: newest first. The header stays fixed; only the list scrolls. The next page (10 items)
+// loads when the user reaches the end of the list.
 export function NotificationCenter() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -42,83 +42,93 @@ export function NotificationCenter() {
     }
   }
 
+  function loadMore() {
+    if (list.hasNextPage && !list.isFetchingNextPage) {
+      void list.fetchNextPage();
+    }
+  }
+
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { paddingTop: Math.max(insets.top, 20) + 8, paddingBottom: Math.max(insets.bottom, 20) + 16 },
-      ]}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
+      {/* Fixed header: does not scroll with the list. */}
       <View style={styles.headerBar}>
-        <Pressable accessibilityRole="button" onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
         <Text style={styles.headerTitle}>Notifications</Text>
         <Pressable
           accessibilityRole="button"
           disabled={!hasUnread || markAll.isPending}
           onPress={() => markAll.mutate()}
-          style={styles.backBtn}>
+          style={styles.allReadBtn}>
           <Text style={[styles.markAll, !hasUnread && styles.disabled]}>All read</Text>
         </Pressable>
       </View>
 
       {list.isPending ? (
-        <>
+        <View style={styles.gutter}>
           <Skeleton height={72} />
           <Skeleton height={72} />
           <Skeleton height={72} />
-        </>
+        </View>
       ) : null}
 
-      {list.isError ? <Text style={styles.error}>We could not load your notifications.</Text> : null}
+      {list.isError ? <Text style={[styles.error, styles.gutter]}>We could not load your notifications.</Text> : null}
 
-      {!list.isPending && items.length === 0 ? <Text style={styles.empty}>No notifications yet.</Text> : null}
-
-      {items.map((item) => (
-        <Pressable
-          key={item.id}
-          accessibilityRole="button"
-          onPress={() => open(item)}
-          style={[styles.card, item.read_at === null && styles.cardUnread]}>
-          <View style={styles.cardTop}>
-            {item.read_at === null ? <View style={styles.dot} /> : null}
-            <Text style={styles.title}>{item.title}</Text>
-          </View>
-          {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
-          <Text style={styles.when}>{formatWhen(item.created_at)}</Text>
-        </Pressable>
-      ))}
-
-      {list.hasNextPage ? (
-        <Pressable
-          accessibilityRole="button"
-          disabled={list.isFetchingNextPage}
-          onPress={() => void list.fetchNextPage()}
-          style={styles.more}>
-          <Text style={styles.moreText}>{list.isFetchingNextPage ? 'Loading...' : 'Load more'}</Text>
-        </Pressable>
-      ) : null}
-    </ScrollView>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={
+          list.isPending || list.isError ? undefined : <Text style={styles.empty}>No notifications yet.</Text>
+        }
+        ListFooterComponent={
+          list.isFetchingNextPage ? <ActivityIndicator color="#7545ED" style={styles.footer} /> : undefined
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => open(item)}
+            style={[styles.card, item.read_at === null && styles.cardUnread]}>
+            <View style={styles.cardTop}>
+              {item.read_at === null ? <View style={styles.dot} /> : null}
+              <Text style={styles.title}>{item.title}</Text>
+            </View>
+            {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
+            <Text style={styles.when}>{formatWhen(item.created_at)}</Text>
+          </Pressable>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 24, gap: 12, backgroundColor: '#FFFFFF', flexGrow: 1 },
-  headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
-  backBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  backArrow: { fontSize: 22, color: '#171717', fontWeight: '700' },
+  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  gutter: { paddingHorizontal: 24, gap: 12 },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+  },
+  allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#171717' },
   markAll: { fontSize: 13, fontWeight: '600', color: '#7545ED' },
   disabled: { color: '#B8B3C7' },
+  list: { paddingHorizontal: 24, paddingTop: 4 },
+  separator: { height: 12 },
   card: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#ECEAEF', gap: 6 },
-  cardUnread: { backgroundColor: '#F8F5FF', borderColor: '#D9CCFA' },
+  cardUnread: { backgroundColor: '#F8F5FF', borderColor: '#DCD3F5' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7545ED' },
-  title: { fontSize: 15, fontWeight: '700', color: '#171717' },
-  body: { fontSize: 14, lineHeight: 20, color: '#3B3F47' },
-  when: { fontSize: 12, color: '#8E929A' },
-  empty: { fontSize: 14, color: '#8E929A', textAlign: 'center', marginTop: 32 },
-  error: { fontSize: 14, color: '#C22F43', textAlign: 'center', marginTop: 32 },
-  more: { alignItems: 'center', paddingVertical: 12 },
-  moreText: { fontSize: 14, fontWeight: '600', color: '#7545ED' },
+  title: { fontSize: 15, fontWeight: '700', color: '#171717', flexShrink: 1 },
+  body: { fontSize: 14, color: '#3C3A46' },
+  when: { fontSize: 12, color: '#8A8694' },
+  empty: { fontSize: 14, color: '#8A8694', textAlign: 'center', marginTop: 32 },
+  error: { fontSize: 13, color: '#C22F43' },
+  footer: { paddingVertical: 16 },
 });

@@ -6,7 +6,6 @@ export { LoginBgTopLeaves } from './login-bg/login-bg-top-leaves';
 export { LoginBgBottomMist } from './login-bg/login-bg-bottom-mist';
 export { MiniSproutDivider } from './login-bg/mini-sprout-divider';
 export { BottomDock } from './bottom-dock';
-export { ScreenBackButton, goBackOr } from './screen-back/screen-back-button';
 export { Button } from './button';
 export {
   GoogleIcon,
@@ -31,3 +30,5 @@ export {
   TabInsightsIcon,
   TabProfileIcon,
 } from './icons';
+export { goBackOr } from './screen-back/screen-back-button';
+export { ConfirmDialog } from './confirm-dialog/confirm-dialog';

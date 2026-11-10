@@ -66,7 +66,7 @@ export function ReovitaLeafLogo({
       style={[styles.container, isRow ? styles.rowContainer : styles.colContainer]}>
       {/* Brand emblem: the official Reovita logo from shared/assets */}
       <Image
-        source={require('../../assets/images/reovita-sprout.png')}
+        source={require('../../assets/images/reovita-logo.webp')}
         accessibilityIgnoresInvertColors
         style={{ width: size, height: size * 0.95 }}
         resizeMode="contain"

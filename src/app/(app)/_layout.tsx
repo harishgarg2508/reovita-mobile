@@ -74,7 +74,7 @@ export default function AppLayout() {
       <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings' }} />
       <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />
       <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
-      <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications' }} />
+      <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
 
       {/* Reports draw their own headers per screen (see reports/_layout). */}
       <Drawer.Screen name="reports" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
