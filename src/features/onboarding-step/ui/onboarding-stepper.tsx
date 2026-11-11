@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { type ElementRef, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,10 @@ import { tapConfirm } from '@shared/lib';
 import { useProfileCompleteness } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '../model/step-href';
 import { useSaveStep } from '../model/use-save-step';
+import { useStepSaved } from '../model/use-step-saved';
+import { missingFields } from '../model/missing-fields';
+import { basicsFromSaved, historyFromSaved, lifestyleFromSaved } from '../model/saved-to-draft';
+import { useBasicsDraft, useHistoryDraft, useLifestyleDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput, HistoryInput, LifestyleInput } from '../model/onboarding.types';
 import { StepConditionsForm } from './step-conditions-form';
 import { StepHeaderBadge } from '@shared/ui/step-header-badge';
@@ -41,6 +45,37 @@ export function OnboardingStepper({ step }: { step: number }) {
     if (step === 4 && reportsDone) router.replace('/(app)/(tabs)/dashboard');
   }, [step, reportsDone, router]);
 
+  // Fill the step with the values already saved on the server. Done once each time the step opens.
+  const saved = useStepSaved(step as OnboardingStepNumber, step !== 4);
+  const [, patchBasics] = useBasicsDraft();
+  const [, patchHistory] = useHistoryDraft();
+  const [, patchLifestyle] = useLifestyleDraft();
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !saved.data) return;
+    prefilled.current = true;
+    if (step === 1) patchBasics(basicsFromSaved(saved.data));
+    if (step === 2) patchHistory(historyFromSaved(saved.data));
+    if (step === 3) patchLifestyle(lifestyleFromSaved(saved.data));
+  }, [saved.data, step, patchBasics, patchHistory, patchLifestyle]);
+
+  // Required fields still empty, and the scroll position of each field, so Next can scroll to the first one.
+  const [basicsNow] = useBasicsDraft();
+  const [historyNow] = useHistoryDraft();
+  const [lifestyleNow] = useLifestyleDraft();
+  const missing = missingFields(step, basicsNow, historyNow, lifestyleNow);
+  const shownMissing = attempted ? missing : [];
+  const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
+  const fieldY = useRef<Record<string, number>>({});
+  const bodyY = useRef(0);
+  function onFieldLayout(name: string, y: number) {
+    fieldY.current[name] = y;
+  }
+  function scrollToField(name: string) {
+    const y = bodyY.current + (fieldY.current[name] ?? 0);
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+  }
+
   const current = STEP_DATA[Math.min(step - 1, STEP_DATA.length - 1)];
 
   function next() {
@@ -62,9 +97,9 @@ export function OnboardingStepper({ step }: { step: number }) {
   async function onSave() {
     tapConfirm();
     // Check the required fields here first. No request is sent until they are valid.
-    const valid = (step === 1 && basics) || (step === 2 && history) || (step === 3 && lifestyle);
-    if (!valid) {
+    if (missing.length > 0) {
       setAttempted(true);
+      scrollToField(missing[0]);
       return;
     }
     if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
@@ -73,15 +108,11 @@ export function OnboardingStepper({ step }: { step: number }) {
     next();
   }
 
-  const canSave =
-    (step === 1 && basics !== null) ||
-    (step === 2 && history !== null) ||
-    (step === 3 && lifestyle !== null) ||
-    step === 4;
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         nestedScrollEnabled={true}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -126,10 +157,10 @@ export function OnboardingStepper({ step }: { step: number }) {
         </View>
 
         {/* Step Content */}
-        <View style={styles.stepBody}>
-          {step === 1 ? <StepIdentityForm onChange={setBasics} showErrors={attempted} /> : null}
-          {step === 2 ? <StepConditionsForm onChange={setHistory} /> : null}
-          {step === 3 ? <StepLifestyleForm onChange={setLifestyle} /> : null}
+        <View style={styles.stepBody} onLayout={(e) => (bodyY.current = e.nativeEvent.layout.y)}>
+          {step === 1 ? <StepIdentityForm onChange={setBasics} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
+          {step === 2 ? <StepConditionsForm onChange={setHistory} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
+          {step === 3 ? <StepLifestyleForm onChange={setLifestyle} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
           {step === 4 ? (
             <StepReportPrompt
               onChoose={() => router.push({ pathname: '/onboarding/upload', params: { pick: '1' } })}
@@ -169,16 +200,10 @@ export function OnboardingStepper({ step }: { step: number }) {
           </View>
         </View>
 
-        {attempted && !canSave ? (
-          <View style={styles.errorRow}>
-            <Text style={styles.errorText}>Please fill the highlighted fields.</Text>
-          </View>
-        ) : null}
-
         {save.isError ? (
           <View style={styles.errorRow}>
             <Ionicons name="information-circle-outline" size={14} color="#C22F43" />
-            <Text style={styles.errorText}>Could not save this step. Please check your entries.</Text>
+            <Text style={styles.errorText}>{save.error?.message || 'Could not save this step. Please check your entries.'}</Text>
           </View>
         ) : null}
       </View>

@@ -32,10 +32,12 @@ const CATEGORY_ORDER: ('Under' | 'Healthy' | 'Over' | 'Obese')[] = ['Under', 'He
 // Step 1: birth year, sex, height and weight. BMI is worked out from height and weight.
 export function StepIdentityForm({
   onChange,
-  showErrors = false,
+  missing = [],
+  onFieldLayout,
 }: {
   onChange: (value: BasicsInput | null) => void;
-  showErrors?: boolean;
+  missing?: string[];
+  onFieldLayout?: (name: string, y: number) => void;
 }) {
   const [draft, patchDraft] = useBasicsDraft();
 
@@ -62,9 +64,9 @@ export function StepIdentityForm({
   const bmi = cm >= 50 && kg >= 20 ? kg / ((cm / 100) * (cm / 100)) : null;
   const category = bmi !== null ? bmiCategory(bmi) : null;
   // Required fields that are still empty or out of range are highlighted, only after Continue was pressed.
-  const sexMissing = showErrors && draft.sex === null;
-  const heightMissing = showErrors && !(cm >= 50 && cm <= 260);
-  const weightMissing = showErrors && !(kg >= 20 && kg <= 400);
+  const sexMissing = missing.includes('sex');
+  const heightMissing = missing.includes('height');
+  const weightMissing = missing.includes('weight');
 
   return (
     <View style={styles.form}>
@@ -80,7 +82,7 @@ export function StepIdentityForm({
       </View>
 
       {/* Sex segments */}
-      <View style={styles.block}>
+      <View style={[styles.block, sexMissing && styles.blockError]} onLayout={(e) => onFieldLayout?.('sex', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
             <Ionicons name="male-female-outline" size={13} color="#1F6F3F" />
@@ -105,7 +107,7 @@ export function StepIdentityForm({
       </View>
 
       {/* Height and weight */}
-      <View style={styles.row}>
+      <View style={styles.row} onLayout={(e) => onFieldLayout?.('height', e.nativeEvent.layout.y)}>
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
@@ -178,6 +180,7 @@ export function StepIdentityForm({
 
 const styles = StyleSheet.create({
   fieldError: { borderColor: '#C22F43', borderWidth: 1.5 },
+  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
   form: { gap: 24 },
   block: { gap: 8 },
   labelRow: {

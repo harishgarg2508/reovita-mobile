@@ -6,6 +6,8 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useHome } from '@entities/home';
+import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
+import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
@@ -110,6 +112,9 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const home = useHome();
+  // The first unfinished onboarding step, from the status endpoint. The profile card opens it.
+  const nextStep = useProfileCompleteness().data?.next_step ?? null;
+  const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
   const unread = useUnreadCount().data ?? 0;
   useNotificationStream();
   const scheme = useResolvedScheme();
@@ -188,9 +193,12 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
       {data && data.percent < 60 ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/(app)/reports/upload')}
+          onPress={() => router.push(nextStep ? stepHref(STEP_OF[nextStep]) : '/(app)/reports/upload')}
           style={[styles.profile, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Text style={[styles.cardTitle, { color: p.text }]}>Complete your profile</Text>
+          <View style={styles.rowTop}>
+            <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Complete your profile</Text>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
           <ProgressBar percent={data.percent} />
           <Text style={[styles.cardText, { color: p.muted }]}>{data.percent}% complete</Text>
         </Pressable>

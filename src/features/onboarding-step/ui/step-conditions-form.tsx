@@ -63,8 +63,12 @@ const FAMILY_CONDITION_OPTIONS = [
  */
 export function StepConditionsForm({
   onChange,
+  missing = [],
+  onFieldLayout,
 }: {
   onChange: (value: HistoryInput | null) => void;
+  missing?: string[];
+  onFieldLayout?: (name: string, y: number) => void;
 }) {
   // Saved selections live in Redux; only the UI-only state stays local.
   const [draft, patchDraft] = useHistoryDraft();
@@ -167,7 +171,7 @@ export function StepConditionsForm({
   return (
     <View style={styles.container}>
       {/* 1. Conditions Section */}
-      <View style={styles.section}>
+      <View style={[styles.section, missing.includes('conditions') && styles.blockError]} onLayout={(e) => onFieldLayout?.('conditions', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Conditions</Text>
         <View style={styles.chipsWrap}>
           {visibleConditionsList.map((item) => {
@@ -204,7 +208,7 @@ export function StepConditionsForm({
       </View>
 
       {/* 2. Other Notes Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('other', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Other</Text>
         <View style={styles.otherCard}>
           <TextInput
@@ -221,7 +225,7 @@ export function StepConditionsForm({
       </View>
 
       {/* 3. Meds Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
         <View style={styles.medsBox}>
           {/* Search bar */}
@@ -296,7 +300,7 @@ export function StepConditionsForm({
       </View>
 
       {/* 4. Family Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('family', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Family</Text>
         <View style={styles.familyCard}>
           {/* Father Row */}
@@ -449,6 +453,7 @@ const styles = StyleSheet.create({
   section: {
     gap: 8,
   },
+  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
   sectionLabel: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
