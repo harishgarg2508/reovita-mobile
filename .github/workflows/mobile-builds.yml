@@ -83,6 +83,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      - name: Print APK signing fingerprints (register in Firebase for Google sign-in)
+        run: |
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep -E "SHA1|SHA256"
+
       - name: Collect APK
         run: |
           mkdir -p artifacts
