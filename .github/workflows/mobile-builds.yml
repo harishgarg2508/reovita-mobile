@@ -91,7 +91,7 @@ jobs:
 
       - name: Print APK signing fingerprints (register in Firebase for Google sign-in)
         run: |
-          ./gradlew -p android signingReport | grep -E "Variant|SHA1|SHA-256" || true
+          cd android && ./gradlew signingReport | grep -E "Variant|SHA1|SHA-256"
 
       - name: Collect APK
         run: |
