@@ -84,7 +84,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Print APK signing fingerprints (register in Firebase for Google sign-in)
         run: |
