@@ -69,7 +69,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServiceInfoPlist = resolveGoogleServiceInfoPlist();
   return {
   ...(config as ExpoConfig),
-  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js'],
+  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js', './plugins/with-release-signing.js'],
   ios: {
     ...(config as ExpoConfig).ios,
     ...(googleServiceInfoPlist ? { googleServicesFile: googleServiceInfoPlist } : {}),
