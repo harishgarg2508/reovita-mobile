@@ -81,6 +81,7 @@ jobs:
         run: |
           echo "" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1g" >> android/gradle.properties
+          echo "android.enableDexingArtifactTransform=false" >> android/gradle.properties
 
       - name: Build release APK
         working-directory: android
