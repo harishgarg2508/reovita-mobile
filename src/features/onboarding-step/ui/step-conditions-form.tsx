@@ -15,7 +15,7 @@ import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
 const INITIAL_CONDITIONS = ['Asthma', 'Diabetes', 'Hypertension', 'Thyroid', 'None'];
-const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD'];
+const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD', 'Heart Disease', 'Kidney Disease'];
 
 // Server tags for the conditions that have one. Other labels are sent as 'other' with the label as free text.
 const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'cvd' | 'ckd'> = {
@@ -80,7 +80,8 @@ export function StepConditionsForm({
   const siblingConditions = draft.sibling;
   const wifeConditions = draft.wife;
 
-  const [showMoreConditions, setShowMoreConditions] = useState(false);
+  // Open the full list when a saved condition is only in it, so the saved choice is visible.
+  const [showMoreConditions, setShowMoreConditions] = useState(() => draft.conditions.some((c) => EXTRA_CONDITIONS.includes(c)));
   const [medQuery, setMedQuery] = useState('');
   const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
   const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);

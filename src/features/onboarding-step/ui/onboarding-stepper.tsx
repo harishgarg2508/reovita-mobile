@@ -128,7 +128,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             {/* Logo at the left */}
             <View style={styles.brandRow}>
               <Image
-                source={require('../../../shared/assets/images/reovita-sprout.png')}
+                source={require('../../../shared/assets/images/reovita-logo.webp')}
                 style={styles.brandMark}
                 resizeMode="contain"
               />
@@ -190,13 +190,27 @@ export function OnboardingStepper({ step }: { step: number }) {
                 </Pressable>
               </>
             ) : null}
+            {step === 4 ? (
+              <>
+                <Pressable accessibilityRole="button" onPress={next} style={styles.skipButton}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </Pressable>
+                <View style={styles.nextGroupItem}>
+                  <Button
+                    label="Upload report"
+                    onPress={() => router.push({ pathname: '/onboarding/upload', params: { pick: '1' } })}
+                  />
+                </View>
+              </>
+            ) : (
             <View style={styles.nextGroupItem}>
               <Button
                 label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
                 disabled={save.isPending}
-                onPress={step === 4 ? next : onSave}
+                onPress={onSave}
               />
             </View>
+            )}
           </View>
         </View>
 

@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import EventSource from 'react-native-sse';
+import { useState } from 'react';
 
-import { getAccessToken } from '@shared/api';
+import { useEventStream } from '@shared/lib';
 import { API_URL } from '@shared/config/environment';
 
 export type ReportProcessingStatus =
@@ -25,26 +24,13 @@ export function isReportReady(status: ReportProcessingStatus | null): boolean {
   return status !== null && READY_STATUSES.includes(status);
 }
 
-// Live status of a report from the server's event stream (server-sent events). Nothing polls.
-// The first event is the current status, later events are changes. The server closes the stream
-// once the report needs the user or has finished.
-export function useReportStatus(reportId: string): ReportProcessingStatus | null {
+// Live status of a report over the generic event stream. Only open it when the status is needed.
+export function useReportStatus(reportId: string | null): ReportProcessingStatus | null {
   const [status, setStatus] = useState<ReportProcessingStatus | null>(null);
-
-  useEffect(() => {
-    if (!reportId) return;
-    const token = getAccessToken();
-    const source = new EventSource<'status'>(`${API_URL}/v1/health/reports/${reportId}/events`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      withCredentials: true,
-    });
-    source.addEventListener('status', (event) => {
-      if (!event.data) return;
-      const parsed = JSON.parse(event.data) as ReportStatusEvent;
-      setStatus(parsed.status);
-    });
-    return () => source.close();
-  }, [reportId]);
-
+  useEventStream<ReportStatusEvent>(
+    reportId ? `${API_URL}/v1/health/reports/${reportId}/events` : null,
+    'status',
+    (event) => setStatus(event.status),
+  );
   return status;
 }

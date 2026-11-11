@@ -11,6 +11,7 @@ export function missingFields(
 ): string[] {
   if (step === 1) {
     const missing: string[] = [];
+    if (basics.year === null) missing.push('year');
     if (basics.sex === null) missing.push('sex');
     const height = Number(basics.height);
     if (!(height >= 50 && height <= 260)) missing.push('height');

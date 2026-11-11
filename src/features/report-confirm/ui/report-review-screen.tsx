@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isReportReady, useConfirmedReport, useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError } from '@shared/api';
+import { ReportProcessingPanel } from '@shared/ui/processing-panel';
 import {
   BottomWaveMist,
   ReviewInfoIcon,
@@ -30,7 +31,6 @@ import { CelebrationCheck } from '@shared/ui/celebration-check';
 
 import { useConfirmReport } from '../model/use-confirm-report';
 import { ReportNotReadablePanel } from './report-not-readable-panel';
-import { ReportProcessingPanel } from './report-processing-panel';
 
 // Shown while OCR is still running (the server answers 409 report_processing until then).
 const loadingStyles = StyleSheet.create({
@@ -87,8 +87,15 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const confirmed = useConfirmedReport(reportId);
   // Observations are requested directly (GET). Nothing streams them.
   // Live status from the event stream. Observations are requested only once the report is ready.
-  const processing = useReportStatus(reportId);
-  const draft = useReportDraft(reportId, { enabled: !confirmed.data && isReportReady(processing) });
+  // Observations are requested as soon as the screen opens. Nothing streams before that.
+  const draft = useReportDraft(reportId, { enabled: !confirmed.data });
+  // While the report is still processing, the event stream says when it is ready. Then the observations are requested once.
+  const awaitingReport = isApiError(draft.error, 'report_processing');
+  const readyStatus = useReportStatus(awaitingReport ? reportId : null);
+  useEffect(() => {
+    if (readyStatus !== null && isReportReady(readyStatus)) void draft.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyStatus]);
   const confirm = useConfirmReport();
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
@@ -255,16 +262,16 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
     Animated.spring(anim, { toValue: 1, tension: 80, friction: 5, useNativeDriver: USE_NATIVE_DRIVER }).start();
   }
 
-  // Loading: the report is still being read (409 report_processing), so show skeletons until a 200 arrives.
-  // Not ready yet: wait on the event stream. A failed or unreadable report gets the upload panel.
-  if (!confirmed.data && !isReportReady(processing)) {
-    if (processing === 'FAILED' || processing === 'NEEDS_RETAKE') {
-      return <ReportNotReadablePanel reportId={reportId} />;
-    }
-    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
-  }
   if (isApiError(draft.error, 'report_not_readable')) {
     return <ReportNotReadablePanel reportId={reportId} />;
+  }
+
+  if (!confirmed.data && isApiError(draft.error, 'report_processing')) {
+    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
+  }
+
+  if (!confirmed.data && !draft.data && !draft.isError) {
+    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
   }
 
   if (!confirmed.data && !draft.data) {

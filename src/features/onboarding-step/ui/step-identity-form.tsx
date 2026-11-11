@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useBasicsDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput } from '../model/onboarding.types';
 
+import { DEFAULT_BIRTH_YEAR } from '@entities/onboarding';
 import { YearWheel } from './year-wheel';
 
 type Sex = BasicsInput['sex'];
@@ -48,6 +49,7 @@ export function StepIdentityForm({
     const cm = Number(next.height);
     const kg = Number(next.weight);
     const valid =
+      next.year !== null &&
       next.year >= MIN_YEAR &&
       next.year <= MAX_YEAR &&
       next.sex !== null &&
@@ -56,7 +58,7 @@ export function StepIdentityForm({
       kg >= 20 &&
       kg <= 400;
 
-    onChange(valid && next.sex ? { birth_year: next.year, sex: next.sex, height_cm: cm, weight_kg: kg } : null);
+    onChange(valid && next.sex ? { birth_year: next.year ?? 0, sex: next.sex, height_cm: cm, weight_kg: kg } : null);
   }
 
   const cm = Number(draft.height);
@@ -71,14 +73,14 @@ export function StepIdentityForm({
   return (
     <View style={styles.form}>
       {/* Birth year: scroll wheel from the current year back to 1900 */}
-      <View style={styles.block}>
+      <View style={[styles.block, missing.includes('year') && styles.blockError]} onLayout={(e) => onFieldLayout?.('year', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
             <Ionicons name="calendar-outline" size={13} color="#1F6F3F" />
           </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
-        <YearWheel value={draft.year} minYear={MIN_YEAR} maxYear={MAX_YEAR} onChange={(year) => update({ year })} />
+        <YearWheel value={draft.year ?? DEFAULT_BIRTH_YEAR} minYear={MIN_YEAR} maxYear={MAX_YEAR} onChange={(year) => update({ year })} />
       </View>
 
       {/* Sex segments */}

@@ -40,8 +40,10 @@ export function historyFromSaved(saved: Saved): Partial<HistoryDraft> {
   const family = (saved.family_history as { relation: string; condition: string }[] | undefined) ?? [];
   const medications = (saved.medications as { name: string | null }[] | undefined) ?? [];
 
+  // 'other' is free text, shown in the Other box. Every other tag becomes its chip label.
   const conditionLabels = conditions
-    .map((c) => TAG_LABEL[c.tag] ?? c.free_text ?? null)
+    .filter((c) => c.tag !== 'other')
+    .map((c) => TAG_LABEL[c.tag] ?? null)
     .filter((label): label is string => label !== null);
   const other = conditions.find((c) => c.tag === 'other')?.free_text ?? '';
 

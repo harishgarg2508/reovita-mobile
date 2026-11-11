@@ -135,7 +135,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
       <View style={styles.navRow}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={8} style={styles.backBtn}>
           {slideIndex === 0 ? (
-            <Image source={require('../../../shared/assets/images/reovita-sprout.png')} style={styles.navLogo} resizeMode="contain" />
+            <Image source={require('../../../shared/assets/images/reovita-logo.webp')} style={styles.navLogo} resizeMode="contain" />
           ) : (
             <Ionicons name="arrow-back" size={20} color={VIOLET} />
           )}
@@ -158,12 +158,12 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
             <View style={styles.hero}>
               <View style={styles.glow} />
               <View style={styles.appCard}>
-                <Image source={require('../../../shared/assets/images/reovita-sprout.png')} style={styles.sprout} resizeMode="contain" />
+                <Image source={require('../../../shared/assets/images/reovita-logo.webp')} style={styles.sprout} resizeMode="contain" />
               </View>
             </View>
 
             <View style={styles.copy}>
-              <Text style={styles.heading}>Welcome to VITA</Text>
+              <Text style={styles.heading}>Welcome to REOVITA</Text>
               <Text style={styles.body}>
                 {"Your health, in your words. Before we start, we'll walk you through exactly how your data is handled: two quick consents, then you're in."}
               </Text>

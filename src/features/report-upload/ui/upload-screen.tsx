@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { useReportList } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { ReportDropZone } from '@shared/ui/report-drop-zone';
+import { usePalette } from '@shared/ui/theme';
 import { StepHeaderBadge } from '@shared/ui/step-header-badge';
 
 import { useUploadReport } from '../model/use-upload-report';
@@ -28,6 +30,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const upload = useUploadReport();
+  const p = usePalette();
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Opens the file picker straight away when the screen is reached from "Choose file".
   useEffect(() => {
@@ -113,6 +117,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
       style={[
         styles.container,
         {
+          backgroundColor: p.bg,
           paddingTop: Math.max(insets.top, 20) + 8,
           paddingBottom: Math.max(insets.bottom, 20) + 16,
         },
@@ -121,14 +126,21 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         <View style={styles.headerLeft}>
           <View style={styles.brandRow}>
             <Image
-              source={require('../../../shared/assets/images/reovita-sprout.png')}
+              source={require('../../../../assets/images/app-icon/reovita-logo.webp')}
               style={styles.brandMark}
               resizeMode="contain"
             />
-            <Text style={styles.brandName}>Reovita</Text>
+            <Text style={[styles.brandName, { color: p.text }]}>Reovita</Text>
           </View>
-          <Text style={styles.title}>{hasReports ? 'Your Reports' : 'Your First Report'}</Text>
-          <Text style={styles.subtitle}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: p.text }]}>{hasReports ? 'Your Reports' : 'Your First Report'}</Text>
+            {hasReports ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="About your reports" onPress={() => setInfoOpen(true)} hitSlop={8}>
+                <Ionicons name="information-circle-outline" size={22} color={p.muted} />
+              </Pressable>
+            ) : null}
+          </View>
+          <Text style={[styles.subtitle, { color: p.muted }]}>
             {hasReports ? 'Upload another lab report to get instant interpretation.' : 'Upload a lab report to get instant interpretation'}
           </Text>
         </View>
@@ -157,7 +169,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
               hasMore={reports.hasNextPage}
               loadingMore={reports.isFetchingNextPage}
               onLoadMore={() => void reports.fetchNextPage()}
-              onOpen={(id) => router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id } })}
+              onOpen={(id) => router.push({ pathname: '/(app)/reports/[id]', params: { id } })}
             />
           </View>
         ) : null}
@@ -168,6 +180,19 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onAllow={onAllowLlm}
         onDecline={() => setLlmSheetOpen(false)}
       />
+      <Modal visible={infoOpen} transparent animationType="fade" onRequestClose={() => setInfoOpen(false)}>
+        <View style={styles.backdrop}>
+          <View style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]}>
+            <Text style={[styles.dialogTitle, { color: p.text }]}>Your reports are encrypted</Text>
+            <Text style={[styles.dialogBody, { color: p.muted }]}>
+              Every report is encrypted before it is stored, and only you can read it. It stays private and is never used for advertising.
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => setInfoOpen(false)} style={styles.dialogButton}>
+              <Text style={styles.dialogButtonText}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -233,7 +258,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
+  dialogTitle: { fontSize: 18, fontWeight: '800' },
+  dialogBody: { fontSize: 14, lineHeight: 20 },
+  dialogButton: { alignSelf: 'flex-end', paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1F6F3F' },
+  dialogButtonText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   listWrap: {
+    flex: 1,
     marginTop: 20,
   },
   listFill: {
