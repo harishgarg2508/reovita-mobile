@@ -31,6 +31,9 @@
         {
           "ios": {
             "useFrameworks": "dynamic"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": false
           }
         }
       ],

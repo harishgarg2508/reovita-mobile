@@ -77,6 +77,9 @@ jobs:
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Raise Gradle memory for release build
+        run: echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1g" >> android/gradle.properties
+
       - name: Build release APK
         working-directory: android
         run: |
