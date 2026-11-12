@@ -6,8 +6,10 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useHome } from '@entities/home';
+import { useReportList } from '@entities/report';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
+import { ProfileBmiCard } from '@features/profile-details';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
@@ -116,6 +118,9 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   const nextStep = useProfileCompleteness().data?.next_step ?? null;
   const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
   const unread = useUnreadCount().data ?? 0;
+  // The newest reports: the dashboard shows the top three.
+  const reportPages = useReportList();
+  const recentItems = reportPages.data?.pages.flatMap((page) => page.items) ?? [];
   useNotificationStream();
   const scheme = useResolvedScheme();
   const p = scheme === 'dark' ? DARK : LIGHT;
@@ -220,37 +225,39 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
         </View>
       </Card>
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/briefings')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="document-text-outline" color={p.purple} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Today&apos;s briefing</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>
-                {data?.briefing ?? 'Your daily environment briefing will appear here.'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
+      <ProfileBmiCard />
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="flask-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Recent reports</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>
-                {data && data.reports_count > 0
-                  ? `${data.reports_count} report${data.reports_count === 1 ? '' : 's'} uploaded`
-                  : 'Upload a lab report to see its flags here.'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+      <Card p={p}>
+        <View style={styles.rowTop}>
+          <IconBox p={p} name="flask-outline" color={p.lime} />
+          <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Recent reports</Text>
+        </View>
+        {recentItems.length === 0 ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')}>
+            <Text style={[styles.cardText, { color: p.muted }]}>Upload a lab report to see its flags here.</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.recentList}>
+            {recentItems.slice(0, 2).map((item) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })}
+                style={[styles.recentRow, { borderColor: p.border }]}>
+                <Text style={[styles.recentLabel, { color: p.text }]}>Report</Text>
+                <Text style={[styles.cardText, { color: p.muted, marginTop: 0 }]}>{formatReportDate(item.created_at)}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(app)/reports/list')}
+              style={[styles.recentRow, { borderColor: p.border }]}>
+              <Text style={[styles.recentLabel, { color: p.purple }]}>More</Text>
+              <Ionicons name="chevron-forward" size={18} color={p.purple} />
+            </Pressable>
           </View>
-        </Card>
-      </Pressable>
+        )}
+      </Card>
     </ScrollView>
   );
 }
@@ -290,6 +297,9 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 16, fontWeight: '700' },
   alertText: { fontSize: 13, marginTop: 2 },
   profile: { padding: 16, borderRadius: 20, borderWidth: 1, gap: 8 },
+  recentList: { gap: 8, marginTop: 4 },
+  recentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
+  recentLabel: { fontSize: 14, fontWeight: '600' },
   card: { padding: 18, borderRadius: 22, borderWidth: 1, gap: 12 },
   cardTitle: { fontSize: 17, fontWeight: '700' },
   cardText: { fontSize: 14, lineHeight: 20, marginTop: 4 },
@@ -305,3 +315,10 @@ const styles = StyleSheet.create({
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });
+
+function formatReportDate(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}

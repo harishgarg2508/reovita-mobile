@@ -91,7 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     },
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000',
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
   },
   };
 };

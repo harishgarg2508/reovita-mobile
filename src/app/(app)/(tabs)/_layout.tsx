@@ -8,7 +8,7 @@ import { BottomDock } from '@shared/ui';
  * - Home (dashboard)
  * - Insights (medications & biomarkers)
  * - [Center Sprout FAB: Upload Report]
- * - Records (timeline)
+ * - Records
  * - Profile (settings & consents)
  */
 export default function TabsLayout() {
@@ -38,7 +38,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="timeline"
+        name="records"
         options={{
           title: 'Records',
         }}

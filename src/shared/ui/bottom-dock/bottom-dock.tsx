@@ -56,7 +56,7 @@ const TAB_META: Record<string, TabMeta> = {
       </View>
     ),
   },
-  timeline: {
+  records: {
     label: 'Records',
     renderIcon: (color) => <Ionicons name="calendar-outline" size={21} color={color} />,
   },
@@ -69,7 +69,7 @@ const TAB_META: Record<string, TabMeta> = {
 const TAB_INDEX_MAP: Record<string, number> = {
   dashboard: 0,
   medications: 1,
-  timeline: 2,
+  records: 2,
   settings: 3,
 };
 
@@ -275,7 +275,7 @@ export function BottomDock({
   // Find routes by name to ensure stable placement regardless of route order
   const homeRoute = state.routes.find((r: TabRoute) => r.name === 'dashboard');
   const insightsRoute = state.routes.find((r: TabRoute) => r.name === 'medications');
-  const recordsRoute = state.routes.find((r: TabRoute) => r.name === 'timeline');
+  const recordsRoute = state.routes.find((r: TabRoute) => r.name === 'records');
   const profileRoute = state.routes.find((r: TabRoute) => r.name === 'settings');
 
   const leftRoutes = [homeRoute, insightsRoute].filter((r): r is TabRoute => Boolean(r));

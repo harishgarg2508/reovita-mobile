@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import { AppProviders } from '@app-root/providers/app-providers';
 import { AuthGuard } from '@app-root/providers/auth-guard';
 import { ThemeBridge } from '@app-root/providers/theme-provider';
+import { requestAppPermissions } from '@app-root/bootstrap/request-app-permissions';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,6 +52,11 @@ export default function RootLayout() {
     if (ready) {
       SplashScreen.hideAsync();
     }
+  }, [ready]);
+
+  // Camera and location prompts appear once the app is up.
+  useEffect(() => {
+    if (ready) void requestAppPermissions();
   }, [ready]);
 
   // Keep the splash up until the brand font is ready, so no text flashes in a fallback face.

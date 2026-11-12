@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -225,6 +226,15 @@ export function StepConditionsForm({
         </View>
       </View>
 
+      {/* Closes the medication suggestions when the user taps anywhere else in the form. */}
+      {medsDropdownOpen ? (
+        <Pressable
+          accessibilityLabel="Close medication suggestions"
+          onPress={() => setMedsDropdownOpen(false)}
+          style={styles.dropdownBackdrop}
+        />
+      ) : null}
+
       {/* 3. Meds Section */}
       <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
@@ -259,7 +269,10 @@ export function StepConditionsForm({
 
           {/* Suggestions Dropdown */}
           {medsDropdownOpen && (
-            <View style={styles.suggestionsDropdown}>
+            <ScrollView
+              style={styles.suggestionsDropdown}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled">
               {medQuery.trim().length > 0 && !selectedMeds.includes(medQuery.trim()) && (
                 <Pressable
                   onPress={() => addMedication(medQuery)}
@@ -278,7 +291,7 @@ export function StepConditionsForm({
                   <Ionicons name="add" size={16} color="#1F6F3F" />
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           )}
 
           {/* Selected Medication Tags */}
@@ -450,6 +463,7 @@ export function StepConditionsForm({
 const styles = StyleSheet.create({
   container: {
     gap: 20,
+    position: 'relative',
   },
   section: {
     gap: 8,
@@ -567,11 +581,21 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   // Overlay under the search bar: it floats over the content below and does not push it down.
-  suggestionsDropdown: {
+  dropdownBackdrop: {
     position: 'absolute',
-    top: 52,
+    top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
+    zIndex: 50,
+    elevation: 50,
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 58,
+    left: 0,
+    right: 0,
+    maxHeight: 220,
     zIndex: 70,
     elevation: 70,
     borderWidth: 1,

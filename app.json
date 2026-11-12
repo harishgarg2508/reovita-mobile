@@ -46,7 +46,19 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/auth"
+      "@react-native-firebase/auth",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Reovita uses the camera to photograph your lab reports."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Reovita uses your location to show your local environment briefing."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -54,7 +66,6 @@
     },
     "extra": {
       "firebase": {},
-      "apiBaseUrl": "http://localhost:3000",
       "router": {
         "asyncRoutes": {
           "web": true

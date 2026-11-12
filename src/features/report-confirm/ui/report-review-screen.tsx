@@ -97,6 +97,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyStatus]);
   const confirm = useConfirmReport();
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
   const [showFinalReport, setShowFinalReport] = useState(false);
@@ -210,6 +211,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 
   function runConfirm() {
     setSimulatedAnalyzing(true);
+    setConfirmError(null);
 
     confirm.mutate(
       { reportId, observations: rows },
@@ -229,7 +231,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           }
           if (isApiError(err, 'llm_consent_required')) {
             setLlmSheetOpen(true);
+            return;
           }
+          // Any other failure: show the server's message so the user knows what to fix.
+          setConfirmError(isApiError(err) ? err.message : 'Could not confirm the report. Try again.');
         },
       }
     );
@@ -603,6 +608,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         </Animated.View>
       </View>
       )}
+      {confirmError ? <Text style={[styles.confirmError, { color: '#C22F43' }]}>{confirmError}</Text> : null}
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}
@@ -766,6 +772,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  confirmError: { fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 10 },
   confirmBtnText: {
     fontSize: 16,
     fontWeight: '700',

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -46,6 +46,10 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
   // Set once the upload is accepted and queued. The waiting screen then follows the report's status.
   const [reportId, setReportId] = useState<string | null>(null);
+
+  // Opening the screen always shows the upload area and the report list. The waiting view is only for an upload
+  // made on this visit, so it is cleared each time the screen gains focus.
+  useFocusEffect(useCallback(() => setReportId(null), []));
 
   async function onPick() {
     const picked = await DocumentPicker.getDocumentAsync({

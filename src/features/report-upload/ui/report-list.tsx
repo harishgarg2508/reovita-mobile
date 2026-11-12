@@ -42,11 +42,6 @@ export function ReportList({
         </Pressable>
       )}
     />
-    {hasMore ? (
-      <Pressable accessibilityRole="button" disabled={loadingMore} onPress={onLoadMore} style={styles.more}>
-        <Text style={styles.moreText}>{loadingMore ? 'Loading...' : 'Load more'}</Text>
-      </Pressable>
-    ) : null}
     </View>
   );
 }
