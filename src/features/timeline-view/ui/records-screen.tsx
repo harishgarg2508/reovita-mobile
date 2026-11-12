@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Skeleton } from '@shared/ui/skeleton';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
-import { downloadReportFile } from '../model/download-report-file';
+import { downloadReportFile, downloadReportZip } from '../model/download-report-file';
 import { useRecords, type RecordItem } from '../model/use-records';
 
 // Records: every uploaded report, newest first. Each card shows the file, its status, the collection date,
@@ -56,13 +56,22 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   const isPdf = file?.mime_type === 'application/pdf';
   const processed = statusTone(record.status);
   const [downloading, setDownloading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  async function onDownload() {
+  // One file downloads straight away. Several files open the picker, which offers each file and a zip of all of them.
+  function onDownload() {
     if (!file) return;
-    const ext = isPdf ? 'pdf' : file.mime_type === 'image/png' ? 'png' : 'jpg';
+    if (record.files.length > 1) {
+      setPickerOpen(true);
+      return;
+    }
+    void runDownload(() => downloadReportFile(record.id, file.position, file.mime_type, fileNameFor(record.id, file.position, file.mime_type)));
+  }
+
+  async function runDownload(task: () => Promise<void>) {
     setDownloading(true);
     try {
-      await downloadReportFile(record.id, file.position, file.mime_type, `report-${record.id.slice(0, 8)}-${file.position}.${ext}`);
+      await task();
     } catch {
       Alert.alert('Download failed', 'The file could not be downloaded. Try again.');
     } finally {
@@ -173,8 +182,59 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
           )}
         </View>
       ) : null}
+
+      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
+            <Text style={styles.sheetTitle}>Download report files</Text>
+            <Text style={styles.meta}>Choose one file, or download them all in one zip.</Text>
+            {record.files.map((f) => {
+              const kind = f.mime_type === 'application/pdf' ? 'PDF' : f.mime_type === 'image/png' ? 'PNG' : 'JPG';
+              return (
+                <Pressable
+                  key={f.position}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Download file ${f.position}`}
+                  onPress={() => {
+                    setPickerOpen(false);
+                    void runDownload(() => downloadReportFile(record.id, f.position, f.mime_type, fileNameFor(record.id, f.position, f.mime_type)));
+                  }}
+                  style={styles.sheetRow}>
+                  <View style={styles.fileTileSmall}>
+                    <Text style={styles.fileBadgeText}>{kind}</Text>
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.cardTitle}>File {f.position}</Text>
+                    <Text style={styles.meta}>
+                      {formatSize(f.size_bytes)}
+                      {f.page_count ? ` · ${f.page_count} page${f.page_count === 1 ? '' : 's'}` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="download-outline" size={20} color={p.accent} />
+                </Pressable>
+              );
+            })}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setPickerOpen(false);
+                void runDownload(() => downloadReportZip(record.id));
+              }}
+              style={styles.zipBtn}>
+              <Ionicons name="archive-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.zipBtnText}>Download all (ZIP)</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
+}
+
+// File name shown when saving, e.g. report-4c98ef8d-1.pdf
+function fileNameFor(reportId: string, position: number, mimeType: string): string {
+  const ext = mimeType === 'application/pdf' ? 'pdf' : mimeType === 'image/png' ? 'png' : 'jpg';
+  return `report-${reportId.slice(0, 8)}-${position}.${ext}`;
 }
 
 // Status text and colours for the chip. Matched on the stored status so the labels stay readable.
@@ -256,6 +316,13 @@ function makeStyles(p: Palette) {
       backgroundColor: p.accentSoft,
       overflow: 'hidden',
     },
+    sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    sheet: { backgroundColor: p.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 12 },
+    sheetTitle: { fontSize: 18, fontWeight: '800', color: p.textStrong },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: p.border },
+    fileTileSmall: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#1F7A3E', alignItems: 'center', justifyContent: 'center' },
+    zipBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 16, backgroundColor: p.accent, marginTop: 4 },
+    zipBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
     detailsBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     actionDivider: { width: 1, backgroundColor: p.accent, opacity: 0.4 },
     downloadBtn: { width: 64, alignItems: 'center', justifyContent: 'center' },
