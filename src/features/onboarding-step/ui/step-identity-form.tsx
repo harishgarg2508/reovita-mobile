@@ -5,7 +5,7 @@ import { useBasicsDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput } from '../model/onboarding.types';
 
 import { DEFAULT_BIRTH_YEAR } from '@entities/onboarding';
-import { YearWheel } from './year-wheel';
+import { NumberWheel } from '@shared/ui/number-wheel';
 
 type Sex = BasicsInput['sex'];
 
@@ -80,7 +80,7 @@ export function StepIdentityForm({
           </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
-        <YearWheel value={draft.year ?? DEFAULT_BIRTH_YEAR} minYear={MIN_YEAR} maxYear={MAX_YEAR} onChange={(year) => update({ year })} />
+        <NumberWheel value={draft.year ?? DEFAULT_BIRTH_YEAR} minValue={MIN_YEAR} maxValue={MAX_YEAR} onChange={(year) => update({ year })} />
       </View>
 
       {/* Sex segments */}

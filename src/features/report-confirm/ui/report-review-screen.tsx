@@ -107,7 +107,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // After the observations load, ask whether an interpretation already exists. If it does, the button below
   // becomes View analysis; if the request finds nothing, the Confirm button stays.
   const storedInterpretation = useReportInterpretation(reportId, { enabled: draft.isSuccess || !!confirmed.data });
-  const hasInterpretation = storedInterpretation.isSuccess;
+  // The status stream says DONE once the interpretation is saved, so View appears without waiting for a reload.
+  const liveStatus = useReportStatus(reportId);
+  // INTERPRETING counts too: View opens the analysis as it is written. Opening it does not start another run.
+  const hasInterpretation = storedInterpretation.isSuccess || liveStatus === 'INTERPRETING' || liveStatus === 'DONE';
   const [interpreting, setInterpreting] = useState(false);
   const onInterpretationDone = useCallback(() => {
     setInterpreting(false);

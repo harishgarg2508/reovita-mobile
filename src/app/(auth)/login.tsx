@@ -48,7 +48,7 @@ export default function LoginRoute() {
       pending={signIn.isPending}
       errorMessage={signIn.isError ? signIn.error.message : null}
       />
-      <Modal visible={recoverOpen} transparent animationType="fade" onRequestClose={() => setRecoverOpen(false)}>
+      <Modal visible={recoverOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setRecoverOpen(false)}>
         <View style={styles.backdrop}>
           <View style={[styles.dialog, { backgroundColor: palette.card, borderColor: palette.border }]}>
             <Text style={[styles.title, { color: palette.text }]}>Reactivate your account?</Text>
@@ -77,7 +77,7 @@ export default function LoginRoute() {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
   title: { fontSize: 18, fontWeight: '800' },
   body: { fontSize: 14, lineHeight: 20 },

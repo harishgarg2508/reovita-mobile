@@ -4,6 +4,8 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Skeleton } from '@shared/ui/skeleton';
+import { ConfirmDialog } from '@shared/ui';
+import { useDeleteReport } from '@entities/report';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { downloadReportFile, downloadReportZip } from '../model/download-report-file';
@@ -57,6 +59,9 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   const processed = statusTone(record.status);
   const [downloading, setDownloading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const remove = useDeleteReport();
 
   // One file downloads straight away. Several files open the picker, which offers each file and a zip of all of them.
   function onDownload() {
@@ -81,6 +86,28 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
 
   return (
     <View style={styles.card}>
+      {/* More: opens a menu with Delete. Delete asks for confirmation first. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="More options"
+        onPress={() => setMenuOpen((v) => !v)}
+        hitSlop={8}
+        style={styles.moreBtn}>
+        <Ionicons name="ellipsis-horizontal" size={20} color={p.muted} />
+      </Pressable>
+      {menuOpen ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete report"
+          onPress={() => {
+            setMenuOpen(false);
+            setConfirmDelete(true);
+          }}
+          style={[styles.menu, { backgroundColor: p.card, borderColor: p.border }]}>
+          <Ionicons name="trash-outline" size={16} color="#C22F43" />
+          <Text style={styles.menuText}>Delete report</Text>
+        </Pressable>
+      ) : null}
       <View style={styles.head}>
         <View style={styles.fileTile}>
           <View style={styles.fileBadge}>
@@ -102,6 +129,17 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
           </View>
         </View>
       </View>
+
+      <ConfirmDialog
+        visible={confirmDelete}
+        title="Delete this report?"
+        message="This action cannot be undone. The report, its values and its file will be removed."
+        confirmLabel="Delete"
+        destructive
+        busy={remove.isPending}
+        onConfirm={() => remove.mutate(record.id, { onSettled: () => setConfirmDelete(false) })}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
       <View style={styles.grid}>
         <View style={styles.gridCell}>
@@ -183,7 +221,7 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
         </View>
       ) : null}
 
-      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+      <Modal visible={pickerOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPickerOpen(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setPickerOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => undefined}>
             <Text style={styles.sheetTitle}>Download report files</Text>
@@ -270,7 +308,10 @@ function makeStyles(p: Palette) {
     empty: { fontSize: 14, color: p.muted, marginTop: 12 },
     list: { gap: 14 },
     footer: { paddingVertical: 12 },
-    card: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 16, gap: 14 },
+    card: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 16, gap: 14, position: 'relative' },
+    moreBtn: { position: 'absolute', top: 12, right: 12, zIndex: 2, padding: 4 },
+    menu: { position: 'absolute', top: 40, right: 12, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+    menuText: { fontSize: 14, fontWeight: '600', color: '#C22F43' },
     head: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     fileTile: {
       width: 60,
@@ -316,7 +357,7 @@ function makeStyles(p: Palette) {
       backgroundColor: p.accentSoft,
       overflow: 'hidden',
     },
-    sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    sheetBackdrop: { flex: 1, backgroundColor: p.bg, justifyContent: 'flex-end' },
     sheet: { backgroundColor: p.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 12 },
     sheetTitle: { fontSize: 18, fontWeight: '800', color: p.textStrong },
     sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: p.border },

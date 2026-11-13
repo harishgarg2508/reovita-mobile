@@ -197,7 +197,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onAllow={onAllowLlm}
         onDecline={() => setLlmSheetOpen(false)}
       />
-      <Modal visible={infoOpen} transparent animationType="fade" onRequestClose={() => setInfoOpen(false)}>
+      <Modal visible={infoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setInfoOpen(false)}>
         <View style={styles.backdrop}>
           <View style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]}>
             <Text style={[styles.dialogTitle, { color: p.text }]}>Your reports are encrypted</Text>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
   dialogTitle: { fontSize: 18, fontWeight: '800' },
   dialogBody: { fontSize: 14, lineHeight: 20 },

@@ -68,6 +68,8 @@ export function ProfileDetailsCard() {
         query={history}
         rows={() => historyRows(history.data ?? {})}
         emptyText="You have not added your medical history yet."
+        medications={(history.data?.medications as { name: string | null; dose: string | null }[] | undefined) ?? []}
+        showEdit={false}
       />
       <Section
         step={3}
@@ -88,6 +90,8 @@ function Section({
   query,
   rows,
   emptyText,
+  medications,
+  showEdit = true,
 }: {
   step: ProfileStepNumber;
   icon: keyof typeof Ionicons.glyphMap;
@@ -95,6 +99,8 @@ function Section({
   query: { isLoading: boolean; isError: boolean };
   rows: () => Row[];
   emptyText: string;
+  medications?: { name: string | null; dose: string | null }[];
+  showEdit?: boolean;
 }) {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
@@ -124,14 +130,43 @@ function Section({
         </View>
       ))}
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Edit ${title}`}
-        onPress={() => router.push(EDIT_ROUTE[step])}
-        style={styles.editBtn}>
-        <Ionicons name="create-outline" size={16} color={p.accent} />
-        <Text style={styles.editText}>Edit</Text>
-      </Pressable>
+      {medications && medications.some((m) => m.name) ? (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.rowLabel}>Medications</Text>
+          {medications
+            .filter((m) => m.name)
+            .map((m, i) => (
+              <View key={`${m.name}-${i}`} style={styles.row}>
+                <Text style={styles.rowValue}>{m.name}</Text>
+                <Text style={styles.rowLabel}>{m.dose ?? ''}</Text>
+              </View>
+            ))}
+        </View>
+      ) : null}
+
+      {step === 2 ? (
+        <View style={styles.historyButtons}>
+          <Pressable accessibilityRole="button" onPress={() => router.push(EDIT_ROUTE[2])} style={[styles.editBtn, styles.historyBtn]}>
+            <Ionicons name="create-outline" size={16} color={p.accent} />
+            <Text style={styles.editText}>Edit current</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medical-history')} style={[styles.editBtn, styles.historyBtn]}>
+            <Ionicons name="list-outline" size={16} color={p.accent} />
+            <Text style={styles.editText}>Show all list</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {showEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${title}`}
+          onPress={() => router.push(EDIT_ROUTE[step])}
+          style={styles.editBtn}>
+          <Ionicons name="create-outline" size={16} color={p.accent} />
+          <Text style={styles.editText}>Edit</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -169,7 +204,6 @@ function historyRows(d: Record<string, unknown>): Row[] {
 
   return [
     { label: 'Conditions', value: conditionText || null },
-    { label: 'Medications', value: medicationText || null },
     ...familyRows,
   ];
 }
@@ -222,6 +256,8 @@ function makeStyles(p: Palette) {
     rowValue: { flex: 1.4, fontSize: 14, fontWeight: '600', color: p.textStrong, textAlign: 'right' },
     empty: { fontSize: 13, color: p.muted },
     error: { fontSize: 13, color: p.red },
+    historyButtons: { flexDirection: 'row', gap: 8 },
+    historyBtn: { flex: 1 },
     editBtn: {
       flexDirection: 'row',
       alignItems: 'center',

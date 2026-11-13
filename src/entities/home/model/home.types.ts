@@ -12,6 +12,7 @@ export interface HomeSummary {
   critical_banner: boolean;
   critical_report_id: string | null;
   health_score: string | null;
+  health_score_parts: { lifestyle: number | null; conditions: number | null; reports: number | null } | null;
   briefing: string | null;
   reports_count: number;
   recent_reports: HomeReportSummary[];
