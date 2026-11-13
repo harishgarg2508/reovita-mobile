@@ -168,12 +168,25 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         {message ? <Text style={styles.error}>{message}</Text> : null}
         {hasReports ? (
           <View style={styles.listFill}>
+            {/* The ten most recent here. The full, paged list opens from "More". */}
             <ReportList
-              items={reportItems}
-              hasMore={reports.hasNextPage}
-              loadingMore={reports.isFetchingNextPage}
-              onLoadMore={() => void reports.fetchNextPage()}
+              items={reportItems.slice(0, 10)}
+              hasMore={false}
+              loadingMore={false}
+              onLoadMore={() => undefined}
               onOpen={(id) => router.push({ pathname: '/(app)/reports/[id]', params: { id } })}
+              footer={
+                reportItems.length > 10 || reports.hasNextPage ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all reports"
+                    onPress={() => router.push('/(app)/reports/list')}
+                    style={[styles.moreRow, { borderColor: p.border, backgroundColor: p.card }]}>
+                    <Text style={[styles.moreText, { color: p.accent }]}>More</Text>
+                    <Ionicons name="chevron-forward" size={18} color={p.accent} />
+                  </Pressable>
+                ) : null
+              }
             />
           </View>
         ) : null}
@@ -273,6 +286,17 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 20,
   },
+  moreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  moreText: { fontSize: 14, fontWeight: '600' },
   listFill: {
     flex: 1,
     minHeight: 0,

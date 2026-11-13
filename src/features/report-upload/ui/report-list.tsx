@@ -11,7 +11,9 @@ export function ReportList({
   loadingMore,
   onLoadMore,
   onOpen,
+  footer,
 }: {
+  footer?: React.ReactNode;
   items: ReportListItem[];
   hasMore: boolean;
   loadingMore: boolean;
@@ -31,7 +33,9 @@ export function ReportList({
       style={styles.list}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      ListFooterComponent={loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined}
+      ListFooterComponent={
+        loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : footer ? <>{footer}</> : undefined
+      }
       renderItem={({ item }) => (
         <Pressable
           accessibilityRole="button"

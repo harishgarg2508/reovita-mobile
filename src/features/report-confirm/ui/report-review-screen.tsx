@@ -104,6 +104,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // The interpretation is requested once the server reports DONE (see WatchInterpretation).
   const interpretationQuery = useReportInterpretation(reportId, { enabled: showFinalReport });
   const interpretation = interpretationQuery.data?.output_json;
+  // After the observations load, ask whether an interpretation already exists. If it does, the button below
+  // becomes View analysis; if the request finds nothing, the Confirm button stays.
+  const storedInterpretation = useReportInterpretation(reportId, { enabled: draft.isSuccess || !!confirmed.data });
+  const hasInterpretation = storedInterpretation.isSuccess;
   const [interpreting, setInterpreting] = useState(false);
   const onInterpretationDone = useCallback(() => {
     setInterpreting(false);
@@ -360,6 +364,14 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
               />
             </Animated.View>
           </View>
+
+          {/* Leave the screen: the result arrives later as a notification. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace('/(app)/(tabs)/dashboard')}
+            style={[styles.confirmBtn, { alignSelf: 'stretch', marginTop: 24 }]}>
+            <Text style={styles.confirmBtnText}>Come back later</Text>
+          </Pressable>
         </View>
 
         {/* Signature Ethereal Wavy Purple Mist Backdrop */}
@@ -574,7 +586,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       </View>
 
       {/* Dual Action Buttons: [ Edit ] and [ Confirm ] */}
-      {status === 'DONE' ? (
+      {hasInterpretation ? (
         <View style={styles.dualActionRow}>
           <Pressable
             accessibilityRole="button"

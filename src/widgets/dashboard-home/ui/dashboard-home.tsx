@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -124,6 +124,11 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   useNotificationStream();
   const scheme = useResolvedScheme();
   const p = scheme === 'dark' ? DARK : LIGHT;
+  // Coming back to Home always starts at the top.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
+  useFocusEffect(useCallback(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, []));
 
   if (home.isLoading) {
     return (
@@ -155,6 +160,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={[
         styles.container,
         { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8, paddingBottom: Math.max(insets.bottom, 20) + 110 },
@@ -226,6 +232,32 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
       </Card>
 
       <ProfileBmiCard />
+
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/briefings')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Air, UV and pollen for today.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/measurements')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="heart-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Vitals</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Log your blood pressure and weight.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
 
       <Card p={p}>
         <View style={styles.rowTop}>
