@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
-import { entryStamp, type MedicalHistoryEntry } from '../model/medical-history.api';
+import { entryStamp, openMedicalHistoryFile, type MedicalHistoryEntry, type MedicalHistoryFile } from '../model/medical-history.api';
 import { useMedicalHistories } from '../model/use-medical-histories';
 
 // The latest medical history entry, the earlier ones, and the add button. Add and edit open their own page.
@@ -83,6 +83,14 @@ function EntryCard({
 }) {
   const p = usePalette();
   const [open, setOpen] = useState(defaultOpen);
+
+  async function viewFile(entryId: string, file: MedicalHistoryFile) {
+    try {
+      await openMedicalHistoryFile(entryId, file);
+    } catch {
+      Alert.alert('Could not open this file', 'Check your connection and try again.');
+    }
+  }
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
@@ -104,13 +112,19 @@ function EntryCard({
       </Text>
       <Text style={styles.cardDate}>{entryStamp(entry)}</Text>
       {entry.files.length > 0 ? (
-        <View style={styles.fileChips}>
+        <View style={styles.fileList}>
           {entry.files.map((file) => (
-            <View key={file.id} style={styles.fileChip}>
-              <Ionicons name={file.kind === 'report' ? 'document-text-outline' : 'medkit-outline'} size={13} color={p.accent} />
-              <Text style={styles.fileChipText} numberOfLines={1}>
-                {file.kind === 'report' ? 'Report' : 'Prescription'} · {file.name}
-              </Text>
+            <View key={file.id} style={styles.fileItem}>
+              <Ionicons name={file.kind === 'report' ? 'document-text-outline' : 'medkit-outline'} size={16} color={p.accent} />
+              <View style={styles.fileText}>
+                <Text style={styles.fileName} numberOfLines={1}>
+                  {file.name}
+                </Text>
+                <Text style={styles.fileKind}>{file.kind === 'report' ? 'Report' : 'Prescription'}</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={`View ${file.name}`} onPress={() => void viewFile(entry.id, file)} hitSlop={8}>
+                <Ionicons name="eye-outline" size={18} color={p.accent} />
+              </Pressable>
             </View>
           ))}
         </View>
@@ -150,6 +164,11 @@ function makeStyles(p: Palette) {
     badge: { fontSize: 11, fontWeight: '700', color: p.accent, backgroundColor: p.accentSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     cardDate: { fontSize: 12.5, color: p.muted },
     medLine: { fontSize: 13, color: p.text },
+    fileList: { gap: 6, marginTop: 4 },
+    fileItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: p.surface },
+    fileText: { flex: 1 },
+    fileName: { fontSize: 13, fontWeight: '600', color: p.textStrong },
+    fileKind: { fontSize: 11.5, color: p.muted },
     fileChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     fileChip: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: p.surface, borderWidth: 1, borderColor: p.border },
     fileChipText: { fontSize: 11.5, color: p.text, flexShrink: 1 },

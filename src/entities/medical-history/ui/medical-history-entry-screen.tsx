@@ -15,7 +15,9 @@ export function MedicalHistoryEntryScreen({ entryId, initialDate }: { entryId?: 
   const back = () => router.back();
 
   if (!entryId) {
-    return <MedicalHistoryForm initialDate={initialDate ?? todayIso()} onClose={back} />;
+    // The key changes with the date, so opening the form for another day starts it empty instead of keeping the old values.
+    const day = initialDate ?? todayIso();
+    return <MedicalHistoryForm key={`add-${day}`} initialDate={day} onClose={back} />;
   }
 
   if (list.isPending) {
@@ -35,7 +37,7 @@ export function MedicalHistoryEntryScreen({ entryId, initialDate }: { entryId?: 
     );
   }
 
-  return <MedicalHistoryForm entry={entry} initialDate={entry.occurred_on} onClose={back} />;
+  return <MedicalHistoryForm key={`edit-${entry.id}`} entry={entry} initialDate={entry.occurred_on} onClose={back} />;
 }
 
 // Today's date in the device's local time, as YYYY-MM-DD.

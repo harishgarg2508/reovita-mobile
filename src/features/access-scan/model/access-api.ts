@@ -1,4 +1,4 @@
-import { api } from '@shared/api';
+import { api, openApiFile } from '@shared/api';
 
 export type AccessStatus = 'pending' | 'approved' | 'denied' | 'expired';
 
@@ -17,7 +17,29 @@ export interface AccessSummary {
     readings: { type: string; value: number; at: string }[];
   };
   timeline: { date: string; status: string; flagged: number }[];
-  medical_history: { id: string; title: string; occurred_on: string; medicines: { name: string; dose: string | null }[] }[];
+  family_history: { relation: string; condition: string }[];
+  medications: { name: string | null; dose: string | null }[];
+  medical_history: {
+    id: string;
+    title: string;
+    occurred_on: string;
+    occurred_time: string | null;
+    medicines: { name: string; dose: string | null }[];
+    files: AccessFile[];
+  }[];
+}
+
+export interface AccessFile {
+  id: string;
+  kind: 'report' | 'medicine';
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+}
+
+// Opens one medical history file of the approved subject.
+export async function openAccessFile(requestId: string, file: AccessFile): Promise<void> {
+  await openApiFile(`/v1/access-requests/${requestId}/files/${file.id}`, file);
 }
 
 // Asks the subject for access by the codename read from their QR code.

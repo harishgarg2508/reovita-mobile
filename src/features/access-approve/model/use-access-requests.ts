@@ -22,6 +22,9 @@ export function useIncomingAccess() {
       return data;
     },
     staleTime: 0,
+    // The live stream delivers new requests at once. This poll is the fallback if the stream drops
+    // (app in the background, a weak connection), so a request still shows within a few seconds.
+    refetchInterval: 4000,
   });
 
   const refresh = useCallback(() => {

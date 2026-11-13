@@ -78,14 +78,14 @@ export function BriefingPage() {
       </View>
       <Text style={styles.subtitle}>What the air quality, UV and heat mean for you today.</Text>
 
-      {place.data ? (
+      {today.data?.location ? (
         <View style={styles.placeCard}>
           <View style={styles.placeIcon}>
             <Ionicons name="location" size={20} color={p.accent} />
           </View>
           <View style={styles.flex}>
-            <Text style={styles.placeName}>{place.data.name}</Text>
-            <Text style={styles.body}>{formatCoords(place.data.latitude, place.data.longitude)}</Text>
+            <Text style={styles.placeName}>{place.data?.name ?? 'Your area'}</Text>
+            <Text style={styles.body}>{formatCoords(today.data.location.lat, today.data.location.lng)}</Text>
           </View>
         </View>
       ) : null}
@@ -174,10 +174,16 @@ function HistoryRow({ row, styles, p }: { row: BriefingRow; styles: Styles; p: P
   const tone = SEVERITY[row.card.severity];
   const s = row.card.snapshot;
   const details: [string, string | null][] = [
-    ['AQI', s.aqi != null ? String(s.aqi) : null],
+    ['US AQI', s.aqi != null ? String(s.aqi) : null],
     ['PM2.5', s.pm25 != null ? `${s.pm25} µg/m³` : null],
+    ['PM10', s.pm10 != null ? `${s.pm10} µg/m³` : null],
+    ['NO₂', s.no2 != null ? `${s.no2} µg/m³` : null],
+    ['O₃', s.o3 != null ? `${s.o3} µg/m³` : null],
+    ['SO₂', s.so2 != null ? `${s.so2} µg/m³` : null],
+    ['CO', s.co != null ? `${s.co} µg/m³` : null],
     ['UV index', s.uv_index != null ? String(s.uv_index) : null],
     ['Temperature', s.temperature_c != null ? `${s.temperature_c} °C` : null],
+    ['Feels like', s.feels_like_c != null ? `${s.feels_like_c} °C` : null],
     ['Humidity', s.humidity != null ? `${s.humidity}%` : null],
   ];
   return (

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { entryStamp, type MedicalHistoryEntry } from '../model/medical-history.api';
@@ -26,6 +27,8 @@ export function MedicalHistoryCalendar() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selected, setSelected] = useState<string | null>(null);
+  // The day whose choice sheet is open: its saved entries, and a button to create a new one.
+  const [dayChoice, setDayChoice] = useState<string | null>(null);
 
   const byDay = useMemo(() => {
     const map = new Map<string, MedicalHistoryEntry[]>();
@@ -39,7 +42,6 @@ export function MedicalHistoryCalendar() {
 
   const cells = useMemo(() => buildCells(month), [month]);
   const monthLabel = month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-  const shown = selected ? byDay.get(selected) ?? [] : [];
 
   function goToday() {
     const now = new Date();
@@ -47,8 +49,23 @@ export function MedicalHistoryCalendar() {
     setSelected(todayIso);
   }
 
+  // A day with saved entries asks first: open one of them, or create a new entry. An empty day opens the add form.
   function tapDay(iso: string) {
     setSelected(iso);
+    if ((byDay.get(iso) ?? []).length > 0) {
+      setDayChoice(iso);
+      return;
+    }
+    router.push({ pathname: '/(app)/medical-history-entry', params: { date: iso } });
+  }
+
+  function openEntry(id: string) {
+    setDayChoice(null);
+    router.push({ pathname: '/(app)/medical-history-entry', params: { id } });
+  }
+
+  function createOn(iso: string) {
+    setDayChoice(null);
     router.push({ pathname: '/(app)/medical-history-entry', params: { date: iso } });
   }
 
@@ -81,20 +98,24 @@ export function MedicalHistoryCalendar() {
           const dayEntries = byDay.get(cell.iso) ?? [];
           const isToday = cell.iso === todayIso;
           const isSelected = selected === cell.iso;
+          // Dates after today cannot have entries, so they are shown dimmed and cannot be tapped.
+          const future = cell.iso > todayIso;
           return (
             <Pressable
               key={cell.iso}
               accessibilityRole="button"
               accessibilityLabel={`Add an entry for day ${cell.day}`}
+              accessibilityState={{ disabled: future }}
+              disabled={future}
               onPress={() => tapDay(cell.iso)}
-              style={[styles.cell, isSelected && styles.cellSelected]}>
+              style={[styles.cell, isSelected && styles.cellSelected, future && styles.cellFuture]}>
               <View style={[styles.dayCircle, isToday && styles.dayCircleToday]}>
                 <Text style={[styles.dayText, isToday && styles.dayTextToday]}>{cell.day}</Text>
               </View>
               {dayEntries.length > 0 ? (
                 <View style={styles.chip}>
                   <Text style={styles.chipText} numberOfLines={1}>
-                    {dayEntries[0].title}
+                    {dayEntries.length > 1 ? `${dayEntries[0].title} +${dayEntries.length - 1}` : dayEntries[0].title}
                   </Text>
                 </View>
               ) : null}
@@ -104,18 +125,27 @@ export function MedicalHistoryCalendar() {
       </View>
 
       <Text style={styles.sub}>{selected ? formatLong(selected) : 'Tap a date to add an entry'}</Text>
-      {shown.map((entry) => (
-        <View key={entry.id} style={styles.entry}>
-          <Text style={styles.entryTitle}>{entry.title}</Text>
-          <Text style={styles.entryLine}>{entryStamp(entry)}</Text>
-          {entry.medicines.map((m, i) => (
-            <Text key={`${m.name}-${i}`} style={styles.entryLine}>
-              {m.name}
-              {m.dose ? ` · ${m.dose}` : ''}
-            </Text>
-          ))}
-        </View>
-      ))}
+
+      <BottomSheet visible={dayChoice !== null} onClose={() => setDayChoice(null)}>
+        {dayChoice ? (
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{formatLong(dayChoice)}</Text>
+            {(byDay.get(dayChoice) ?? []).map((entry) => (
+              <Pressable key={entry.id} accessibilityRole="button" onPress={() => openEntry(entry.id)} style={styles.sheetRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.entryTitle}>{entry.title}</Text>
+                  <Text style={styles.entryLine}>{entry.occurred_time ?? 'No time'}</Text>
+                </View>
+                <Ionicons name="create-outline" size={18} color={p.accent} />
+              </Pressable>
+            ))}
+            <Pressable accessibilityRole="button" onPress={() => createOn(dayChoice)} style={styles.sheetAdd}>
+              <Ionicons name="add-circle-outline" size={18} color={p.accent} />
+              <Text style={styles.sheetAddText}>Create new entry</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </BottomSheet>
     </View>
   );
 }
@@ -163,6 +193,13 @@ function makeStyles(p: Palette) {
     dayCircleToday: { backgroundColor: p.accent },
     dayText: { fontSize: 13, color: p.textStrong },
     dayTextToday: { color: '#FFFFFF', fontWeight: '700' },
+    cellFuture: { opacity: 0.35 },
+    sheet: { gap: 10 },
+    sheetTitle: { fontSize: 16, fontWeight: '800', color: p.textStrong },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.surface },
+    sheetAdd: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 14, borderWidth: 1.5, borderColor: p.accent },
+    sheetAddText: { fontSize: 14, fontWeight: '700', color: p.accent },
+    flex: { flex: 1 },
     chip: { maxWidth: '96%', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6, backgroundColor: p.redSoft },
     chipText: { fontSize: 9.5, fontWeight: '700', color: p.red },
     sub: { fontSize: 13, fontWeight: '700', color: p.muted, marginTop: 4 },

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -80,9 +80,8 @@ export function MedicalHistoryForm({
   const [title, setTitle] = useState(entry?.title ?? '');
   const [date, setDate] = useState(entry?.occurred_on ?? initialDate);
   const [time, setTime] = useState(entry?.occurred_time ?? '');
-  const [medicines, setMedicines] = useState<{ name: string; dose: string }[]>(
-    entry && entry.medicines.length > 0 ? entry.medicines.map((m) => ({ name: m.name, dose: m.dose ?? '' })) : [{ name: '', dose: '' }],
-  );
+  const initialMedicines = entry && entry.medicines.length > 0 ? entry.medicines.map((m) => ({ name: m.name, dose: m.dose ?? '' })) : [{ name: '', dose: '' }];
+  const [medicines, setMedicines] = useState<{ name: string; dose: string }[]>(initialMedicines);
   const [files, setFiles] = useState<MedicalHistoryFile[]>(entry?.files ?? []);
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [showDate, setShowDate] = useState(false);
@@ -112,6 +111,18 @@ export function MedicalHistoryForm({
     if (picked.canceled || picked.assets.length === 0) return;
     const asset = picked.assets[0];
     setPending((all) => [...all, { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/octet-stream', kind }]);
+  }
+
+  // Puts the text fields back to what was saved (or blank for a new entry). Files already saved are kept,
+  // because they are removed on the server as soon as they are deleted; queued files are dropped.
+  function resetFields() {
+    setTitle(entry?.title ?? '');
+    setDate(entry?.occurred_on ?? initialDate);
+    setTime(entry?.occurred_time ?? '');
+    setMedicines(initialMedicines);
+    setPending([]);
+    setInvalid({});
+    setError(null);
   }
 
   async function removeSavedFile(file: MedicalHistoryFile) {
@@ -162,9 +173,14 @@ export function MedicalHistoryForm({
       <ScrollView style={styles.scroll} contentContainerStyle={styles.dialogContent}>
         <View style={styles.dialogHead}>
           <Text style={styles.dialogTitle}>{entry ? 'Edit medical history' : 'Add medical history'}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
-            <Text style={styles.closeText}>Close</Text>
-          </Pressable>
+          <View style={styles.headActions}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Reset fields" onPress={resetFields} hitSlop={8}>
+              <Text style={styles.closeText}>Reset</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
+              <Text style={styles.closeText}>Close</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.form}>
@@ -181,11 +197,24 @@ export function MedicalHistoryForm({
           />
 
           <Text style={styles.label}>Date</Text>
+          {Platform.OS === 'web' ? (
+            // The browser's own date input. The native picker below is only available on the phone.
+            <input
+              type="date"
+              aria-label="Date"
+              value={date}
+              max={isoOf(new Date())}
+              onChange={(e) => setDate(e.target.value)}
+              onClick={openWebPicker}
+              style={webField(p, invalid.date)}
+            />
+          ) : (
           <Pressable accessibilityRole="button" accessibilityLabel="Choose date" onPress={() => setShowDate((open) => !open)} style={[styles.input, styles.row, invalid.date && styles.inputError]}>
             <Text style={styles.valueText}>{displayDate(date)}</Text>
             <Ionicons name="calendar-outline" size={18} color={p.accent} />
           </Pressable>
-          {showDate ? (
+          )}
+          {Platform.OS !== 'web' && showDate ? (
             <DateTimePicker
               value={dateFrom(date)}
               mode="date"
@@ -199,6 +228,9 @@ export function MedicalHistoryForm({
             <Text style={styles.label}>Time</Text>
             <Text style={styles.optional}>Optional</Text>
           </View>
+          {Platform.OS === 'web' ? (
+            <input type="time" aria-label="Time" value={time} onChange={(e) => setTime(e.target.value)} onClick={openWebPicker} style={webField(p, false)} />
+          ) : (
           <View style={[styles.input, styles.row]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Choose time" onPress={() => setShowTime((open) => !open)} style={styles.rowGrow}>
               <Text style={time ? styles.valueText : styles.placeholderText}>{time || 'Add a time'}</Text>
@@ -211,7 +243,8 @@ export function MedicalHistoryForm({
               <Ionicons name="time-outline" size={18} color={p.accent} />
             )}
           </View>
-          {showTime ? (
+          )}
+          {Platform.OS !== 'web' && showTime ? (
             <DateTimePicker value={timeFrom(time)} mode="time" is24Hour display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onTimeChange} />
           ) : null}
 
@@ -301,12 +334,39 @@ export function MedicalHistoryForm({
   );
 }
 
+// Opens the browser's calendar or clock when the field itself is clicked, not only its icon.
+// showPicker is supported in current Chromium, Edge, Firefox and Safari; older browsers keep the icon behaviour.
+function openWebPicker(e: { currentTarget: HTMLInputElement }) {
+  try {
+    e.currentTarget.showPicker?.();
+  } catch {
+    // Some browsers only allow this after a user gesture; the icon still opens the picker.
+  }
+}
+
+// Plain browser input styled like the app's inputs. Used on web, where the native date and time pickers do not exist.
+function webField(p: Palette, invalid: boolean | undefined): CSSProperties {
+  return {
+    height: 44,
+    width: '100%',
+    boxSizing: 'border-box',
+    borderRadius: 12,
+    border: `${invalid ? 1.5 : 1}px solid ${invalid ? p.red : p.border}`,
+    background: p.surface,
+    padding: '0 12px',
+    fontSize: 15,
+    color: p.textStrong,
+    fontFamily: 'inherit',
+  };
+}
+
 function makeStyles(p: Palette) {
   return StyleSheet.create({
     dialog: { flex: 1, backgroundColor: p.bg },
     scroll: { flex: 1 },
     dialogContent: { padding: 18, gap: 14 },
     dialogHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     dialogTitle: { fontSize: 22, fontWeight: '800', color: p.textStrong },
     closeText: { fontSize: 14, fontWeight: '700', color: p.accent },
     form: { backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 14, gap: 8 },

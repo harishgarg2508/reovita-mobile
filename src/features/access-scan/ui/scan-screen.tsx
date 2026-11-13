@@ -3,20 +3,20 @@ import Svg, { Circle } from 'react-native-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
-import { fetchAccessStatus, fetchAccessSummary, requestAccess, type AccessSummary } from '../model/access-api';
+import { fetchAccessStatus, fetchAccessSummary, openAccessFile, requestAccess, type AccessFile, type AccessSummary } from '../model/access-api';
 
 type Phase =
   | { kind: 'choose' }
   | { kind: 'code' }
   | { kind: 'scanning' }
   | { kind: 'waiting'; id: string }
-  | { kind: 'summary'; summary: AccessSummary }
+  | { kind: 'summary'; summary: AccessSummary; requestId: string }
   | { kind: 'message'; text: string }
   | { kind: 'denied' };
 
@@ -49,6 +49,15 @@ export function ScanScreen() {
   };
   const toDashboard = () => router.replace('/(app)/(tabs)/dashboard');
   const onHeaderBack = () => (phase.kind === 'choose' ? toDashboard() : resetToChoose());
+
+  // Opens one medical history file of the approved subject. Shows an alert if the download fails.
+  async function viewFile(requestId: string, file: AccessFile) {
+    try {
+      await openAccessFile(requestId, file);
+    } catch {
+      Alert.alert('Could not open this file', 'Check your connection and try again.');
+    }
+  }
   const [typedCode, setTypedCode] = useState('');
   // An error for the typed code, shown under the field so the user can correct it.
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -66,7 +75,7 @@ export function ScanScreen() {
         if (status === 'approved') {
           clearInterval(timer);
           const summary = await fetchAccessSummary(id);
-          setPhase({ kind: 'summary', summary });
+          setPhase({ kind: 'summary', summary, requestId: id });
         } else if (status === 'denied') {
           clearInterval(timer);
           setPhase({ kind: 'denied' });
@@ -270,13 +279,40 @@ export function ScanScreen() {
           </View>
         </View>
 
-        <View style={styles.box}>
+        <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Latest vitals</Text>
           <LifestyleRow label="Weight" value={weight ? `${weight.kg} kg` : '-'} styles={styles} />
           <LifestyleRow label="Blood pressure" value={bp ? `${bp.sys} / ${bp.dia} mmHg` : '-'} styles={styles} />
         </View>
 
-        <View style={styles.box}>
+        <View style={styles.boxFull}>
+          <Text style={styles.boxTitle}>Family history</Text>
+          {sum.family_history.length === 0 ? (
+            <Text style={styles.alertBody}>No family history recorded.</Text>
+          ) : (
+            sum.family_history.map((f, i) => (
+              <LifestyleRow
+                key={`${f.relation}-${f.condition}-${i}`}
+                label={RELATION_LABEL[f.relation] ?? capitalize(f.relation)}
+                value={FAMILY_LABEL[f.condition] ?? capitalize(f.condition)}
+                styles={styles}
+              />
+            ))
+          )}
+        </View>
+
+        <View style={styles.boxFull}>
+          <Text style={styles.boxTitle}>Medications</Text>
+          {sum.medications.length === 0 ? (
+            <Text style={styles.alertBody}>No medications recorded.</Text>
+          ) : (
+            sum.medications.map((m, i) => (
+              <LifestyleRow key={`${m.name ?? 'medicine'}-${i}`} label={m.name ?? 'Medicine'} value={m.dose ?? '-'} styles={styles} />
+            ))
+          )}
+        </View>
+
+        <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Medical history</Text>
           {sum.medical_history.length === 0 ? (
             <Text style={styles.alertBody}>No medical history entries yet.</Text>
@@ -284,7 +320,10 @@ export function ScanScreen() {
             sum.medical_history.map((h) => (
               <View key={h.id} style={styles.historyEntry}>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineDate}>{formatShortDate(h.occurred_on)}</Text>
+                  <Text style={styles.timelineDate}>
+                    {formatShortDate(h.occurred_on)}
+                    {h.occurred_time ? ` · ${h.occurred_time}` : ''}
+                  </Text>
                   <Text style={styles.timelineText}>{h.title}</Text>
                 </View>
                 {h.medicines.length > 0 ? (
@@ -292,6 +331,24 @@ export function ScanScreen() {
                     {h.medicines.map((m) => (m.dose ? `${m.name} (${m.dose})` : m.name)).join(', ')}
                   </Text>
                 ) : null}
+                {h.files.map((file: AccessFile) => (
+                  <View key={file.id} style={styles.summaryFile}>
+                    <Ionicons name={file.kind === 'report' ? 'document-text-outline' : 'medkit-outline'} size={16} color={p.accent} />
+                    <View style={styles.flex}>
+                      <Text style={styles.alertTitle} numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                      <Text style={styles.alertBody}>{file.kind === 'report' ? 'Report' : 'Prescription'}</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${file.name}`}
+                      onPress={() => void viewFile(phase.requestId, file)}
+                      hitSlop={8}>
+                      <Ionicons name="eye-outline" size={18} color={p.accent} />
+                    </Pressable>
+                  </View>
+                ))}
               </View>
             ))
           )}
@@ -413,6 +470,16 @@ function capitalize(value: string | null | undefined): string {
   const text = value.replace(/_/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+// Family history condition and relation labels, as the onboarding form shows them.
+const FAMILY_LABEL: Record<string, string> = {
+  diabetes: 'Diabetes',
+  cvd: 'Heart disease',
+  cancer: 'Cancer',
+  thyroid: 'Thyroid',
+  kidney: 'Kidney disease',
+};
+const RELATION_LABEL: Record<string, string> = { father: 'Father', mother: 'Mother', sibling: 'Sibling(s)', wife: 'Wife' };
 
 function conditionLabel(tag: string): string {
   const labels: Record<string, string> = {
@@ -538,8 +605,11 @@ function makeStyles(p: Palette) {
     alertTitle: { fontSize: 13, fontWeight: '700', color: p.textStrong },
     alertBody: { fontSize: 12.5, lineHeight: 18, color: p.muted },
     historyEntry: { gap: 4 },
+    summaryFile: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: p.surface },
     twoCol: { flexDirection: 'row', gap: 10 },
     box: { flex: 1, padding: 14, borderRadius: 18, backgroundColor: p.card, borderWidth: 1, borderColor: p.border, gap: 8 },
+    // Full-width cards: no flex, so their height follows their content and they never overlap the button below.
+    boxFull: { padding: 14, borderRadius: 18, backgroundColor: p.card, borderWidth: 1, borderColor: p.border, gap: 8 },
     boxTitle: { fontSize: 14, fontWeight: '800', color: p.textStrong },
     lifestyleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
     lifestyleLabel: { fontSize: 12.5, color: p.muted },

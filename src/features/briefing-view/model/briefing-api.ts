@@ -1,12 +1,18 @@
 import { api, isApiError } from '@shared/api';
 
 // One environmental card (spec section 9.4). Numbers come from the snapshot; text comes from fixed rule templates.
+// The readings a card was built from. All from the free Open-Meteo forecast and air-quality APIs.
 export interface BriefingSnapshot {
-  city?: string | null;
   aqi?: number | null;
   pm25?: number | null;
+  pm10?: number | null;
+  no2?: number | null;
+  o3?: number | null;
+  co?: number | null;
+  so2?: number | null;
   uv_index?: number | null;
   temperature_c?: number | null;
+  feels_like_c?: number | null;
   humidity?: number | null;
 }
 
@@ -22,6 +28,8 @@ export interface BriefingCard {
 export interface TodaysBriefings {
   morning: BriefingCard | null;
   night: BriefingCard | null;
+  // The stored location the briefing is for (rounded to 2 decimals on the server).
+  location?: { lat: number; lng: number };
 }
 
 export interface BriefingRow {

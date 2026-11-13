@@ -1,4 +1,6 @@
-import { api } from '@shared/api';
+import { Platform } from 'react-native';
+
+import { api, openApiFile } from '@shared/api';
 
 export interface MedicineEntry {
   name: string;
@@ -54,11 +56,26 @@ export interface PickedMedicalFile {
 export async function uploadMedicalHistoryFile(id: string, file: PickedMedicalFile, kind: MedicalHistoryFileKind): Promise<MedicalHistoryFile> {
   const form = new FormData();
   form.append('kind', kind);
-  form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+  if (Platform.OS === 'web') {
+    // Browsers need a real Blob in FormData; the native { uri, name, type } object is ignored and the server gets no file.
+    const blob = await (await fetch(file.uri)).blob();
+    form.append('file', blob, file.name);
+  } else {
+    form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+  }
+  // The client's default Content-Type is application/json, which made the server read the form as JSON and find no file.
+  // Clearing it lets React Native set multipart/form-data with the boundary.
   const { data } = await api.post<MedicalHistoryFile>(`/v1/medical-histories/${id}/files`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': undefined } as unknown as Record<string, string>,
   });
   return data;
+}
+
+// Opens one attached file. The download needs the sign-in token, so the bytes are fetched through the API client.
+// On web the file opens in a new tab. On the phone it is saved to the cache and handed to the system share sheet,
+// where the user can pick a viewer.
+export async function openMedicalHistoryFile(id: string, file: MedicalHistoryFile): Promise<void> {
+  await openApiFile(`/v1/medical-histories/${id}/files/${file.id}`, file);
 }
 
 export async function deleteMedicalHistoryFile(id: string, fileId: string): Promise<void> {
