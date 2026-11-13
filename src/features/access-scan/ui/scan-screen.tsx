@@ -159,15 +159,22 @@ export function ScanScreen() {
         </View>
         <Text style={styles.heroTitle}>Enter code</Text>
         <Text style={styles.heroSub}>Type the subject's code, for example VT-1234-AB.</Text>
-        <TextInput
-          value={typedCode}
-          onChangeText={setTypedCode}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          placeholder="VT-1234-AB"
-          placeholderTextColor={p.muted}
-          style={styles.bigCodeInput}
-        />
+        <View style={styles.codeInputWrap}>
+          <TextInput
+            value={typedCode}
+            onChangeText={setTypedCode}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            placeholder="VT-1234-AB"
+            placeholderTextColor={p.muted}
+            style={styles.bigCodeInput}
+          />
+          {typedCode.length > 0 ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear code" onPress={() => setTypedCode('')} hitSlop={8} style={styles.clearBtn}>
+              <Ionicons name="close" size={18} color={p.accent} />
+            </Pressable>
+          ) : null}
+        </View>
         <Pressable
           accessibilityRole="button"
           disabled={trimmed.length === 0}
@@ -260,18 +267,31 @@ export function ScanScreen() {
 
         <View style={styles.box}>
           <Text style={styles.boxTitle}>Medical history</Text>
-          {sum.timeline.length === 0 ? (
-            <Text style={styles.body}>No confirmed reports yet.</Text>
+          {sum.medical_history.length === 0 ? (
+            <Text style={styles.alertBody}>No medical history entries yet.</Text>
           ) : (
-            sum.timeline.map((t, i) => (
-              <View key={`${t.date}-${i}`} style={styles.timelineRow}>
-                <Text style={styles.timelineDate}>{formatShortDate(t.date)}</Text>
-                <Text style={styles.timelineText}>
-                  {t.flagged > 0 ? `${t.flagged} result${t.flagged === 1 ? '' : 's'} outside range` : 'All results in range'}
-                </Text>
+            sum.medical_history.map((h) => (
+              <View key={h.id} style={styles.historyEntry}>
+                <View style={styles.timelineRow}>
+                  <Text style={styles.timelineDate}>{formatShortDate(h.occurred_on)}</Text>
+                  <Text style={styles.timelineText}>{h.title}</Text>
+                </View>
+                {h.medicines.length > 0 ? (
+                  <Text style={styles.alertBody}>
+                    {h.medicines.map((m) => (m.dose ? `${m.name} (${m.dose})` : m.name)).join(', ')}
+                  </Text>
+                ) : null}
               </View>
             ))
           )}
+          {sum.timeline.map((t, i) => (
+            <View key={`${t.date}-${i}`} style={styles.timelineRow}>
+              <Text style={styles.timelineDate}>{formatShortDate(t.date)}</Text>
+              <Text style={styles.timelineText}>
+                {t.flagged > 0 ? `${t.flagged} result${t.flagged === 1 ? '' : 's'} outside range` : 'All results in range'}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <Pressable accessibilityRole="button" onPress={resetToChoose} style={styles.primaryBtn}>
@@ -481,6 +501,7 @@ function makeStyles(p: Palette) {
     alertRow: { gap: 2 },
     alertTitle: { fontSize: 13, fontWeight: '700', color: p.textStrong },
     alertBody: { fontSize: 12.5, lineHeight: 18, color: p.muted },
+    historyEntry: { gap: 4 },
     twoCol: { flexDirection: 'row', gap: 10 },
     box: { flex: 1, padding: 14, borderRadius: 18, backgroundColor: p.card, borderWidth: 1, borderColor: p.border, gap: 8 },
     boxTitle: { fontSize: 14, fontWeight: '800', color: p.textStrong },
@@ -494,7 +515,9 @@ function makeStyles(p: Palette) {
     timelineDate: { fontSize: 12.5, fontWeight: '700', color: p.textStrong },
     timelineText: { fontSize: 12.5, color: p.muted, flexShrink: 1, textAlign: 'right' },
     codeErrorText: { fontSize: 14, fontWeight: '600', color: p.red, textAlign: 'center' },
-    bigCodeInput: { height: 62, borderRadius: 31, borderWidth: 1.5, borderColor: p.accent, backgroundColor: p.card, paddingHorizontal: 24, fontSize: 18, color: p.textStrong, letterSpacing: 1, textAlign: 'center' },
+    codeInputWrap: { position: 'relative', justifyContent: 'center' },
+    clearBtn: { position: 'absolute', right: 16, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: p.accentSoft },
+    bigCodeInput: { height: 62, borderRadius: 31, borderWidth: 1.5, borderColor: p.accent, backgroundColor: p.card, paddingLeft: 24, paddingRight: 52, fontSize: 18, color: p.textStrong, letterSpacing: 1, textAlign: 'center' },
     centerBlock: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
     codeSubmit: { alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 0 },
     topRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },

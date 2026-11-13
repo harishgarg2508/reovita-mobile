@@ -17,6 +17,7 @@ export interface AccessSummary {
     readings: { type: string; value: number; at: string }[];
   };
   timeline: { date: string; status: string; flagged: number }[];
+  medical_history: { id: string; title: string; occurred_on: string; medicines: { name: string; dose: string | null }[] }[];
 }
 
 // Asks the subject for access by the codename read from their QR code.
