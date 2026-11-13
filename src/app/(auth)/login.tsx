@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@app-root/store';
 import { selectIsSignedIn, selectSessionStatus, sessionReady } from '@entities/session';
-import { LoginScreen, useGoogleSignIn } from '@features/auth';
+import { friendlySignInError, LoginScreen, useGoogleSignIn } from '@features/auth';
 import { isApiError } from '@shared/api';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -46,7 +46,7 @@ export default function LoginRoute() {
       onRecover={() => setRecoverOpen(true)}
       showRecover={signIn.isError && isApiError(signIn.error, 'account_deactivated')}
       pending={signIn.isPending}
-      errorMessage={signIn.isError ? signIn.error.message : null}
+      errorMessage={signIn.isError ? friendlySignInError(signIn.error) : null}
       />
       <Modal visible={recoverOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setRecoverOpen(false)}>
         <View style={styles.backdrop}>

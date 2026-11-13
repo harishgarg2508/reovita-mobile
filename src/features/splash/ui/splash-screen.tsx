@@ -1,11 +1,14 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useEffect, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomRightLeaves, LoginBgTopLeaves, ReovitaLeafLogo } from '@shared/ui';
+import { BottomRightLeaves, LoginBgTopLeaves } from '@shared/ui';
 
 const DURATION_MS = 2400;
+const WORDMARK = 'REOVITA';
+const LETTER_STAGGER_MS = 120;
+const LETTER_FADE_MS = 380;
 
 /**
  * Reovita Splash Screen on Landing Page.
@@ -21,6 +24,16 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [progress] = useState(() => new Animated.Value(0.12));
   const [animFade] = useState(() => new Animated.Value(0));
+  // One value per letter of the wordmark, each 0 (hidden, off to the right) to 1 (in place).
+  const [letters] = useState(() => WORDMARK.split('').map(() => new Animated.Value(0)));
+
+  // The letters fade in and slide into place one after another, from the first letter to the last.
+  useEffect(() => {
+    Animated.stagger(
+      LETTER_STAGGER_MS,
+      letters.map((value) => Animated.timing(value, { toValue: 1, duration: LETTER_FADE_MS, useNativeDriver: USE_NATIVE_DRIVER })),
+    ).start();
+  }, [letters]);
 
   useEffect(() => {
     Animated.timing(animFade, {
@@ -68,16 +81,26 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         ]}>
         {/* Center: Official Reovita Logo & Tagline */}
         <View style={styles.brandCenter}>
-          <ReovitaLeafLogo
-            size={84}
-            wordmarkSize={44}
-            wordmarkColor="#100C22"
-            taglineSize={16}
-            taglineColor="#1B152B"
-            showWordmark={true}
-            showTagline={true}
-            layout="vertical"
-          />
+          <Image source={require('../../../shared/assets/images/reovita-logo.webp')} style={styles.logo} resizeMode="contain" />
+          <View style={styles.wordRow} accessibilityRole="header" accessibilityLabel="Reovita">
+            {WORDMARK.split('').map((letter, i) => (
+              <Animated.Text
+                key={`${letter}-${i}`}
+                style={[
+                  styles.wordmark,
+                  {
+                    opacity: letters[i],
+                    transform: [
+                      {
+                        translateX: letters[i].interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+                      },
+                    ],
+                  },
+                ]}>
+                {letter}
+              </Animated.Text>
+            ))}
+          </View>
         </View>
 
         {/* Lower Section: Left-aligned Headline and Progress Bar */}
@@ -118,6 +141,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -20,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+  },
+  wordRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+  },
+  wordmark: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 34,
+    letterSpacing: 4,
+    color: '#100C22',
   },
   lowerSection: {
     width: '100%',

@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@shared/ui';
 import { useActiveConsent, useGrantConsentType } from '@entities/consent';
 
 import { useBriefingLive } from '../model/use-briefing-live';
+import { formatCoords, useCurrentPlace } from '../model/current-place';
 import { shareLocationForBriefing } from '../model/share-location';
 import type { BriefingCard, BriefingRow } from '../model/briefing-api';
 
@@ -24,6 +25,8 @@ export function BriefingPage() {
   const [consentOpen, setConsentOpen] = useState(false);
   const locationConsent = useActiveConsent('location');
   const grantConsent = useGrantConsentType();
+  // The place name is read from the phone once the location is shared.
+  const place = useCurrentPlace(today.isSuccess && !today.data?.needsLocation);
 
   // Location is stored only after the user agrees to the location consent (DPDP). The browser or phone
   // permission prompt appears after that, when the device location is read.
@@ -73,12 +76,24 @@ export function BriefingPage() {
         </Pressable>
         <Text style={styles.title}>Daily briefing</Text>
       </View>
-      <Text style={styles.subtitle}>What the air, UV and pollen mean for you today.</Text>
+      <Text style={styles.subtitle}>What the air quality, UV and heat mean for you today.</Text>
+
+      {place.data ? (
+        <View style={styles.placeCard}>
+          <View style={styles.placeIcon}>
+            <Ionicons name="location" size={20} color={p.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.placeName}>{place.data.name}</Text>
+            <Text style={styles.body}>{formatCoords(place.data.latitude, place.data.longitude)}</Text>
+          </View>
+        </View>
+      ) : null}
 
       <ConfirmDialog
         visible={consentOpen}
         title="Use your location?"
-        message="Reovita uses your location to make your daily air, UV and pollen briefing. We store it rounded to about 1 km, and you can withdraw this consent at any time in your profile."
+        message="Reovita uses your location to make your daily air quality, UV and heat briefing. We store it rounded to about 1 km, and you can withdraw this consent at any time in your profile."
         confirmLabel="Agree and share"
         destructive={false}
         busy={grantConsent.isPending}
@@ -204,6 +219,10 @@ function makeStyles(p: Palette) {
     subtitle: { fontSize: 13, color: p.muted },
     sectionLabel: { fontSize: 15, fontWeight: '700', color: p.textStrong, marginTop: 6 },
     card: { backgroundColor: p.card, borderRadius: 20, borderWidth: 1, borderColor: p.border, padding: 16, gap: 10 },
+    placeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: p.card, borderRadius: 20, borderWidth: 1, borderColor: p.border, padding: 14 },
+    placeIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center' },
+    placeName: { fontSize: 17, fontWeight: '800', color: p.textStrong },
+    flex: { flex: 1 },
     cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     kind: { fontSize: 13, fontWeight: '700', color: p.muted },
     headline: { fontSize: 16, fontWeight: '800', color: p.textStrong },

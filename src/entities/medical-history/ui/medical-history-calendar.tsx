@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,7 +7,6 @@ import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { entryStamp, type MedicalHistoryEntry } from '../model/medical-history.api';
 import { useMedicalHistories } from '../model/use-medical-histories';
-import { MedicalHistoryForm } from './medical-history-form';
 
 // Sunday-first, like a standard calendar. Each day shows its first entry as a small label.
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -20,12 +20,12 @@ export function MedicalHistoryCalendar() {
   const entries = list.data ?? [];
 
   const todayIso = toIso(new Date());
+  const router = useRouter();
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selected, setSelected] = useState<string | null>(null);
-  const [formDate, setFormDate] = useState<string | null>(null);
 
   const byDay = useMemo(() => {
     const map = new Map<string, MedicalHistoryEntry[]>();
@@ -49,7 +49,7 @@ export function MedicalHistoryCalendar() {
 
   function tapDay(iso: string) {
     setSelected(iso);
-    setFormDate(iso);
+    router.push({ pathname: '/(app)/medical-history-entry', params: { date: iso } });
   }
 
   return (
@@ -116,8 +116,6 @@ export function MedicalHistoryCalendar() {
           ))}
         </View>
       ))}
-
-      {formDate ? <MedicalHistoryForm initialDate={formDate} onClose={() => setFormDate(null)} /> : null}
     </View>
   );
 }

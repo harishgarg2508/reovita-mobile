@@ -6,7 +6,6 @@ export interface BriefingSnapshot {
   aqi?: number | null;
   pm25?: number | null;
   uv_index?: number | null;
-  pollen?: string | null;
   temperature_c?: number | null;
   humidity?: number | null;
 }

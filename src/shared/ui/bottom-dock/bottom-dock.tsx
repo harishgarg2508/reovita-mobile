@@ -270,9 +270,10 @@ export function BottomDock({
     }).start();
   };
 
+  // The centre button uploads a report. The QR scan sits in the Upload slot to its left.
   const handleFabPress = () => {
     tapConfirm();
-    router.push('/(app)/scan');
+    router.push('/(app)/reports/upload');
   };
 
   // Find routes by name to ensure stable placement regardless of route order
@@ -350,19 +351,19 @@ export function BottomDock({
           ]}
         />
 
-        {/* Left: Home, Upload (Upload pushes the upload screen, it is not a tab) */}
+        {/* Left: Home, QR (QR scan pushes the scan screen, it is not a tab) */}
         <View style={styles.halfTabs}>
           {leftRoutes.map((route: TabRoute) => renderTab(route))}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Upload a report"
+            accessibilityLabel="Scan a QR code"
             onPress={() => {
               tapConfirm();
-              router.push('/(app)/reports/upload');
+              router.push('/(app)/scan');
             }}
             style={styles.uploadItem}>
-            <Ionicons name="cloud-upload-outline" size={21} color="#9185AA" />
-            <Text style={styles.uploadLabel}>Upload</Text>
+            <Ionicons name="qr-code-outline" size={21} color="#9185AA" />
+            <Text style={styles.uploadLabel}>QR</Text>
           </Pressable>
         </View>
 
@@ -385,12 +386,12 @@ export function BottomDock({
         ]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Upload medical report"
+          accessibilityLabel="Upload a report"
           onPressIn={handleFabPressIn}
           onPressOut={handleFabPressOut}
           onPress={handleFabPress}
           style={styles.fabBtn}>
-          <Ionicons name="qr-code-outline" size={30} color="#FFFFFF" />
+          <Ionicons name="cloud-upload-outline" size={30} color="#FFFFFF" />
         </Pressable>
       </Animated.View>
     </View>

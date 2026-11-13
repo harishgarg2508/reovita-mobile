@@ -31,7 +31,7 @@ export function ProfileBmiCard() {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Body mass index. Open basic details"
-      onPress={() => router.push('/onboarding/step-1')}>
+      onPress={() => router.push({ pathname: '/onboarding/step-1', params: { edit: 'true' } })}>
       <View style={styles.card}>
         <View style={styles.row}>
           <View style={styles.iconBox}>

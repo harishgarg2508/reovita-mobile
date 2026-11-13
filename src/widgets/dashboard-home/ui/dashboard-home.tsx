@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -69,10 +69,28 @@ function scoreColor(score: number | null, p: Palette): string {
   return '#1F7A3E';
 }
 
-function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
+// Animates a 0..1 fill from 0 up to the target. It runs again each time runId changes (each time Home is opened),
+// so the arc sweeps in whenever the screen is shown, and eases to a new value when the score changes.
+function useAnimatedFraction(target: number, runId: number): number {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    setShown(0);
+    const value = new Animated.Value(0);
+    const id = value.addListener(({ value: v }) => setShown(v));
+    Animated.timing(value, { toValue: target, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => {
+      value.stopAnimation();
+      value.removeListener(id);
+    };
+  }, [target, runId]);
+  return shown;
+}
+
+function ScoreRing({ p, score, runId }: { p: Palette; score: number | null; runId: number }) {
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const fraction = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100;
+  const shown = useAnimatedFraction(fraction, runId);
   return (
     <View style={styles.ringWrap}>
       <View style={styles.ringRotate}>
@@ -86,7 +104,7 @@ function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
             strokeWidth={10}
             fill="none"
             strokeLinecap="round"
-            strokeDasharray={`${circumference * fraction} ${circumference}`}
+            strokeDasharray={`${circumference * shown} ${circumference}`}
           />
         </Svg>
       </View>
@@ -98,10 +116,23 @@ function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
 }
 
 // One radial chart for a score part (lifestyle, conditions or reports). No number: the arc shows how high it is.
-function PartRing({ p, label, icon, score }: { p: Palette; label: string; icon: keyof typeof Ionicons.glyphMap; score: number | null }) {
+function PartRing({
+  p,
+  label,
+  icon,
+  score,
+  runId,
+}: {
+  p: Palette;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  score: number | null;
+  runId: number;
+}) {
   const radius = 30;
   const circumference = 2 * Math.PI * radius;
   const fraction = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100;
+  const shown = useAnimatedFraction(fraction, runId);
   return (
     <View style={styles.partRingCell}>
       <View style={styles.partRingBox}>
@@ -116,7 +147,7 @@ function PartRing({ p, label, icon, score }: { p: Palette; label: string; icon: 
             fill="none"
             strokeLinecap="round"
             transform="rotate(-90 36 36)"
-            strokeDasharray={`${circumference * fraction} ${circumference}`}
+            strokeDasharray={`${circumference * shown} ${circumference}`}
           />
         </Svg>
         <View style={styles.partRingIcon}>
@@ -203,8 +234,11 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   // Coming back to Home always starts at the top.
   const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
+  // Each time Home comes into view, the rings animate again from empty.
+  const [runId, setRunId] = useState(0);
   useFocusEffect(useCallback(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    setRunId((n) => n + 1);
   }, []));
 
   if (home.isLoading) {
@@ -310,7 +344,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
               {data?.health_score ? heroSubtitle(Number(data.health_score)) : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
             </Text>
           </View>
-          <ScoreRing p={p} score={data?.health_score ? Number(data.health_score) : null} />
+          <ScoreRing p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} />
         </View>
       </View>
 
@@ -322,9 +356,15 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
             <Pressable
               key={part.key}
               accessibilityRole="button"
-              onPress={() => router.push(part.route)}
+              onPress={() =>
+                router.push(
+                  part.route === '/(app)/reports/upload'
+                    ? part.route
+                    : { pathname: part.route, params: { edit: 'true' } },
+                )
+              }
               style={[styles.partCard, { backgroundColor: p.card, borderColor: p.border }]}>
-              <PartRing p={p} label={part.label} icon={part.icon} score={score} />
+              <PartRing p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
               <View style={styles.partFooter}>
                 <Text style={[styles.partStatus, { color: partStatusColor(score, p) }]}>{partStatus(score)}</Text>
                 <Ionicons name="chevron-forward" size={16} color={p.muted} />
@@ -342,7 +382,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
             <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
             <View style={styles.flex}>
               <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Air, UV and pollen for today.</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Air quality, UV and heat for today.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>

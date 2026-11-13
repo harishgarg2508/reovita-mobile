@@ -1,4 +1,5 @@
 import type { BasicsDraft, HistoryDraft, LifestyleDraft, OnboardingSex } from '@entities/onboarding';
+import { FAMILY_CONDITION_LABELS } from './family-conditions';
 
 // Turns the values the server saved for a step (GET /v1/onboarding/steps/{step}) into the shape the step
 // forms keep in their drafts. Null or missing values are left out, so the form shows them as not filled yet.
@@ -47,8 +48,12 @@ export function historyFromSaved(saved: Saved): Partial<HistoryDraft> {
     .filter((label): label is string => label !== null);
   const other = conditions.find((c) => c.tag === 'other')?.free_text ?? '';
 
+  // The server stores family conditions as tags (diabetes); the picker shows their labels (Diabetes).
   const byRelation = (relation: string) =>
-    family.filter((f) => f.relation === relation).map((f) => f.condition);
+    family
+      .filter((f) => f.relation === relation)
+      .map((f) => FAMILY_CONDITION_LABELS[f.condition])
+      .filter((label): label is string => Boolean(label));
 
   return {
     conditions: conditionLabels,

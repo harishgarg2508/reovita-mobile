@@ -5,11 +5,24 @@ export interface MedicineEntry {
   dose: string | null;
 }
 
+export type MedicalHistoryFileKind = 'report' | 'medicine';
+
+export interface MedicalHistoryFile {
+  id: string;
+  kind: MedicalHistoryFileKind;
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+}
+
 export interface MedicalHistoryEntry {
   id: string;
   title: string;
   occurred_on: string; // YYYY-MM-DD
+  occurred_time: string | null; // HH:MM, optional
   medicines: MedicineEntry[];
+  files: MedicalHistoryFile[];
   created_at: string; // ISO time the entry was added
   updated_at: string; // ISO time the entry was last changed
 }
@@ -27,7 +40,29 @@ export function entryStamp(entry: MedicalHistoryEntry): string {
 export interface CreateMedicalHistoryInput {
   title: string;
   occurred_on: string;
+  occurred_time?: string | null;
   medicines: { name: string; dose?: string | null }[];
+}
+
+export interface PickedMedicalFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+// Attaches one report or prescription file to an entry. Sent as multipart form data.
+export async function uploadMedicalHistoryFile(id: string, file: PickedMedicalFile, kind: MedicalHistoryFileKind): Promise<MedicalHistoryFile> {
+  const form = new FormData();
+  form.append('kind', kind);
+  form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
+  const { data } = await api.post<MedicalHistoryFile>(`/v1/medical-histories/${id}/files`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function deleteMedicalHistoryFile(id: string, fileId: string): Promise<void> {
+  await api.delete(`/v1/medical-histories/${id}/files/${fileId}`);
 }
 
 export async function fetchMedicalHistories(): Promise<MedicalHistoryEntry[]> {

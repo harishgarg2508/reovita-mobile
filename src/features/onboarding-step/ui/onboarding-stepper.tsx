@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ElementRef, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +30,9 @@ const STEP_DATA = [
 
 export function OnboardingStepper({ step }: { step: number }) {
   const router = useRouter();
+  // ?edit=true comes from the profile's Edit buttons: no step progress or step flow, only an Update button.
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editing = edit === 'true';
   const insets = useSafeAreaInsets();
   const save = useSaveStep();
 
@@ -64,6 +67,17 @@ export function OnboardingStepper({ step }: { step: number }) {
   const [historyNow] = useHistoryDraft();
   const [lifestyleNow] = useLifestyleDraft();
   const missing = missingFields(step, basicsNow, historyNow, lifestyleNow);
+
+  // In edit mode the Update button stays disabled until a value differs from what is saved.
+  const savedDraft = saved.data
+    ? step === 1
+      ? basicsFromSaved(saved.data)
+      : step === 2
+        ? historyFromSaved(saved.data)
+        : lifestyleFromSaved(saved.data)
+    : null;
+  const currentDraft = step === 1 ? basicsNow : step === 2 ? historyNow : lifestyleNow;
+  const dirty = !savedDraft || !currentDraft || stableJson(currentDraft) !== stableJson(savedDraft);
   const shownMissing = attempted ? missing : [];
   const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
   const fieldY = useRef<Record<string, number>>({});
@@ -105,6 +119,10 @@ export function OnboardingStepper({ step }: { step: number }) {
     if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
     if (step === 2 && history) await save.mutateAsync({ step: 2, body: history });
     if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
+    if (editing) {
+      router.back();
+      return;
+    }
     next();
   }
 
@@ -136,6 +154,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             </View>
 
             {/* How much steps: pill badge and progress indicator */}
+            {editing ? null : (
             <View style={styles.stepRow}>
               <View style={styles.stepPill}>
                 <Text style={styles.stepBadge}>Step {step} of 4</Text>
@@ -144,6 +163,7 @@ export function OnboardingStepper({ step }: { step: number }) {
                 <View style={[styles.stepFill, { width: `${(step / 4) * 100}%` }]} />
               </View>
             </View>
+            )}
 
             {/* Header title properly bolded for each step */}
             <Text style={styles.title}>{current.title}</Text>
@@ -180,7 +200,12 @@ export function OnboardingStepper({ step }: { step: number }) {
             </View>
           ) : null}
           <View style={styles.buttonGroup}>
-            {step > 1 && step < 4 ? (
+            {editing ? (
+              <View style={styles.nextGroupItem}>
+                <Button label="Update" disabled={save.isPending || !dirty} onPress={onSave} />
+              </View>
+            ) : null}
+            {!editing && step > 1 && step < 4 ? (
               <>
                 <Pressable accessibilityRole="button" onPress={back} style={styles.skipButton}>
                   <Text style={styles.skipButtonText}>Back</Text>
@@ -190,7 +215,7 @@ export function OnboardingStepper({ step }: { step: number }) {
                 </Pressable>
               </>
             ) : null}
-            {step === 4 ? (
+            {!editing && step === 4 ? (
               <>
                 <Pressable accessibilityRole="button" onPress={next} style={styles.skipButton}>
                   <Text style={styles.skipButtonText}>Skip</Text>
@@ -202,7 +227,7 @@ export function OnboardingStepper({ step }: { step: number }) {
                   />
                 </View>
               </>
-            ) : (
+            ) : editing ? null : (
             <View style={styles.nextGroupItem}>
               <Button
                 label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
@@ -223,6 +248,22 @@ export function OnboardingStepper({ step }: { step: number }) {
       </View>
     </View>
   );
+}
+
+// JSON with keys sorted, so two objects with the same values compare equal whatever order their keys were set in.
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_, v: unknown) => {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const record = v as Record<string, unknown>;
+      return Object.keys(record)
+        .sort()
+        .reduce<Record<string, unknown>>((acc, k) => {
+          acc[k] = record[k];
+          return acc;
+        }, {});
+    }
+    return v;
+  });
 }
 
 const styles = StyleSheet.create({

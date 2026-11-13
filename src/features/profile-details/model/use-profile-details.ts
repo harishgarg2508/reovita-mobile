@@ -11,7 +11,9 @@ export function useProfileStepSaved(step: ProfileStepNumber) {
     queryKey: ['onboarding', 'step', step] as const,
     queryFn: async (): Promise<Record<string, unknown>> => {
       const { data } = await api.get<Record<string, unknown>>(`/v1/onboarding/steps/${step}`);
-      return data;
+      // The saved values sit under "data" in the envelope; a flat body is used as it is.
+      const inner = (data as { data?: unknown }).data;
+      return inner && typeof inner === 'object' ? (inner as Record<string, unknown>) : data;
     },
     staleTime: 0,
   });

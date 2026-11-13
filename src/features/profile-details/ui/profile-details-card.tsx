@@ -22,11 +22,12 @@ import {
 } from '../model/profile-details.format';
 import { useProfileStepSaved, type ProfileStepNumber } from '../model/use-profile-details';
 
-// Where each section's Edit button goes. Each route opens the onboarding step prefilled with the saved values.
+// Where each section's Edit button goes. Each route opens the onboarding step prefilled with the saved values,
+// in edit mode (?edit=true): just the fields and an Update button, without the step progress or the step flow.
 const EDIT_ROUTE = {
-  1: '/onboarding/step-1',
-  2: '/onboarding/step-2',
-  3: '/onboarding/step-3',
+  1: { pathname: '/onboarding/step-1', params: { edit: 'true' } },
+  2: { pathname: '/onboarding/step-2', params: { edit: 'true' } },
+  3: { pathname: '/onboarding/step-3', params: { edit: 'true' } },
 } as const;
 
 type Row = { label: string; value: string | null };

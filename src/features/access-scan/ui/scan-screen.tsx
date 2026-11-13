@@ -52,6 +52,8 @@ export function ScanScreen() {
   const [typedCode, setTypedCode] = useState('');
   // An error for the typed code, shown under the field so the user can correct it.
   const [codeError, setCodeError] = useState<string | null>(null);
+  // True while the access request for a typed code is being sent, so the button shows a loader.
+  const [asking, setAsking] = useState(false);
   const busy = useRef(false);
 
   // While waiting, check the answer every 2 seconds.
@@ -178,12 +180,20 @@ export function ScanScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          disabled={trimmed.length === 0}
-          onPress={() => void onScanned(trimmed, 'code')}
-          style={[styles.bigPrimary, trimmed.length === 0 && styles.disabled]}>
-          <Ionicons name="lock-open-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.bigPrimaryText}>Ask for access</Text>
-          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          accessibilityState={{ busy: asking, disabled: trimmed.length === 0 || asking }}
+          disabled={trimmed.length === 0 || asking}
+          onPress={async () => {
+            setAsking(true);
+            try {
+              await onScanned(trimmed, 'code');
+            } finally {
+              setAsking(false);
+            }
+          }}
+          style={[styles.bigPrimary, (trimmed.length === 0 || asking) && styles.disabled]}>
+          {asking ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="lock-open-outline" size={24} color="#FFFFFF" />}
+          <Text style={styles.bigPrimaryText}>{asking ? 'Asking...' : 'Ask for access'}</Text>
+          {asking ? null : <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />}
         </Pressable>
         {codeError ? <Text style={styles.codeErrorText}>{codeError}</Text> : null}
       </ScrollView>

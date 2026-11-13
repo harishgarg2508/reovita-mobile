@@ -40,7 +40,8 @@ export function BottomSheet({
   return (
     <Modal
       visible={visible}
-      animationType="slide" presentationStyle="fullScreen"
+      transparent
+      animationType="fade"
       onRequestClose={onClose}
       onShow={() => {
         translateY.setValue(SCREEN_HEIGHT);
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(20, 18, 28, 0.4)',
+    backgroundColor: 'transparent',
   },
   sheet: {
     backgroundColor: '#FFFFFF',

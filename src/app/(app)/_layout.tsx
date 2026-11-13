@@ -85,6 +85,7 @@ export default function AppLayout() {
       <Drawer.Screen name="measurements" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="scan" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="medical-history" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="medical-history-entry" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="biomarkers/[code]" options={HIDDEN_FROM_MENU} />
       <Drawer.Screen name="notifications/[id]" options={HIDDEN_FROM_MENU} />
       <Drawer.Screen name="critical-escalation/[report-id]" options={HIDDEN_FROM_MENU} />

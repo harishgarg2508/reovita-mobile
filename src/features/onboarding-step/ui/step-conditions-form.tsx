@@ -12,6 +12,7 @@ import {
 import { tapSelection } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 
+import { FAMILY_CONDITION_OPTIONS, FAMILY_TAG_BY_LABEL } from '../model/family-conditions';
 import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
@@ -42,17 +43,6 @@ const MEDICATION_SUGGESTIONS = [
   'Montelukast',
 ];
 
-const FAMILY_CONDITION_OPTIONS = [
-  'Hypertension',
-  'Diabetes',
-  'Heart Disease',
-  'Asthma',
-  'Thyroid',
-  'Cancer',
-  'Stroke',
-  'High Cholesterol',
-  'None',
-];
 
 /**
  * Reovita Step 2 Form: "Medical History"
@@ -89,19 +79,27 @@ export function StepConditionsForm({
 
   // Emit the payload whenever the saved draft changes (also on mount, to restore the step).
   useEffect(() => {
+    // Only the server's family conditions are sent; 'None' and anything untracked are dropped.
+    const familyFor = (relation: string, labels: string[]) =>
+      labels.map((label) => FAMILY_TAG_BY_LABEL[label]).filter((tag): tag is string => Boolean(tag)).map((condition) => ({ relation, condition }));
     const familyItems = [
-      ...fatherConditions.map((condition) => ({ relation: 'father', condition })),
-      ...motherConditions.map((condition) => ({ relation: 'mother', condition })),
-      ...siblingConditions.map((condition) => ({ relation: 'sibling', condition })),
-      ...wifeConditions.map((condition) => ({ relation: 'wife', condition })),
+      ...familyFor('father', fatherConditions),
+      ...familyFor('mother', motherConditions),
+      ...familyFor('sibling', siblingConditions),
+      ...familyFor('wife', wifeConditions),
     ];
-    const conditionItems = selectedConditions
+    // Only the 'other' condition carries the typed text. Empty text is not sent, so the server clears it.
+    const typedOther = otherText.trim();
+    const conditionItems: { tag: string; free_text?: string }[] = selectedConditions
       .filter((c) => c !== 'None')
       .map((label) => {
         const tag = CONDITION_TAG[label];
-        if (tag) return { tag, free_text: otherText ? otherText : undefined };
-        return { tag: 'other' as const, free_text: [label, otherText].filter(Boolean).join(': ') };
+        if (tag) return { tag };
+        return { tag: 'other', free_text: [label, typedOther].filter(Boolean).join(': ') };
       });
+    if (typedOther && !conditionItems.some((item) => item.tag === 'other')) {
+      conditionItems.push({ tag: 'other', free_text: typedOther });
+    }
 
     onChange({
       conditions: conditionItems.length > 0 ? { items: conditionItems } : undefined,
