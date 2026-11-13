@@ -17,6 +17,7 @@ import {
 
 import { tapConfirm, tapSelection } from '@shared/lib';
 import { useResolvedScheme } from '@shared/ui/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 type TabRoute = BottomTabBarProps['state']['routes'][number];
@@ -56,7 +57,7 @@ const TAB_META: Record<string, TabMeta> = {
       </View>
     ),
   },
-  timeline: {
+  records: {
     label: 'Records',
     renderIcon: (color) => <Ionicons name="calendar-outline" size={21} color={color} />,
   },
@@ -68,8 +69,7 @@ const TAB_META: Record<string, TabMeta> = {
 
 const TAB_INDEX_MAP: Record<string, number> = {
   dashboard: 0,
-  medications: 1,
-  timeline: 2,
+  records: 2,
   settings: 3,
 };
 
@@ -198,6 +198,9 @@ export function BottomDock({
   const dockScheme = useResolvedScheme();
   const dockDark = dockScheme === 'dark';
   const router = useRouter();
+  // Lift the dock above the phone's bottom bar or gesture area. Take the larger of the navigator's inset and the live one.
+  const liveInsets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, liveInsets.bottom);
   const [dockWidth, setDockWidth] = useState(INITIAL_DOCK_WIDTH);
 
   // Determine active logical tab index (0: Home, 1: Insights, 2: Records, 3: Profile)
@@ -269,16 +272,15 @@ export function BottomDock({
 
   const handleFabPress = () => {
     tapConfirm();
-    router.push('/(app)/reports/upload');
+    router.push('/(app)/scan');
   };
 
   // Find routes by name to ensure stable placement regardless of route order
   const homeRoute = state.routes.find((r: TabRoute) => r.name === 'dashboard');
-  const insightsRoute = state.routes.find((r: TabRoute) => r.name === 'medications');
-  const recordsRoute = state.routes.find((r: TabRoute) => r.name === 'timeline');
+  const recordsRoute = state.routes.find((r: TabRoute) => r.name === 'records');
   const profileRoute = state.routes.find((r: TabRoute) => r.name === 'settings');
 
-  const leftRoutes = [homeRoute, insightsRoute].filter((r): r is TabRoute => Boolean(r));
+  const leftRoutes = [homeRoute].filter((r): r is TabRoute => Boolean(r));
   const rightRoutes = [recordsRoute, profileRoute].filter((r): r is TabRoute => Boolean(r));
 
   const renderTab = (route: TabRoute) => {
@@ -318,7 +320,7 @@ export function BottomDock({
       style={[
         styles.dockWrap,
         {
-          bottom: Math.max(insets.bottom, 12) + 4,
+          bottom: Math.max(bottomInset, 12) + 4,
         },
       ]}>
       {/* Floating White Dock Surface */}
@@ -348,9 +350,20 @@ export function BottomDock({
           ]}
         />
 
-        {/* Left Tabs: Home, Insights */}
+        {/* Left: Home, Upload (Upload pushes the upload screen, it is not a tab) */}
         <View style={styles.halfTabs}>
           {leftRoutes.map((route: TabRoute) => renderTab(route))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Upload a report"
+            onPress={() => {
+              tapConfirm();
+              router.push('/(app)/reports/upload');
+            }}
+            style={styles.uploadItem}>
+            <Ionicons name="cloud-upload-outline" size={21} color="#9185AA" />
+            <Text style={styles.uploadLabel}>Upload</Text>
+          </Pressable>
         </View>
 
         {/* Center spacing for the floating action button */}
@@ -377,11 +390,7 @@ export function BottomDock({
           onPressOut={handleFabPressOut}
           onPress={handleFabPress}
           style={styles.fabBtn}>
-          <Image
-            source={require('../../assets/images/reovita-sprout.png')}
-            style={styles.fabIcon}
-            resizeMode="contain"
-          />
+          <Ionicons name="qr-code-outline" size={30} color="#FFFFFF" />
         </Pressable>
       </Animated.View>
     </View>
@@ -443,6 +452,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F6F3F',
     zIndex: 5,
   },
+  uploadItem: { alignItems: 'center', justifyContent: 'center', gap: 3, flex: 1, height: '100%' },
+  uploadLabel: { fontSize: 11, color: '#9185AA', fontWeight: '500' },
   halfTabs: {
     flex: 1,
     flexDirection: 'row',

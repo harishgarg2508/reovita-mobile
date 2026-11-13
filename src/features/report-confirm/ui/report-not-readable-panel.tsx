@@ -1,60 +1,42 @@
-import * as DocumentPicker from 'expo-document-picker';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
 
-import { useReplaceReportFile } from '@entities/report';
+import { useRetryReport } from '@entities/report';
 import { isApiError } from '@shared/api';
 
 const VIOLET = '#1F6F3F';
 
-// Shown when OCR could not read the stored file. The user uploads a new copy into the same report.
+// Shown when OCR could not read the stored file. Runs OCR again on the same file (no new upload).
 export function ReportNotReadablePanel({ reportId }: { reportId: string }) {
-  const replace = useReplaceReportFile();
+  const retry = useRetryReport();
   const [message, setMessage] = useState<string | null>(null);
 
-  async function onUpload() {
+  function onRetry() {
     setMessage(null);
-    const picked = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/jpeg', 'image/png'],
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-    if (picked.canceled) return;
-
-    const files = picked.assets.map((a) => ({
-      uri: a.uri,
-      name: a.name,
-      type: a.mimeType ?? 'application/octet-stream',
-    }));
-    replace.mutate(
-      { reportId, files },
-      {
-        onError: (err) => {
-          if (isApiError(err, 'duplicate_report')) {
-            setMessage('This file is already uploaded to another report.');
-          } else if (isApiError(err, 'report_not_replaceable')) {
-            setMessage('This report is already being read.');
-          } else {
-            setMessage('The new file could not be uploaded. Please try again.');
-          }
-        },
+    retry.mutate(reportId, {
+      onError: (err) => {
+        if (isApiError(err, 'report_not_retryable')) {
+          setMessage('This report is already being read.');
+        } else {
+          setMessage('We could not start the reading again. Please try again.');
+        }
       },
-    );
+    });
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>We could not read this report</Text>
       <Text style={styles.body}>
-        The file may be blurry, cropped, or not a lab report. Upload a clearer copy and we will read it again.
+        Try reading the stored file again. If it keeps failing, the file may be blurry or not a lab report.
       </Text>
       {message ? <Text style={styles.error}>{message}</Text> : null}
       <Pressable
         accessibilityRole="button"
-        onPress={onUpload}
-        disabled={replace.isPending}
-        style={[styles.button, replace.isPending && styles.buttonDisabled]}>
-        {replace.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Upload a new file</Text>}
+        onPress={onRetry}
+        disabled={retry.isPending}
+        style={[styles.button, retry.isPending && styles.buttonDisabled]}>
+        {retry.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Try reading again</Text>}
       </Pressable>
     </View>
   );

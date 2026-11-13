@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConsentGrants, useGrantConsentType, useRevokeConsent, type ConsentType } from '@entities/consent';
 import { useCurrentSubject } from '@entities/subject';
 import { useDeactivateAccount } from '@features/account-deactivate';
+import { ProfileDetailsCard } from '@features/profile-details';
 import { tapConfirm } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
@@ -144,8 +145,10 @@ export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
 
       {/* Code card: QR on the left, code and actions on the right, log out below. */}
       <View style={styles.card}>
+        {subject.isLoading ? (
+          <Skeleton height={150} />
+        ) : (
         <View style={styles.codeRow}>
-          {subject.isLoading ? <Skeleton height={150} /> : null}
           {codename ? (
             <View style={styles.qrBox}>
               {/* The QR keeps a white background and black modules in both themes, so it scans. */}
@@ -170,6 +173,7 @@ export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
             </Pressable>
           </View>
         </View>
+        )}
         {subject.isError ? <Text style={styles.error}>Could not load your code. Reopen this tab to try again.</Text> : null}
 
         <Pressable accessibilityRole="button" onPress={onSignOut} style={styles.logout}>
@@ -177,6 +181,9 @@ export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
           <Text style={styles.logoutText}>Log out</Text>
         </Pressable>
       </View>
+
+      {/* My details: the basics, history and lifestyle saved in onboarding, each with an Edit action. */}
+      <ProfileDetailsCard />
 
       {/* Permissions card: toggles follow the consent records on the server. */}
       <View style={styles.card}>

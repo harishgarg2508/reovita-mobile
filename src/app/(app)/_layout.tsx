@@ -9,6 +9,7 @@ import { useActiveConsent } from '@entities/consent';
 import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
+import { AccessRequestPrompt } from '@features/access-approve';
 
 const ACCENT = '#1F6F3F';
 
@@ -58,6 +59,7 @@ export default function AppLayout() {
   }
 
   return (
+    <>
     <Drawer
       drawerContent={(props) => <AppDrawerContent {...props} />}
       screenOptions={{
@@ -71,7 +73,8 @@ export default function AppLayout() {
       {/* Bottom-dock tabs draw their own chrome. */}
       <Drawer.Screen name="(tabs)" options={{ headerShown: false, drawerLabel: 'Home' }} />
       <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score' }} />
-      <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings' }} />
+      {/* The briefing draws its own header with a back button, so the drawer header is hidden here. */}
+      <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings', headerShown: false }} />
       <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />
       <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
       <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
@@ -79,9 +82,14 @@ export default function AppLayout() {
       {/* Reports draw their own headers per screen (see reports/_layout). */}
       <Drawer.Screen name="reports" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="settings" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="measurements" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="scan" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="medical-history" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="biomarkers/[code]" options={HIDDEN_FROM_MENU} />
       <Drawer.Screen name="notifications/[id]" options={HIDDEN_FROM_MENU} />
       <Drawer.Screen name="critical-escalation/[report-id]" options={HIDDEN_FROM_MENU} />
     </Drawer>
+    <AccessRequestPrompt />
+    </>
   );
 }

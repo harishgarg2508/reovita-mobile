@@ -31,8 +31,8 @@ export function ConfirmDialog({
   const confirmColor = destructive ? p.red : p.accent;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: 'rgba(8, 6, 16, 0.55)' }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
+      <View style={[styles.backdrop, { backgroundColor: p.bg }]}>
         <View style={[styles.sheet, { backgroundColor: p.card, borderColor: p.border }]}>
           <Text style={[styles.title, { color: p.textStrong }]}>{title}</Text>
           <Text style={[styles.message, { color: p.muted }]}>{message}</Text>

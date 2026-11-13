@@ -24,6 +24,13 @@ export const API_ERROR_CODES = [
   'queue_unavailable',
   'validation_error',
   'collected_on_required',
+  'location_required',
+  'subject_not_found',
+  'own_code',
+  'request_not_found',
+  'request_not_pending',
+  'access_not_approved',
+  'briefing_unavailable',
   'unauthorized',
   'unknown',
 ] as const;

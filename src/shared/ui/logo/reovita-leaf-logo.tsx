@@ -1,7 +1,7 @@
 import { Image, StyleSheet, Text, TextStyle, View } from 'react-native';
 
 import { Font } from '../theme/tokens';
-import { useTheme } from '../theme/use-theme';
+import { usePalette } from '../theme/palette';
 
 // On native, weight is chosen by font family (Poppins ships one file per weight),
 // so a fontWeight override must also switch the family.
@@ -52,7 +52,7 @@ export function ReovitaLeafLogo({
   layout = 'vertical',
   fontWeight
 }: ReovitaLeafLogoProps) {
-  const theme = useTheme();
+  const palette = usePalette();
 
   // Scale dimensions proportionally
   const scale = size / 56;
@@ -82,7 +82,7 @@ export function ReovitaLeafLogo({
                 {
                   fontSize: wordmarkSize ?? (isRow ? 22 : 32 * scale),
                   lineHeight: (wordmarkSize ?? (isRow ? 22 : 32 * scale)) * 1.18,
-                  color: wordmarkColor ?? theme.text,
+                  color: wordmarkColor ?? palette.text,
                   ...(fontWeight !== undefined
                     ? { fontWeight, fontFamily: WORDMARK_FONT_BY_WEIGHT[String(fontWeight)] ?? Font.bold }
                     : {}),
@@ -97,7 +97,7 @@ export function ReovitaLeafLogo({
                 styles.tagline,
                 {
                   fontSize: taglineSize ?? (isRow ? 12 : 14 * scale),
-                  color: taglineColor ?? theme.textSecondary,
+                  color: taglineColor ?? palette.muted,
                 },
               ]}>
               Your Health, Our DNA

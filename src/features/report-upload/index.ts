@@ -10,3 +10,4 @@ export { useUploadReport } from './model/use-upload-report';
 export type { UploadReportInput, UploadReportResult } from './model/use-upload-report';
 export { UploadScreen } from './ui/upload-screen';
 export { RetakePhotoScreen } from './ui/retake-photo-screen';
+export { ReportsListScreen } from './ui/reports-list-screen';

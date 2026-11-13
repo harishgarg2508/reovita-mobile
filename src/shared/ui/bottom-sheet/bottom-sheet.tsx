@@ -40,8 +40,7 @@ export function BottomSheet({
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      animationType="slide" presentationStyle="fullScreen"
       onRequestClose={onClose}
       onShow={() => {
         translateY.setValue(SCREEN_HEIGHT);

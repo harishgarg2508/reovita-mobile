@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isReportReady, useConfirmedReport, useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError } from '@shared/api';
+import { ReportProcessingPanel } from '@shared/ui/processing-panel';
 import {
   BottomWaveMist,
   ReviewInfoIcon,
@@ -30,7 +31,6 @@ import { CelebrationCheck } from '@shared/ui/celebration-check';
 
 import { useConfirmReport } from '../model/use-confirm-report';
 import { ReportNotReadablePanel } from './report-not-readable-panel';
-import { ReportProcessingPanel } from './report-processing-panel';
 
 // Shown while OCR is still running (the server answers 409 report_processing until then).
 const loadingStyles = StyleSheet.create({
@@ -87,15 +87,30 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const confirmed = useConfirmedReport(reportId);
   // Observations are requested directly (GET). Nothing streams them.
   // Live status from the event stream. Observations are requested only once the report is ready.
-  const processing = useReportStatus(reportId);
-  const draft = useReportDraft(reportId, { enabled: !confirmed.data && isReportReady(processing) });
+  // Observations are requested as soon as the screen opens. Nothing streams before that.
+  const draft = useReportDraft(reportId, { enabled: !confirmed.data });
+  // While the report is still processing, the event stream says when it is ready. Then the observations are requested once.
+  const awaitingReport = isApiError(draft.error, 'report_processing');
+  const readyStatus = useReportStatus(awaitingReport ? reportId : null);
+  useEffect(() => {
+    if (readyStatus !== null && isReportReady(readyStatus)) void draft.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyStatus]);
   const confirm = useConfirmReport();
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [simulatedAnalyzing, setSimulatedAnalyzing] = useState(false);
   const [showFinalReport, setShowFinalReport] = useState(false);
   // The interpretation is requested once the server reports DONE (see WatchInterpretation).
   const interpretationQuery = useReportInterpretation(reportId, { enabled: showFinalReport });
   const interpretation = interpretationQuery.data?.output_json;
+  // After the observations load, ask whether an interpretation already exists. If it does, the button below
+  // becomes View analysis; if the request finds nothing, the Confirm button stays.
+  const storedInterpretation = useReportInterpretation(reportId, { enabled: draft.isSuccess || !!confirmed.data });
+  // The status stream says DONE once the interpretation is saved, so View appears without waiting for a reload.
+  const liveStatus = useReportStatus(reportId);
+  // INTERPRETING counts too: View opens the analysis as it is written. Opening it does not start another run.
+  const hasInterpretation = storedInterpretation.isSuccess || liveStatus === 'INTERPRETING' || liveStatus === 'DONE';
   const [interpreting, setInterpreting] = useState(false);
   const onInterpretationDone = useCallback(() => {
     setInterpreting(false);
@@ -203,6 +218,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 
   function runConfirm() {
     setSimulatedAnalyzing(true);
+    setConfirmError(null);
 
     confirm.mutate(
       { reportId, observations: rows },
@@ -222,7 +238,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
           }
           if (isApiError(err, 'llm_consent_required')) {
             setLlmSheetOpen(true);
+            return;
           }
+          // Any other failure: show the server's message so the user knows what to fix.
+          setConfirmError(isApiError(err) ? err.message : 'Could not confirm the report. Try again.');
         },
       }
     );
@@ -255,16 +274,16 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
     Animated.spring(anim, { toValue: 1, tension: 80, friction: 5, useNativeDriver: USE_NATIVE_DRIVER }).start();
   }
 
-  // Loading: the report is still being read (409 report_processing), so show skeletons until a 200 arrives.
-  // Not ready yet: wait on the event stream. A failed or unreadable report gets the upload panel.
-  if (!confirmed.data && !isReportReady(processing)) {
-    if (processing === 'FAILED' || processing === 'NEEDS_RETAKE') {
-      return <ReportNotReadablePanel reportId={reportId} />;
-    }
-    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
-  }
   if (isApiError(draft.error, 'report_not_readable')) {
     return <ReportNotReadablePanel reportId={reportId} />;
+  }
+
+  if (!confirmed.data && isApiError(draft.error, 'report_processing')) {
+    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
+  }
+
+  if (!confirmed.data && !draft.data && !draft.isError) {
+    return <ReportProcessingPanel onLater={() => goBackOr(router, '/(app)/(tabs)/dashboard')} />;
   }
 
   if (!confirmed.data && !draft.data) {
@@ -348,6 +367,14 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
               />
             </Animated.View>
           </View>
+
+          {/* Leave the screen: the result arrives later as a notification. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace('/(app)/(tabs)/dashboard')}
+            style={[styles.confirmBtn, { alignSelf: 'stretch', marginTop: 24 }]}>
+            <Text style={styles.confirmBtnText}>Come back later</Text>
+          </Pressable>
         </View>
 
         {/* Signature Ethereal Wavy Purple Mist Backdrop */}
@@ -562,7 +589,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
       </View>
 
       {/* Dual Action Buttons: [ Edit ] and [ Confirm ] */}
-      {status === 'DONE' ? (
+      {hasInterpretation ? (
         <View style={styles.dualActionRow}>
           <Pressable
             accessibilityRole="button"
@@ -596,6 +623,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         </Animated.View>
       </View>
       )}
+      {confirmError ? <Text style={[styles.confirmError, { color: '#C22F43' }]}>{confirmError}</Text> : null}
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}
@@ -759,6 +787,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  confirmError: { fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 10 },
   confirmBtnText: {
     fontSize: 16,
     fontWeight: '700',

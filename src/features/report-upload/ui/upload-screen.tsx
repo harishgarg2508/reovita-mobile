@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { useReportList } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { ReportDropZone } from '@shared/ui/report-drop-zone';
+import { usePalette } from '@shared/ui/theme';
 import { StepHeaderBadge } from '@shared/ui/step-header-badge';
 
 import { useUploadReport } from '../model/use-upload-report';
@@ -28,6 +30,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const upload = useUploadReport();
+  const p = usePalette();
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Opens the file picker straight away when the screen is reached from "Choose file".
   useEffect(() => {
@@ -42,6 +46,10 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
   // Set once the upload is accepted and queued. The waiting screen then follows the report's status.
   const [reportId, setReportId] = useState<string | null>(null);
+
+  // Opening the screen always shows the upload area and the report list. The waiting view is only for an upload
+  // made on this visit, so it is cleared each time the screen gains focus.
+  useFocusEffect(useCallback(() => setReportId(null), []));
 
   async function onPick() {
     const picked = await DocumentPicker.getDocumentAsync({
@@ -113,6 +121,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
       style={[
         styles.container,
         {
+          backgroundColor: p.bg,
           paddingTop: Math.max(insets.top, 20) + 8,
           paddingBottom: Math.max(insets.bottom, 20) + 16,
         },
@@ -121,14 +130,21 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         <View style={styles.headerLeft}>
           <View style={styles.brandRow}>
             <Image
-              source={require('../../../shared/assets/images/reovita-sprout.png')}
+              source={require('../../../../assets/images/app-icon/reovita-logo.webp')}
               style={styles.brandMark}
               resizeMode="contain"
             />
-            <Text style={styles.brandName}>Reovita</Text>
+            <Text style={[styles.brandName, { color: p.text }]}>Reovita</Text>
           </View>
-          <Text style={styles.title}>{hasReports ? 'Your Reports' : 'Your First Report'}</Text>
-          <Text style={styles.subtitle}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: p.text }]}>{hasReports ? 'Your Reports' : 'Your First Report'}</Text>
+            {hasReports ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="About your reports" onPress={() => setInfoOpen(true)} hitSlop={8}>
+                <Ionicons name="information-circle-outline" size={22} color={p.muted} />
+              </Pressable>
+            ) : null}
+          </View>
+          <Text style={[styles.subtitle, { color: p.muted }]}>
             {hasReports ? 'Upload another lab report to get instant interpretation.' : 'Upload a lab report to get instant interpretation'}
           </Text>
         </View>
@@ -152,12 +168,25 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         {message ? <Text style={styles.error}>{message}</Text> : null}
         {hasReports ? (
           <View style={styles.listFill}>
+            {/* The ten most recent here. The full, paged list opens from "More". */}
             <ReportList
-              items={reportItems}
-              hasMore={reports.hasNextPage}
-              loadingMore={reports.isFetchingNextPage}
-              onLoadMore={() => void reports.fetchNextPage()}
-              onOpen={(id) => router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id } })}
+              items={reportItems.slice(0, 10)}
+              hasMore={false}
+              loadingMore={false}
+              onLoadMore={() => undefined}
+              onOpen={(id) => router.push({ pathname: '/(app)/reports/[id]', params: { id } })}
+              footer={
+                reportItems.length > 10 || reports.hasNextPage ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all reports"
+                    onPress={() => router.push('/(app)/reports/list')}
+                    style={[styles.moreRow, { borderColor: p.border, backgroundColor: p.card }]}>
+                    <Text style={[styles.moreText, { color: p.accent }]}>More</Text>
+                    <Ionicons name="chevron-forward" size={18} color={p.accent} />
+                  </Pressable>
+                ) : null
+              }
             />
           </View>
         ) : null}
@@ -168,6 +197,19 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onAllow={onAllowLlm}
         onDecline={() => setLlmSheetOpen(false)}
       />
+      <Modal visible={infoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setInfoOpen(false)}>
+        <View style={styles.backdrop}>
+          <View style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]}>
+            <Text style={[styles.dialogTitle, { color: p.text }]}>Your reports are encrypted</Text>
+            <Text style={[styles.dialogBody, { color: p.muted }]}>
+              Every report is encrypted before it is stored, and only you can read it. It stays private and is never used for advertising.
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => setInfoOpen(false)} style={styles.dialogButton}>
+              <Text style={styles.dialogButtonText}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -233,9 +275,28 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backdrop: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
+  dialogTitle: { fontSize: 18, fontWeight: '800' },
+  dialogBody: { fontSize: 14, lineHeight: 20 },
+  dialogButton: { alignSelf: 'flex-end', paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1F6F3F' },
+  dialogButtonText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   listWrap: {
+    flex: 1,
     marginTop: 20,
   },
+  moreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  moreText: { fontSize: 14, fontWeight: '600' },
   listFill: {
     flex: 1,
     minHeight: 0,

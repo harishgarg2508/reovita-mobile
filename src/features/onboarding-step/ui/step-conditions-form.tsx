@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +16,7 @@ import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
 const INITIAL_CONDITIONS = ['Asthma', 'Diabetes', 'Hypertension', 'Thyroid', 'None'];
-const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD'];
+const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD', 'Heart Disease', 'Kidney Disease'];
 
 // Server tags for the conditions that have one. Other labels are sent as 'other' with the label as free text.
 const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'cvd' | 'ckd'> = {
@@ -63,8 +64,12 @@ const FAMILY_CONDITION_OPTIONS = [
  */
 export function StepConditionsForm({
   onChange,
+  missing = [],
+  onFieldLayout,
 }: {
   onChange: (value: HistoryInput | null) => void;
+  missing?: string[];
+  onFieldLayout?: (name: string, y: number) => void;
 }) {
   // Saved selections live in Redux; only the UI-only state stays local.
   const [draft, patchDraft] = useHistoryDraft();
@@ -76,7 +81,8 @@ export function StepConditionsForm({
   const siblingConditions = draft.sibling;
   const wifeConditions = draft.wife;
 
-  const [showMoreConditions, setShowMoreConditions] = useState(false);
+  // Open the full list when a saved condition is only in it, so the saved choice is visible.
+  const [showMoreConditions, setShowMoreConditions] = useState(() => draft.conditions.some((c) => EXTRA_CONDITIONS.includes(c)));
   const [medQuery, setMedQuery] = useState('');
   const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
   const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);
@@ -167,7 +173,7 @@ export function StepConditionsForm({
   return (
     <View style={styles.container}>
       {/* 1. Conditions Section */}
-      <View style={styles.section}>
+      <View style={[styles.section, missing.includes('conditions') && styles.blockError]} onLayout={(e) => onFieldLayout?.('conditions', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Conditions</Text>
         <View style={styles.chipsWrap}>
           {visibleConditionsList.map((item) => {
@@ -204,7 +210,7 @@ export function StepConditionsForm({
       </View>
 
       {/* 2. Other Notes Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('other', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Other</Text>
         <View style={styles.otherCard}>
           <TextInput
@@ -220,8 +226,17 @@ export function StepConditionsForm({
         </View>
       </View>
 
+      {/* Closes the medication suggestions when the user taps anywhere else in the form. */}
+      {medsDropdownOpen ? (
+        <Pressable
+          accessibilityLabel="Close medication suggestions"
+          onPress={() => setMedsDropdownOpen(false)}
+          style={styles.dropdownBackdrop}
+        />
+      ) : null}
+
       {/* 3. Meds Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
         <View style={styles.medsBox}>
           {/* Search bar */}
@@ -254,7 +269,10 @@ export function StepConditionsForm({
 
           {/* Suggestions Dropdown */}
           {medsDropdownOpen && (
-            <View style={styles.suggestionsDropdown}>
+            <ScrollView
+              style={styles.suggestionsDropdown}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled">
               {medQuery.trim().length > 0 && !selectedMeds.includes(medQuery.trim()) && (
                 <Pressable
                   onPress={() => addMedication(medQuery)}
@@ -273,7 +291,7 @@ export function StepConditionsForm({
                   <Ionicons name="add" size={16} color="#1F6F3F" />
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           )}
 
           {/* Selected Medication Tags */}
@@ -296,7 +314,7 @@ export function StepConditionsForm({
       </View>
 
       {/* 4. Family Section */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onFieldLayout?.('family', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Family</Text>
         <View style={styles.familyCard}>
           {/* Father Row */}
@@ -445,10 +463,12 @@ export function StepConditionsForm({
 const styles = StyleSheet.create({
   container: {
     gap: 20,
+    position: 'relative',
   },
   section: {
     gap: 8,
   },
+  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
   sectionLabel: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
@@ -561,11 +581,21 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   // Overlay under the search bar: it floats over the content below and does not push it down.
-  suggestionsDropdown: {
+  dropdownBackdrop: {
     position: 'absolute',
-    top: 52,
+    top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
+    zIndex: 50,
+    elevation: 50,
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 58,
+    left: 0,
+    right: 0,
+    maxHeight: 220,
     zIndex: 70,
     elevation: 70,
     borderWidth: 1,
@@ -667,7 +697,7 @@ const styles = StyleSheet.create({
   /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'flex-end',
   },
   modalSheet: {

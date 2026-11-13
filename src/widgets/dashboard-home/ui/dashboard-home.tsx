@@ -1,11 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useHome } from '@entities/home';
+import { useReportList } from '@entities/report';
+import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
+import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
+import { ProfileBmiCard } from '@features/profile-details';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
@@ -57,6 +61,14 @@ function IconBox({ p, name, color }: { p: Palette; name: keyof typeof Ionicons.g
 }
 
 // The score ring. Filled in proportion to the score, empty when there is no score yet.
+// Ring colour from the score: red below 40, amber from 40 to 69, green from 70. No score uses the palette accent.
+function scoreColor(score: number | null, p: Palette): string {
+  if (score === null) return p.lime;
+  if (score < 40) return p.red;
+  if (score < 70) return '#B26A00';
+  return '#1F7A3E';
+}
+
 function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
@@ -70,7 +82,7 @@ function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
             cx="60"
             cy="60"
             r={radius}
-            stroke={p.lime}
+            stroke={scoreColor(score, p)}
             strokeWidth={10}
             fill="none"
             strokeLinecap="round"
@@ -81,6 +93,37 @@ function ScoreRing({ p, score }: { p: Palette; score: number | null }) {
       <View style={styles.ringCenter}>
         <Ionicons name="heart" size={34} color={p.text} />
       </View>
+    </View>
+  );
+}
+
+// One radial chart for a score part (lifestyle, conditions or reports). No number: the arc shows how high it is.
+function PartRing({ p, label, icon, score }: { p: Palette; label: string; icon: keyof typeof Ionicons.glyphMap; score: number | null }) {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const fraction = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100;
+  return (
+    <View style={styles.partRingCell}>
+      <View style={styles.partRingBox}>
+        <Svg width={72} height={72} viewBox="0 0 72 72">
+          <Circle cx="36" cy="36" r={radius} stroke={p.track} strokeWidth={7} fill="none" />
+          <Circle
+            cx="36"
+            cy="36"
+            r={radius}
+            stroke={scoreColor(score, p)}
+            strokeWidth={7}
+            fill="none"
+            strokeLinecap="round"
+            transform="rotate(-90 36 36)"
+            strokeDasharray={`${circumference * fraction} ${circumference}`}
+          />
+        </Svg>
+        <View style={styles.partRingIcon}>
+          <Ionicons name={icon} size={18} color={score === null ? p.muted : p.text} />
+        </View>
+      </View>
+      <Text style={[styles.partRingLabel, { color: p.muted }]}>{label}</Text>
     </View>
   );
 }
@@ -105,15 +148,64 @@ function PulseDot({ color }: { color: string }) {
   );
 }
 
+const BRAND_GREEN = "#1F6F3F";
+
+// The three part cards. Each opens the step that adds its information (reports open the upload screen).
+const PART_CARDS: { key: 'lifestyle' | 'conditions' | 'reports'; label: string; icon: keyof typeof Ionicons.glyphMap; route: '/onboarding/step-3' | '/onboarding/step-2' | '/(app)/reports/upload' }[] = [
+  { key: 'lifestyle', label: 'Lifestyle', icon: 'leaf-outline', route: '/onboarding/step-3' },
+  { key: 'conditions', label: 'Conditions', icon: 'medkit-outline', route: '/onboarding/step-2' },
+  { key: 'reports', label: 'Reports', icon: 'flask-outline', route: '/(app)/reports/upload' },
+];
+
+// The headline follows the score band: 70 and above is good, 40 to 69 needs some care, below 40 needs attention.
+function heroTitle(score: number | null): string {
+  if (score === null) return "Let's get started";
+  if (score >= 70) return 'Good Health!';
+  if (score >= 40) return 'Keep Improving';
+  return 'Needs Attention';
+}
+
+function heroSubtitle(score: number): string {
+  if (score >= 70) return "Keep going, you're on the right track.";
+  if (score >= 40) return 'A few steps will lift your score.';
+  return 'Review your lifestyle and reports with your doctor.';
+}
+
+function partStatus(score: number | null): string {
+  if (score === null) return 'Add info';
+  if (score >= 70) return 'On track';
+  if (score >= 40) return 'Needs care';
+  return 'Needs attention';
+}
+
+function partStatusColor(score: number | null, p: Palette): string {
+  if (score === null) return p.purple;
+  if (score >= 70) return '#1F7A3E';
+  if (score >= 40) return '#B26A00';
+  return p.red;
+}
+
 // Dashboard: header, the most urgent card first, then the health score, briefing and reports.
 export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const home = useHome();
+  // The first unfinished onboarding step, from the status endpoint. The profile card opens it.
+  const nextStep = useProfileCompleteness().data?.next_step ?? null;
+  const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
   const unread = useUnreadCount().data ?? 0;
+  // The newest reports: the dashboard shows the top three.
+  const reportPages = useReportList();
+  const recentItems = reportPages.data?.pages.flatMap((page) => page.items) ?? [];
   useNotificationStream();
   const scheme = useResolvedScheme();
   const p = scheme === 'dark' ? DARK : LIGHT;
+  const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
+  // Coming back to Home always starts at the top.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
+  useFocusEffect(useCallback(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, []));
 
   if (home.isLoading) {
     return (
@@ -145,6 +237,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={[
         styles.container,
         { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8, paddingBottom: Math.max(insets.bottom, 20) + 110 },
@@ -188,61 +281,147 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
       {data && data.percent < 60 ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/(app)/reports/upload')}
+          onPress={() => router.push(nextStep ? stepHref(STEP_OF[nextStep]) : '/(app)/reports/upload')}
           style={[styles.profile, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Text style={[styles.cardTitle, { color: p.text }]}>Complete your profile</Text>
+          <View style={styles.rowTop}>
+            <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Complete your profile</Text>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
           <ProgressBar percent={data.percent} />
           <Text style={[styles.cardText, { color: p.muted }]}>{data.percent}% complete</Text>
         </Pressable>
       ) : null}
 
-      <Card p={p}>
-        <View style={styles.scoreTop}>
-          <IconBox p={p} name="pulse" color={p.lime} />
-          <Text style={[styles.cardTitle, { color: p.text }]}>Health Score</Text>
+      {/* Hero: the health score, with a short message and the details button. */}
+      <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
+        <View style={styles.heroTop}>
+          <View style={[styles.heroPill, { backgroundColor: p.iconBg }]}>
+            <Ionicons name="pulse" size={16} color={BRAND_GREEN} />
+            <Text style={[styles.heroPillText, { color: BRAND_GREEN }]}>Health Score</Text>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
+            <Ionicons name="information-circle-outline" size={22} color={p.muted} />
+          </Pressable>
         </View>
-        <View style={styles.scoreBody}>
-          <View style={styles.flex}>
-            <Text style={[styles.scoreValue, { color: p.text }]}>{data?.health_score ?? '--'}</Text>
-            <Text style={[styles.cardText, { color: p.muted }]}>
-              {data?.health_score ? 'Your overall health score' : (data?.unlock_lines[0] ?? 'No data available')}
+        <View style={styles.heroBody}>
+          <View style={styles.heroText}>
+            <Text style={[styles.heroTitle, { color: p.text }]}>{heroTitle(data?.health_score ? Number(data.health_score) : null)}</Text>
+            <Text style={[styles.heroSub, { color: p.muted }]}>
+              {data?.health_score ? heroSubtitle(Number(data.health_score)) : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
             </Text>
           </View>
           <ScoreRing p={p} score={data?.health_score ? Number(data.health_score) : null} />
         </View>
-      </Card>
+      </View>
+
+      {/* The three parts: each card shows its ring and status, and opens the step that adds its information. */}
+      <View style={styles.partsGrid}>
+        {PART_CARDS.map((part) => {
+          const score = data?.health_score_parts?.[part.key] ?? null;
+          return (
+            <Pressable
+              key={part.key}
+              accessibilityRole="button"
+              onPress={() => router.push(part.route)}
+              style={[styles.partCard, { backgroundColor: p.card, borderColor: p.border }]}>
+              <PartRing p={p} label={part.label} icon={part.icon} score={score} />
+              <View style={styles.partFooter}>
+                <Text style={[styles.partStatus, { color: partStatusColor(score, p) }]}>{partStatus(score)}</Text>
+                <Ionicons name="chevron-forward" size={16} color={p.muted} />
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <ProfileBmiCard />
 
       <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/briefings')}>
         <Card p={p}>
           <View style={styles.rowTop}>
-            <IconBox p={p} name="document-text-outline" color={p.purple} />
+            <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
             <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Today&apos;s briefing</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>
-                {data?.briefing ?? 'Your daily environment briefing will appear here.'}
-              </Text>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Air, UV and pollen for today.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>
         </Card>
       </Pressable>
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')}>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/measurements')}>
         <Card p={p}>
           <View style={styles.rowTop}>
-            <IconBox p={p} name="flask-outline" color={p.lime} />
+            <IconBox p={p} name="heart-outline" color={p.lime} />
             <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Recent reports</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>
-                {data && data.reports_count > 0
-                  ? `${data.reports_count} report${data.reports_count === 1 ? '' : 's'} uploaded`
-                  : 'Upload a lab report to see its flags here.'}
-              </Text>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Vitals</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Log your blood pressure and weight.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>
         </Card>
       </Pressable>
+
+      <Card p={p}>
+        <View style={styles.rowTop}>
+          <IconBox p={p} name="flask-outline" color={p.lime} />
+          <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Recent reports</Text>
+        </View>
+        {recentItems.length === 0 ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')}>
+            <Text style={[styles.cardText, { color: p.muted }]}>Upload a lab report to see its flags here.</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.recentList}>
+            {recentItems.slice(0, 2).map((item) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })}
+                style={[styles.recentRow, { borderColor: p.border }]}>
+                <Text style={[styles.recentLabel, { color: p.text }]}>Report</Text>
+                <Text style={[styles.cardText, { color: p.muted, marginTop: 0 }]}>{formatReportDate(item.created_at)}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(app)/reports/list')}
+              style={[styles.recentRow, { borderColor: p.border }]}>
+              <Text style={[styles.recentLabel, { color: p.purple }]}>More</Text>
+              <Ionicons name="chevron-forward" size={18} color={p.purple} />
+            </Pressable>
+          </View>
+        )}
+      </Card>
+      <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
+        <Pressable style={styles.infoBackdrop} onPress={() => setScoreInfoOpen(false)}>
+          <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border }]} onPress={() => undefined}>
+            <Text style={[styles.cardTitle, { color: p.text }]}>How your score is calculated</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              Your score is the average of three parts. A part only counts once you have added its information.
+            </Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Lifestyle (starts at 100)</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              Current smoker -5, former smoker -2. No exercise -3. High stress (4 or 5) -3. Poor sleep (1 or 2) -3.
+            </Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Medical history (starts at 100)</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              Diabetes -10, hypertension -10, heart disease -15, kidney disease -15, thyroid -5. Each condition you have is subtracted.
+            </Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Lab reports</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              Each result scores by its status: normal 100, watch 70, high or low 40, critical 10. Results older than 12 months count half, and results older than 24 months are not counted.
+            </Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Total</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              The average of the parts you have. Above 70 is green, 40 to 69 is amber, and below 40 is red.
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => setScoreInfoOpen(false)} style={styles.infoClose}>
+              <Text style={styles.infoCloseText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -282,6 +461,33 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 16, fontWeight: '700' },
   alertText: { fontSize: 13, marginTop: 2 },
   profile: { padding: 16, borderRadius: 20, borderWidth: 1, gap: 8 },
+  partsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
+  hero: { borderRadius: 24, borderWidth: 1, padding: 18, gap: 12, overflow: 'hidden' },
+  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  heroPillText: { fontSize: 13, fontWeight: '700' },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroText: { flex: 1, gap: 8 },
+  heroTitle: { fontSize: 22, fontWeight: '800' },
+  heroSub: { fontSize: 13, lineHeight: 18 },
+  viewBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, paddingHorizontal: 14, height: 36, borderRadius: 18, borderWidth: 1.5 },
+  viewBtnText: { fontSize: 13, fontWeight: '700' },
+  partsGrid: { flexDirection: 'row', gap: 10 },
+  partCard: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 12, alignItems: 'center', gap: 6 },
+  partFooter: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  partStatus: { fontSize: 12, fontWeight: '700' },
+  infoBackdrop: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 20 },
+  infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8 },
+  infoHead: { fontSize: 14, fontWeight: '700', marginTop: 6 },
+  infoClose: { marginTop: 12, height: 46, borderRadius: 16, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
+  infoCloseText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  partRingCell: { alignItems: 'center', gap: 8 },
+  partRingBox: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  partRingIcon: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  partRingLabel: { fontSize: 12.5, fontWeight: '600' },
+  recentList: { gap: 8, marginTop: 4 },
+  recentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
+  recentLabel: { fontSize: 14, fontWeight: '600' },
   card: { padding: 18, borderRadius: 22, borderWidth: 1, gap: 12 },
   cardTitle: { fontSize: 17, fontWeight: '700' },
   cardText: { fontSize: 14, lineHeight: 20, marginTop: 4 },
@@ -297,3 +503,10 @@ const styles = StyleSheet.create({
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });
+
+function formatReportDate(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
