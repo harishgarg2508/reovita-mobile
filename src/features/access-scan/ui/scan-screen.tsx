@@ -17,7 +17,8 @@ type Phase =
   | { kind: 'scanning' }
   | { kind: 'waiting'; id: string }
   | { kind: 'summary'; summary: AccessSummary }
-  | { kind: 'message'; text: string };
+  | { kind: 'message'; text: string }
+  | { kind: 'denied' };
 
 // Scan a subject's QR code. The subject is asked to approve. Nothing is shown until they do.
 type ScanParams = { qr?: string; code?: string };
@@ -66,7 +67,7 @@ export function ScanScreen() {
           setPhase({ kind: 'summary', summary });
         } else if (status === 'denied') {
           clearInterval(timer);
-          setPhase({ kind: 'message', text: 'The subject did not allow access.' });
+          setPhase({ kind: 'denied' });
         } else if (status === 'expired') {
           clearInterval(timer);
           setPhase({ kind: 'message', text: 'No answer in time. Scan again to ask once more.' });
@@ -303,23 +304,46 @@ export function ScanScreen() {
 
   if (phase.kind === 'waiting') {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top + 12 }]}>
-        {header}
-        <ActivityIndicator color={p.accent} size="large" />
-        <Text style={styles.body}>Waiting for the subject to approve. This takes a few seconds.</Text>
-      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
+        <View style={styles.topRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onHeaderBack} style={styles.backCircle}>
+            <Ionicons name="chevron-back" size={22} color={p.accent} />
+          </Pressable>
+          <Text style={styles.brand}>Reovita</Text>
+        </View>
+        <View style={styles.hero}>
+          <View style={styles.heroCircle}>
+            <ActivityIndicator color={p.accent} size="large" />
+          </View>
+        </View>
+        <Text style={styles.heroTitle}>Waiting for approval</Text>
+        <Text style={styles.heroSub}>The subject is reviewing your request. This usually takes a few seconds.</Text>
+      </ScrollView>
     );
   }
 
-  if (phase.kind === 'message') {
+  if (phase.kind === 'message' || phase.kind === 'denied') {
+    const denied = phase.kind === 'denied';
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top + 12 }]}>
-        {header}
-        <Text style={styles.body}>{phase.text}</Text>
-        <Pressable accessibilityRole="button" onPress={resetToChoose} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>Scan again</Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
+        <View style={styles.topRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onHeaderBack} style={styles.backCircle}>
+            <Ionicons name="chevron-back" size={22} color={p.accent} />
+          </Pressable>
+          <Text style={styles.brand}>Reovita</Text>
+        </View>
+        <View style={styles.hero}>
+          <View style={styles.heroCircle}>
+            <Ionicons name={denied ? 'ban-outline' : 'close-circle-outline'} size={56} color={p.red} />
+          </View>
+        </View>
+        <Text style={styles.heroTitle}>{denied ? 'Access denied' : 'Request ended'}</Text>
+        <Text style={styles.heroSub}>{denied ? 'The subject denied this request. Scan their code again to ask once more.' : phase.text}</Text>
+        <Pressable accessibilityRole="button" onPress={resetToChoose} style={styles.fitBtn}>
+          <Ionicons name="refresh-outline" size={22} color="#FFFFFF" />
+          <Text style={styles.fitBtnText} numberOfLines={1}>Scan again</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -480,6 +504,8 @@ function makeStyles(p: Palette) {
     cameraBox: { flex: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
     primaryBtn: { height: 48, borderRadius: 16, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     primaryText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+    fitBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 26, paddingHorizontal: 28, backgroundColor: '#1F6F3F' },
+    fitBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', flexShrink: 0 },
     secondaryBtn: { height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     secondaryText: { fontSize: 15, fontWeight: '700', color: p.accent },
     codeInput: { alignSelf: 'stretch', height: 52, borderRadius: 16, borderWidth: 1, borderColor: p.border, backgroundColor: p.card, paddingHorizontal: 16, fontSize: 18, color: p.textStrong, letterSpacing: 1 },

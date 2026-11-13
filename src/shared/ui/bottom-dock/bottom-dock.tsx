@@ -17,6 +17,7 @@ import {
 
 import { tapConfirm, tapSelection } from '@shared/lib';
 import { useResolvedScheme } from '@shared/ui/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 type TabRoute = BottomTabBarProps['state']['routes'][number];
@@ -197,6 +198,9 @@ export function BottomDock({
   const dockScheme = useResolvedScheme();
   const dockDark = dockScheme === 'dark';
   const router = useRouter();
+  // Lift the dock above the phone's bottom bar or gesture area. Take the larger of the navigator's inset and the live one.
+  const liveInsets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, liveInsets.bottom);
   const [dockWidth, setDockWidth] = useState(INITIAL_DOCK_WIDTH);
 
   // Determine active logical tab index (0: Home, 1: Insights, 2: Records, 3: Profile)
@@ -316,7 +320,7 @@ export function BottomDock({
       style={[
         styles.dockWrap,
         {
-          bottom: Math.max(insets.bottom, 12) + 4,
+          bottom: Math.max(bottomInset, 12) + 4,
         },
       ]}>
       {/* Floating White Dock Surface */}

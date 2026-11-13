@@ -40,8 +40,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/app-icon/reovita-logo.png",
+          "imageWidth": 120
         }
       ],
       "@react-native-firebase/app",

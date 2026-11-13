@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
 import { usePalette, type Palette } from '@shared/ui/theme';
@@ -25,7 +25,6 @@ export function MedicalHistoryForm({
 }) {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(entry?.title ?? '');
   const [date, setDate] = useState(entry?.occurred_on ?? initialDate);
@@ -63,7 +62,7 @@ export function MedicalHistoryForm({
 
   return (
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <View style={styles.dialog}>
+      <SafeAreaView style={styles.dialog} edges={['top', 'bottom']}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.dialogContent}>
           <View style={styles.dialogHead}>
             <Text style={styles.dialogTitle}>{entry ? 'Edit medical history' : 'Add medical history'}</Text>
@@ -103,7 +102,7 @@ export function MedicalHistoryForm({
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
+        <View style={styles.footer}>
           <Pressable accessibilityRole="button" onPress={onClose} style={styles.cancelBtn}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
@@ -111,7 +110,7 @@ export function MedicalHistoryForm({
             <Text style={styles.saveText}>{mutation.isPending ? 'Saving...' : 'Save entry'}</Text>
           </Pressable>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
