@@ -1,3 +1,4 @@
+import { ReportProcessingPanel } from '@shared/ui/processing-panel';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -21,41 +22,7 @@ export function UploadWaiting({ reportId, onLater }: { reportId: string; onLater
 
   const needsAction = status === 'NEEDS_RETAKE' || status === 'FAILED';
 
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: Math.max(insets.top, 20) + 8,
-          paddingBottom: Math.max(insets.bottom, 20) + 16,
-        },
-      ]}>
-      <Text style={styles.title}>Your report is being read</Text>
-
-      {needsAction ? (
-        <Text style={styles.error}>
-          {status === 'NEEDS_RETAKE'
-            ? 'This photo is too blurry to read. Upload a clearer copy.'
-            : 'We could not read this report. Please upload it again.'}
-        </Text>
-      ) : (
-        <>
-          <Text style={styles.subtitle}>
-            We&apos;ll notify you when your observations are ready. You can wait here or come back later.
-          </Text>
-          <Skeleton height={64} />
-          <Skeleton height={64} />
-          <Skeleton height={64} />
-        </>
-      )}
-
-      <View style={styles.spacer} />
-
-      <Pressable accessibilityRole="button" onPress={onLater} style={styles.laterBtn}>
-        <Text style={styles.laterText}>Come back later</Text>
-      </Pressable>
-    </View>
-  );
+  return <ReportProcessingPanel onLater={onLater} />;
 }
 
 const styles = StyleSheet.create({

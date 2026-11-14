@@ -11,9 +11,11 @@ export async function saveRefreshToken(token: string): Promise<void> {
   }
 }
 
+// On web the secure store may never answer. A timeout treats that as "no stored token", so start-up continues.
 export async function getRefreshToken(): Promise<string | null> {
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
   try {
-    return await SecureStore.getItemAsync(REFRESH_KEY);
+    return await Promise.race([SecureStore.getItemAsync(REFRESH_KEY), timeout]);
   } catch {
     return null;
   }

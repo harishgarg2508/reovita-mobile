@@ -16,23 +16,23 @@ const ITEM_HEIGHT = 44;
 const VISIBLE = 3;
 const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE; // 132
 
-interface YearWheelProps {
+interface NumberWheelProps {
   value: number;
-  minYear: number;
-  maxYear: number;
+  minValue: number;
+  maxValue: number;
   onChange: (year: number) => void;
 }
 
-// Scrolling year picker with guaranteed auto-centering on scroll stop across all platforms.
-export function YearWheel({ value, minYear, maxYear, onChange }: YearWheelProps) {
+// Scrolling number picker with guaranteed auto-centering on scroll stop across all platforms.
+export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheelProps) {
   const years = useMemo(() => {
     const list: number[] = [];
-    for (let y = maxYear; y >= minYear; y--) list.push(y);
+    for (let y = minValue; y <= maxValue; y++) list.push(y);
     return list;
-  }, [minYear, maxYear]);
+  }, [minValue, maxValue]);
 
   const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
-  const indexOf = useCallback((year: number) => maxYear - year, [maxYear]);
+  const indexOf = useCallback((year: number) => year - minValue, [minValue]);
 
   const initialIndex = Math.max(0, Math.min(years.length - 1, indexOf(value)));
   const [centerIndex, setCenterIndex] = useState(initialIndex);
@@ -178,15 +178,15 @@ export function YearWheel({ value, minYear, maxYear, onChange }: YearWheelProps)
 
   const currentYear = years[centerIndex] ?? value;
 
-  // Chevrons: '<' decrements birth year (e.g. 1963 -> 1962), '>' increments birth year
+  // Chevrons step the value down (up arrow) and up (down arrow)
   const handlePrevYear = () => {
-    if (currentYear > minYear) {
+    if (currentYear > minValue) {
       animateToCenter(indexOf(currentYear - 1));
     }
   };
 
   const handleNextYear = () => {
-    if (currentYear < maxYear) {
+    if (currentYear < maxValue) {
       animateToCenter(indexOf(currentYear + 1));
     }
   };
@@ -200,29 +200,21 @@ export function YearWheel({ value, minYear, maxYear, onChange }: YearWheelProps)
       <View pointerEvents="box-none" style={styles.chevronOverlay}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Previous year"
-          disabled={currentYear <= minYear}
+          accessibilityLabel="Lower value"
+          disabled={currentYear <= minValue}
           onPress={handlePrevYear}
           hitSlop={12}
           style={styles.chevronBtn}>
-          <Ionicons
-            name="chevron-back"
-            size={18}
-            color={currentYear <= minYear ? '#C5BDD4' : '#1F6F3F'}
-          />
+          <Ionicons name="chevron-up" size={18} color={currentYear <= minValue ? '#C5BDD4' : '#1F6F3F'} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Next year"
-          disabled={currentYear >= maxYear}
+          accessibilityLabel="Higher value"
+          disabled={currentYear >= maxValue}
           onPress={handleNextYear}
           hitSlop={12}
           style={styles.chevronBtn}>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={currentYear >= maxYear ? '#C5BDD4' : '#1F6F3F'}
-          />
+          <Ionicons name="chevron-down" size={18} color={currentYear >= maxValue ? '#C5BDD4' : '#1F6F3F'} />
         </Pressable>
       </View>
 
@@ -290,14 +282,12 @@ const styles = StyleSheet.create({
   },
   chevronOverlay: {
     position: 'absolute',
-    left: 11,
-    right: 11,
+    right: 8,
     top: ITEM_HEIGHT,
     height: ITEM_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    gap: 2,
     zIndex: 2,
   },
   chevronBtn: {

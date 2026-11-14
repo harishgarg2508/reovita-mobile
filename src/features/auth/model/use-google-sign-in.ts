@@ -31,6 +31,16 @@ function configureGoogleSignIn() {
   configured = true;
 }
 
+// The message shown on the login screen. Raw Firebase and network errors are never shown; they are mapped to a short line.
+export function friendlySignInError(error: unknown): string {
+  const code = (error as { code?: string } | null)?.code ?? '';
+  const message = (error as { message?: string } | null)?.message ?? '';
+  if (code === 'auth/network-request-failed' || message === 'Network Error' || /network/i.test(message)) {
+    return 'No internet connection. Check your network and try again.';
+  }
+  return 'Sign-in did not work. Please try again.';
+}
+
 // Returns null when the user closes the account picker.
 export function useGoogleSignIn() {
   return useMutation({

@@ -1,6 +1,10 @@
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import type { ReportListItem } from '@entities/report';
+import { useDeleteReport, type ReportListItem } from '@entities/report';
+import { ConfirmDialog } from '@shared/ui';
+import { usePalette } from '@shared/ui/theme';
 
 // The subject's reports, newest first. Only this list scrolls. The next page loads when the user
 // reaches the end of the list.
@@ -10,35 +14,64 @@ export function ReportList({
   loadingMore,
   onLoadMore,
   onOpen,
+  footer,
 }: {
+  footer?: React.ReactNode;
   items: ReportListItem[];
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
   onOpen: (id: string) => void;
 }) {
+  const p = usePalette();
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const remove = useDeleteReport();
   return (
+    <View style={{ flex: 1 }}>
     <FlatList
+      onEndReachedThreshold={0.4}
+      onEndReached={() => {
+        if (hasMore && !loadingMore) onLoadMore();
+      }}
       data={items}
       keyExtractor={(item) => item.id}
       style={styles.list}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      onEndReachedThreshold={0.4}
-      onEndReached={() => {
-        if (hasMore && !loadingMore) onLoadMore();
-      }}
-      ListFooterComponent={loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined}
+      ListFooterComponent={
+        loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : footer ? <>{footer}</> : undefined
+      }
       renderItem={({ item }) => (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onOpen(item.id)}
-          style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-          <Text style={styles.label}>Report</Text>
-          <Text style={styles.date}>{formatDate(item.created_at)}</Text>
-        </Pressable>
+        <View style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
+          <Pressable accessibilityRole="button" onPress={() => onOpen(item.id)} style={styles.rowOpen}>
+            <Text style={[styles.label, { color: p.text }]}>Report</Text>
+            <Text style={[styles.date, { color: p.muted }]}>{formatDate(item.created_at)}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete report"
+            onPress={() => setPendingDelete(item.id)}
+            hitSlop={8}
+            style={styles.trash}>
+            <Ionicons name="trash-outline" size={18} color="#C22F43" />
+          </Pressable>
+        </View>
       )}
     />
+      <ConfirmDialog
+        visible={pendingDelete !== null}
+        title="Delete this report?"
+        message="This action cannot be undone. The report, its values and its file will be removed."
+        confirmLabel="Delete"
+        destructive
+        busy={remove.isPending}
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          remove.mutate(pendingDelete, { onSettled: () => setPendingDelete(null) });
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </View>
   );
 }
 
@@ -51,6 +84,8 @@ function formatDate(iso: string): string {
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
+  more: { alignItems: 'center', paddingVertical: 12 },
+  moreText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#7545ED' },
   content: { gap: 10, paddingBottom: 16 },
   row: {
     flexDirection: 'row',
@@ -64,6 +99,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   pressed: { opacity: 0.85 },
+  rowOpen: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  trash: { marginLeft: 12, padding: 4 },
   label: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#242032' },
   date: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#655F74' },
   footer: { paddingVertical: 12 },

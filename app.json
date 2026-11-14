@@ -4,7 +4,7 @@
     "slug": "reovita",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon/sprout-icon.png",
     "scheme": "reovita",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -12,9 +12,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "backgroundColor": "#1F6F3F",
+        "foregroundImage": "./assets/images/app-icon/sprout-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -27,15 +26,38 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "dynamic"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": false
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/app-icon/reovita-logo.png",
+          "imageWidth": 120
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/auth"
+      "@react-native-firebase/auth",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Reovita uses the camera to photograph your lab reports."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Reovita uses your location to show your local environment briefing."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -43,7 +65,6 @@
     },
     "extra": {
       "firebase": {},
-      "apiBaseUrl": "http://localhost:3000",
       "router": {
         "asyncRoutes": {
           "web": true

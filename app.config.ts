@@ -27,6 +27,28 @@ function resolveGoogleServicesFile(): string {
   return GENERATED_GOOGLE_SERVICES;
 }
 
+// Same idea for the iOS Firebase config. The value of GOOGLE_SERVICE_INFO_PLIST can be the raw
+// plist XML, the same XML encoded as base64, or a path to a file. Without the variable, falls back
+// to ./GoogleService-Info.plist if it exists, otherwise iOS prebuild has no config to point at.
+const GENERATED_GOOGLE_SERVICE_INFO = path.join('.generated', 'GoogleService-Info.plist');
+
+function resolveGoogleServiceInfoPlist(): string | undefined {
+  const raw = process.env.GOOGLE_SERVICE_INFO_PLIST?.trim();
+  if (!raw) {
+    return fs.existsSync('./GoogleService-Info.plist') ? './GoogleService-Info.plist' : undefined;
+  }
+
+  if (!raw.startsWith('<') && fs.existsSync(raw)) return raw;
+
+  const xml = raw.startsWith('<') ? raw : Buffer.from(raw, 'base64').toString('utf8');
+  if (!xml.includes('<plist')) throw new Error('GOOGLE_SERVICE_INFO_PLIST is not a valid plist');
+
+  const target = path.resolve(GENERATED_GOOGLE_SERVICE_INFO);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, xml, 'utf8');
+  return GENERATED_GOOGLE_SERVICE_INFO;
+}
+
 // The OAuth web client id (client_type 3) that Google Sign-In needs on Android to get an ID token.
 // Firebase writes it into google-services.json once a SHA fingerprint and the Google provider exist.
 function readGoogleWebClientId(servicesPath: string): string | undefined {
@@ -44,9 +66,14 @@ function readGoogleWebClientId(servicesPath: string): string | undefined {
 // .env.example are passed through, so nothing else leaks into the app bundle.
 export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesFile = resolveGoogleServicesFile();
+  const googleServiceInfoPlist = resolveGoogleServiceInfoPlist();
   return {
   ...(config as ExpoConfig),
-  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js'],
+  plugins: [...((config as ExpoConfig).plugins ?? []), './plugins/with-kotlin-version.js', './plugins/with-release-signing.js'],
+  ios: {
+    ...(config as ExpoConfig).ios,
+    ...(googleServiceInfoPlist ? { googleServicesFile: googleServiceInfoPlist } : {}),
+  },
   android: {
     ...(config as ExpoConfig).android,
     googleServicesFile,
@@ -64,7 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     },
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000',
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
   },
   };
 };

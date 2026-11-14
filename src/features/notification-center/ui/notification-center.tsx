@@ -2,6 +2,8 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { usePalette } from '@shared/ui/theme';
+
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -48,17 +50,25 @@ export function NotificationCenter() {
     }
   }
 
+  const p = usePalette();
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
       {/* Fixed header: does not scroll with the list. */}
       <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: p.text }]}>Notifications</Text>
         <Pressable
           accessibilityRole="button"
           disabled={!hasUnread || markAll.isPending}
           onPress={() => markAll.mutate()}
           style={styles.allReadBtn}>
-          <Text style={[styles.markAll, !hasUnread && styles.disabled]}>All read</Text>
+          {markAll.isPending ? (
+            <View style={styles.inlineRow}>
+              <ActivityIndicator size="small" color={p.accent} />
+              <Text style={[styles.markAll, { color: p.accent }]}>Marking...</Text>
+            </View>
+          ) : (
+            <Text style={[styles.markAll, { color: p.accent }, !hasUnread && styles.disabled]}>All read</Text>
+          )}
         </Pressable>
       </View>
 
@@ -79,7 +89,7 @@ export function NotificationCenter() {
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
-          list.isPending || list.isError ? undefined : <Text style={styles.empty}>No notifications yet.</Text>
+          list.isPending || list.isError ? undefined : <Text style={[styles.empty, { color: p.muted }]}>No notifications yet.</Text>
         }
         ListFooterComponent={
           list.isFetchingNextPage ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined
@@ -90,13 +100,13 @@ export function NotificationCenter() {
           <Pressable
             accessibilityRole="button"
             onPress={() => open(item)}
-            style={[styles.card, item.read_at === null && styles.cardUnread]}>
+            style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, item.read_at === null && { backgroundColor: p.accentSoft, borderColor: p.accent }]}>
             <View style={styles.cardTop}>
-              {item.read_at === null ? <View style={styles.dot} /> : null}
-              <Text style={styles.title}>{item.title}</Text>
+              {item.read_at === null ? <View style={[styles.dot, { backgroundColor: p.accent }]} /> : null}
+              <Text style={[styles.title, { color: p.text }]}>{item.title}</Text>
             </View>
-            {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
-            <Text style={styles.when}>{formatWhen(item.created_at)}</Text>
+            {item.body ? <Text style={[styles.body, { color: p.muted }]}>{item.body}</Text> : null}
+            <Text style={[styles.when, { color: p.muted }]}>{formatWhen(item.created_at)}</Text>
           </Pressable>
         )}
       />
@@ -118,6 +128,7 @@ const styles = StyleSheet.create({
   allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#171717' },
   markAll: { fontSize: 13, fontWeight: '600', color: '#1F6F3F' },
+  inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   disabled: { color: '#B8B3C7' },
   list: { paddingHorizontal: 24, paddingTop: 4 },
   separator: { height: 12 },

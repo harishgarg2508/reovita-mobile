@@ -1,6 +1,5 @@
-// Route placeholder. Replace with the screen.
-import { View } from 'react-native';
+import { BriefingPage } from '@features/briefing-view';
 
-export default function Screen() {
-  return <View />;
+export default function BriefingsRoute() {
+  return <BriefingPage />;
 }

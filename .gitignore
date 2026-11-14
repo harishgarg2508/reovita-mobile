@@ -47,3 +47,4 @@ example
 google-services.json
 .generated/
 .env.cloud
+*.keystore

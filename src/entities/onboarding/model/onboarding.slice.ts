@@ -4,7 +4,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 export type OnboardingSex = 'female' | 'male' | 'other' | 'prefer_not_to_say';
 
 export interface BasicsDraft {
-  year: number;
+  year: number | null;
   sex: OnboardingSex | null;
   height: string;
   weight: string;
@@ -40,7 +40,7 @@ export interface OnboardingState {
 export const DEFAULT_BIRTH_YEAR = 1995;
 
 const initialState: OnboardingState = {
-  basics: { year: DEFAULT_BIRTH_YEAR, sex: null, height: '', weight: '' },
+  basics: { year: null, sex: null, height: '', weight: '' },
   // Step 2 starts empty. The user picks each item.
   history: {
     conditions: [],

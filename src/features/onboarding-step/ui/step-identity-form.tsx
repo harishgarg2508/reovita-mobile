@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useBasicsDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput } from '../model/onboarding.types';
 
-import { YearWheel } from './year-wheel';
+import { DEFAULT_BIRTH_YEAR } from '@entities/onboarding';
+import { NumberWheel } from '@shared/ui/number-wheel';
 
 type Sex = BasicsInput['sex'];
 
@@ -32,10 +33,12 @@ const CATEGORY_ORDER: ('Under' | 'Healthy' | 'Over' | 'Obese')[] = ['Under', 'He
 // Step 1: birth year, sex, height and weight. BMI is worked out from height and weight.
 export function StepIdentityForm({
   onChange,
-  showErrors = false,
+  missing = [],
+  onFieldLayout,
 }: {
   onChange: (value: BasicsInput | null) => void;
-  showErrors?: boolean;
+  missing?: string[];
+  onFieldLayout?: (name: string, y: number) => void;
 }) {
   const [draft, patchDraft] = useBasicsDraft();
 
@@ -46,6 +49,7 @@ export function StepIdentityForm({
     const cm = Number(next.height);
     const kg = Number(next.weight);
     const valid =
+      next.year !== null &&
       next.year >= MIN_YEAR &&
       next.year <= MAX_YEAR &&
       next.sex !== null &&
@@ -54,7 +58,7 @@ export function StepIdentityForm({
       kg >= 20 &&
       kg <= 400;
 
-    onChange(valid && next.sex ? { birth_year: next.year, sex: next.sex, height_cm: cm, weight_kg: kg } : null);
+    onChange(valid && next.sex ? { birth_year: next.year ?? 0, sex: next.sex, height_cm: cm, weight_kg: kg } : null);
   }
 
   const cm = Number(draft.height);
@@ -62,25 +66,25 @@ export function StepIdentityForm({
   const bmi = cm >= 50 && kg >= 20 ? kg / ((cm / 100) * (cm / 100)) : null;
   const category = bmi !== null ? bmiCategory(bmi) : null;
   // Required fields that are still empty or out of range are highlighted, only after Continue was pressed.
-  const sexMissing = showErrors && draft.sex === null;
-  const heightMissing = showErrors && !(cm >= 50 && cm <= 260);
-  const weightMissing = showErrors && !(kg >= 20 && kg <= 400);
+  const sexMissing = missing.includes('sex');
+  const heightMissing = missing.includes('height');
+  const weightMissing = missing.includes('weight');
 
   return (
     <View style={styles.form}>
       {/* Birth year: scroll wheel from the current year back to 1900 */}
-      <View style={styles.block}>
+      <View style={[styles.block, missing.includes('year') && styles.blockError]} onLayout={(e) => onFieldLayout?.('year', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
             <Ionicons name="calendar-outline" size={13} color="#1F6F3F" />
           </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
-        <YearWheel value={draft.year} minYear={MIN_YEAR} maxYear={MAX_YEAR} onChange={(year) => update({ year })} />
+        <NumberWheel value={draft.year ?? DEFAULT_BIRTH_YEAR} minValue={MIN_YEAR} maxValue={MAX_YEAR} onChange={(year) => update({ year })} />
       </View>
 
       {/* Sex segments */}
-      <View style={styles.block}>
+      <View style={[styles.block, sexMissing && styles.blockError]} onLayout={(e) => onFieldLayout?.('sex', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
             <Ionicons name="male-female-outline" size={13} color="#1F6F3F" />
@@ -105,7 +109,7 @@ export function StepIdentityForm({
       </View>
 
       {/* Height and weight */}
-      <View style={styles.row}>
+      <View style={styles.row} onLayout={(e) => onFieldLayout?.('height', e.nativeEvent.layout.y)}>
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
@@ -178,6 +182,7 @@ export function StepIdentityForm({
 
 const styles = StyleSheet.create({
   fieldError: { borderColor: '#C22F43', borderWidth: 1.5 },
+  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
   form: { gap: 24 },
   block: { gap: 8 },
   labelRow: {

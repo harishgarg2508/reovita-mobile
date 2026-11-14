@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(20, 18, 28, 0.4)',
+    backgroundColor: 'transparent',
   },
   sheet: {
     backgroundColor: '#FFFFFF',

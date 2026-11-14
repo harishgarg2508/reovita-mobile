@@ -30,7 +30,14 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
 
   // Not confirmed yet (or needs the user): the review screen handles observations, confirm and retakes.
   const needsReview = status === 'AWAITING_CONFIRMATION' || status === 'NEEDS_RETAKE' || status === 'FAILED';
-  const notConfirmed = isApiError(interpretation.error, 'interpretation_not_found');
+  // While the interpretation is being written, "not found" is expected: show the analysing state instead.
+  const analysing = status === 'INTERPRETING' && !interpretation.data;
+  const notConfirmed = status !== 'INTERPRETING' && isApiError(interpretation.error, 'interpretation_not_found');
+  // When the status reaches DONE, fetch the saved interpretation once.
+  useEffect(() => {
+    if (status === 'DONE') void interpretation.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
   useEffect(() => {
     if (needsReview || notConfirmed) {
       router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
@@ -40,7 +47,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
   const output = interpretation.data?.output_json;
   const explanations = (output?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
 
-  const errorText = interpretation.isError
+  const errorText = analysing ? null : interpretation.isError
     ? isApiError(interpretation.error, 'interpretation_not_found')
       ? 'This report has no explanation yet.'
       : isApiError(interpretation.error, 'report_not_found')
@@ -73,6 +80,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         </>
       ) : null}
 
+      {analysing ? <Text style={styles.error}>Your report is being analysed. This can take a minute.</Text> : null}
       {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
 
       {output?.summary ? (

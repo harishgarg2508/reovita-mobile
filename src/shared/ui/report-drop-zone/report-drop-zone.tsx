@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { usePalette } from '@shared/ui/theme';
+
 // Report upload block: dashed drop zone, encryption note, and an optional skip link.
 // Used by onboarding Step 4 (with skip) and the upload screen (without).
 export function ReportDropZone({
@@ -12,27 +14,23 @@ export function ReportDropZone({
   onSkip?: () => void;
   disabled?: boolean;
 }) {
+  const p = usePalette();
   return (
     <View style={styles.wrap}>
-      <View style={styles.dropZone}>
-        <View style={styles.iconBox}>
+      <View style={[styles.dropZone, { backgroundColor: p.card, borderColor: p.accent }]}>
+        <View style={[styles.iconBox, { backgroundColor: p.card }]}>
           <Ionicons name="document-attach-outline" size={28} color="#1F6F3F" />
         </View>
-        <Text style={styles.dropTitle}>Drop your report here</Text>
-        <Text style={styles.dropHint}>PDF, JPG or PNG · Up to 20 MB</Text>
+        <Text style={[styles.dropTitle, { color: p.text }]}>Drop your report here</Text>
+        <Text style={[styles.dropHint, { color: p.muted }]}>PDF, JPG or PNG · Up to 20 MB</Text>
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
           onPress={onChoose}
-          style={({ pressed }) => [styles.chooseBtn, pressed && styles.pressed, disabled && styles.disabled]}>
+          style={({ pressed }) => [styles.chooseBtn, { backgroundColor: p.accentSoft }, pressed && styles.pressed, disabled && styles.disabled]}>
           <Ionicons name="add" size={16} color="#1F6F3F" />
-          <Text style={styles.chooseText}>Choose file</Text>
+          <Text style={[styles.chooseText, { color: p.accent }]}>Choose file</Text>
         </Pressable>
-      </View>
-
-      <View style={styles.banner}>
-        <Ionicons name="shield-checkmark-outline" size={18} color="#3D5500" />
-        <Text style={styles.bannerText}>Encrypted. Private. Always yours.</Text>
       </View>
 
       {onSkip ? (

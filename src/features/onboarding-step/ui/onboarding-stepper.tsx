@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type ElementRef, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,10 @@ import { tapConfirm } from '@shared/lib';
 import { useProfileCompleteness } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '../model/step-href';
 import { useSaveStep } from '../model/use-save-step';
+import { useStepSaved } from '../model/use-step-saved';
+import { missingFields } from '../model/missing-fields';
+import { basicsFromSaved, historyFromSaved, lifestyleFromSaved } from '../model/saved-to-draft';
+import { useBasicsDraft, useHistoryDraft, useLifestyleDraft } from '../model/use-onboarding-drafts';
 import type { BasicsInput, HistoryInput, LifestyleInput } from '../model/onboarding.types';
 import { StepConditionsForm } from './step-conditions-form';
 import { StepHeaderBadge } from '@shared/ui/step-header-badge';
@@ -26,6 +30,9 @@ const STEP_DATA = [
 
 export function OnboardingStepper({ step }: { step: number }) {
   const router = useRouter();
+  // ?edit=true comes from the profile's Edit buttons: no step progress or step flow, only an Update button.
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editing = edit === 'true';
   const insets = useSafeAreaInsets();
   const save = useSaveStep();
 
@@ -40,6 +47,48 @@ export function OnboardingStepper({ step }: { step: number }) {
   useEffect(() => {
     if (step === 4 && reportsDone) router.replace('/(app)/(tabs)/dashboard');
   }, [step, reportsDone, router]);
+
+  // Fill the step with the values already saved on the server. Done once each time the step opens.
+  const saved = useStepSaved(step as OnboardingStepNumber, step !== 4);
+  const [, patchBasics] = useBasicsDraft();
+  const [, patchHistory] = useHistoryDraft();
+  const [, patchLifestyle] = useLifestyleDraft();
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !saved.data) return;
+    prefilled.current = true;
+    if (step === 1) patchBasics(basicsFromSaved(saved.data));
+    if (step === 2) patchHistory(historyFromSaved(saved.data));
+    if (step === 3) patchLifestyle(lifestyleFromSaved(saved.data));
+  }, [saved.data, step, patchBasics, patchHistory, patchLifestyle]);
+
+  // Required fields still empty, and the scroll position of each field, so Next can scroll to the first one.
+  const [basicsNow] = useBasicsDraft();
+  const [historyNow] = useHistoryDraft();
+  const [lifestyleNow] = useLifestyleDraft();
+  const missing = missingFields(step, basicsNow, historyNow, lifestyleNow);
+
+  // In edit mode the Update button stays disabled until a value differs from what is saved.
+  const savedDraft = saved.data
+    ? step === 1
+      ? basicsFromSaved(saved.data)
+      : step === 2
+        ? historyFromSaved(saved.data)
+        : lifestyleFromSaved(saved.data)
+    : null;
+  const currentDraft = step === 1 ? basicsNow : step === 2 ? historyNow : lifestyleNow;
+  const dirty = !savedDraft || !currentDraft || stableJson(currentDraft) !== stableJson(savedDraft);
+  const shownMissing = attempted ? missing : [];
+  const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
+  const fieldY = useRef<Record<string, number>>({});
+  const bodyY = useRef(0);
+  function onFieldLayout(name: string, y: number) {
+    fieldY.current[name] = y;
+  }
+  function scrollToField(name: string) {
+    const y = bodyY.current + (fieldY.current[name] ?? 0);
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+  }
 
   const current = STEP_DATA[Math.min(step - 1, STEP_DATA.length - 1)];
 
@@ -62,26 +111,26 @@ export function OnboardingStepper({ step }: { step: number }) {
   async function onSave() {
     tapConfirm();
     // Check the required fields here first. No request is sent until they are valid.
-    const valid = (step === 1 && basics) || (step === 2 && history) || (step === 3 && lifestyle);
-    if (!valid) {
+    if (missing.length > 0) {
       setAttempted(true);
+      scrollToField(missing[0]);
       return;
     }
     if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
     if (step === 2 && history) await save.mutateAsync({ step: 2, body: history });
     if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
+    if (editing) {
+      router.back();
+      return;
+    }
     next();
   }
 
-  const canSave =
-    (step === 1 && basics !== null) ||
-    (step === 2 && history !== null) ||
-    (step === 3 && lifestyle !== null) ||
-    step === 4;
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         nestedScrollEnabled={true}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -97,7 +146,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             {/* Logo at the left */}
             <View style={styles.brandRow}>
               <Image
-                source={require('../../../shared/assets/images/reovita-sprout.png')}
+                source={require('../../../shared/assets/images/reovita-logo.webp')}
                 style={styles.brandMark}
                 resizeMode="contain"
               />
@@ -105,6 +154,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             </View>
 
             {/* How much steps: pill badge and progress indicator */}
+            {editing ? null : (
             <View style={styles.stepRow}>
               <View style={styles.stepPill}>
                 <Text style={styles.stepBadge}>Step {step} of 4</Text>
@@ -113,6 +163,7 @@ export function OnboardingStepper({ step }: { step: number }) {
                 <View style={[styles.stepFill, { width: `${(step / 4) * 100}%` }]} />
               </View>
             </View>
+            )}
 
             {/* Header title properly bolded for each step */}
             <Text style={styles.title}>{current.title}</Text>
@@ -126,10 +177,10 @@ export function OnboardingStepper({ step }: { step: number }) {
         </View>
 
         {/* Step Content */}
-        <View style={styles.stepBody}>
-          {step === 1 ? <StepIdentityForm onChange={setBasics} showErrors={attempted} /> : null}
-          {step === 2 ? <StepConditionsForm onChange={setHistory} /> : null}
-          {step === 3 ? <StepLifestyleForm onChange={setLifestyle} /> : null}
+        <View style={styles.stepBody} onLayout={(e) => (bodyY.current = e.nativeEvent.layout.y)}>
+          {step === 1 ? <StepIdentityForm onChange={setBasics} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
+          {step === 2 ? <StepConditionsForm onChange={setHistory} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
+          {step === 3 ? <StepLifestyleForm onChange={setLifestyle} missing={shownMissing} onFieldLayout={onFieldLayout} /> : null}
           {step === 4 ? (
             <StepReportPrompt
               onChoose={() => router.push({ pathname: '/onboarding/upload', params: { pick: '1' } })}
@@ -149,7 +200,12 @@ export function OnboardingStepper({ step }: { step: number }) {
             </View>
           ) : null}
           <View style={styles.buttonGroup}>
-            {step > 1 && step < 4 ? (
+            {editing ? (
+              <View style={styles.nextGroupItem}>
+                <Button label="Update" disabled={save.isPending || !dirty} onPress={onSave} />
+              </View>
+            ) : null}
+            {!editing && step > 1 && step < 4 ? (
               <>
                 <Pressable accessibilityRole="button" onPress={back} style={styles.skipButton}>
                   <Text style={styles.skipButtonText}>Back</Text>
@@ -159,31 +215,55 @@ export function OnboardingStepper({ step }: { step: number }) {
                 </Pressable>
               </>
             ) : null}
+            {!editing && step === 4 ? (
+              <>
+                <Pressable accessibilityRole="button" onPress={next} style={styles.skipButton}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </Pressable>
+                <View style={styles.nextGroupItem}>
+                  <Button
+                    label="Upload report"
+                    onPress={() => router.push({ pathname: '/onboarding/upload', params: { pick: '1' } })}
+                  />
+                </View>
+              </>
+            ) : editing ? null : (
             <View style={styles.nextGroupItem}>
               <Button
                 label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
                 disabled={save.isPending}
-                onPress={step === 4 ? next : onSave}
+                onPress={onSave}
               />
             </View>
+            )}
           </View>
         </View>
-
-        {attempted && !canSave ? (
-          <View style={styles.errorRow}>
-            <Text style={styles.errorText}>Please fill the highlighted fields.</Text>
-          </View>
-        ) : null}
 
         {save.isError ? (
           <View style={styles.errorRow}>
             <Ionicons name="information-circle-outline" size={14} color="#C22F43" />
-            <Text style={styles.errorText}>Could not save this step. Please check your entries.</Text>
+            <Text style={styles.errorText}>{save.error?.message || 'Could not save this step. Please check your entries.'}</Text>
           </View>
         ) : null}
       </View>
     </View>
   );
+}
+
+// JSON with keys sorted, so two objects with the same values compare equal whatever order their keys were set in.
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_, v: unknown) => {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const record = v as Record<string, unknown>;
+      return Object.keys(record)
+        .sort()
+        .reduce<Record<string, unknown>>((acc, k) => {
+          acc[k] = record[k];
+          return acc;
+        }, {});
+    }
+    return v;
+  });
 }
 
 const styles = StyleSheet.create({

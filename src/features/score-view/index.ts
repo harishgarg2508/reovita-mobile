@@ -1,2 +1,1 @@
-// index.ts - placeholder
-export {};
+export { ScoreHistoryScreen } from './ui/score-history-screen';
