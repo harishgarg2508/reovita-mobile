@@ -20,7 +20,7 @@ export function missingFields(
     return missing;
   }
   if (step === 2) {
-    return history.conditions.length === 0 ? ['conditions'] : [];
+    return (history.conditions ?? []).length === 0 ? ['conditions'] : [];
   }
   if (step === 3) {
     return (['sleep', 'stress', 'diet', 'smoking', 'alcohol', 'exercise', 'occupation', 'activity_level'] as const).filter(

@@ -111,9 +111,9 @@ function EntryCard({
         {entry.occurred_time ? ` · ${entry.occurred_time}` : ''}
       </Text>
       <Text style={styles.cardDate}>{entryStamp(entry)}</Text>
-      {entry.files.length > 0 ? (
+      {(entry.files ?? []).length > 0 ? (
         <View style={styles.fileList}>
-          {entry.files.map((file) => (
+          {(entry.files ?? []).map((file) => (
             <View key={file.id} style={styles.fileItem}>
               <Ionicons name={file.kind === 'report' ? 'document-text-outline' : 'medkit-outline'} size={16} color={p.accent} />
               <View style={styles.fileText}>
@@ -130,8 +130,8 @@ function EntryCard({
         </View>
       ) : null}
       {open ? (
-        entry.medicines.length > 0 ? (
-          entry.medicines.map((m, i) => (
+        (entry.medicines ?? []).length > 0 ? (
+          (entry.medicines ?? []).map((m, i) => (
             <Text key={`${m.name}-${i}`} style={styles.medLine}>
               {m.name}
               {m.dose ? ` · ${m.dose}` : ''}

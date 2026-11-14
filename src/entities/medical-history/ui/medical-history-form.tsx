@@ -80,7 +80,7 @@ export function MedicalHistoryForm({
   const [title, setTitle] = useState(entry?.title ?? '');
   const [date, setDate] = useState(entry?.occurred_on ?? initialDate);
   const [time, setTime] = useState(entry?.occurred_time ?? '');
-  const initialMedicines = entry && entry.medicines.length > 0 ? entry.medicines.map((m) => ({ name: m.name, dose: m.dose ?? '' })) : [{ name: '', dose: '' }];
+  const initialMedicines = entry && (entry.medicines ?? []).length > 0 ? (entry.medicines ?? []).map((m) => ({ name: m.name, dose: m.dose ?? '' })) : [{ name: '', dose: '' }];
   const [medicines, setMedicines] = useState<{ name: string; dose: string }[]>(initialMedicines);
   const [files, setFiles] = useState<MedicalHistoryFile[]>(entry?.files ?? []);
   const [pending, setPending] = useState<PendingFile[]>([]);

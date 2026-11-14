@@ -66,7 +66,7 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   // One file downloads straight away. Several files open the picker, which offers each file and a zip of all of them.
   function onDownload() {
     if (!file) return;
-    if (record.files.length > 1) {
+    if ((record.files ?? []).length > 1) {
       setPickerOpen(true);
       return;
     }
@@ -203,10 +203,10 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
 
       {open ? (
         <View style={styles.obsWrap}>
-          {record.observations.length === 0 ? (
+          {(record.observations ?? []).length === 0 ? (
             <Text style={styles.meta}>No results were read from this report.</Text>
           ) : (
-            record.observations.map((o) => (
+            (record.observations ?? []).map((o) => (
               <View key={`${o.biomarker_code}-${o.collected_on}`} style={styles.obsRow}>
                 <Text style={[styles.obsName, styles.flex]}>{o.name}</Text>
                 <Text style={styles.obsValue}>
@@ -226,7 +226,7 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
           <Pressable style={styles.sheet} onPress={() => undefined}>
             <Text style={styles.sheetTitle}>Download report files</Text>
             <Text style={styles.meta}>Choose one file, or download them all in one zip.</Text>
-            {record.files.map((f) => {
+            {(record.files ?? []).map((f) => {
               const kind = f.mime_type === 'application/pdf' ? 'PDF' : f.mime_type === 'image/png' ? 'PNG' : 'JPG';
               return (
                 <Pressable

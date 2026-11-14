@@ -215,7 +215,7 @@ export function ScanScreen() {
     const alerts = buildAlerts(sum);
     const bp = sum.vitals.bp;
     const weight = sum.vitals.weight;
-    const conditions = sum.conditions.length ? sum.conditions.map(conditionLabel) : ['None recorded'];
+    const conditions = (sum.conditions ?? []).length ? (sum.conditions ?? []).map(conditionLabel) : ['None recorded'];
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.summaryContent, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
         {header}
@@ -287,10 +287,10 @@ export function ScanScreen() {
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Family history</Text>
-          {sum.family_history.length === 0 ? (
+          {(sum.family_history ?? []).length === 0 ? (
             <Text style={styles.alertBody}>No family history recorded.</Text>
           ) : (
-            sum.family_history.map((f, i) => (
+            (sum.family_history ?? []).map((f, i) => (
               <LifestyleRow
                 key={`${f.relation}-${f.condition}-${i}`}
                 label={RELATION_LABEL[f.relation] ?? capitalize(f.relation)}
@@ -303,10 +303,10 @@ export function ScanScreen() {
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Medications</Text>
-          {sum.medications.length === 0 ? (
+          {(sum.medications ?? []).length === 0 ? (
             <Text style={styles.alertBody}>No medications recorded.</Text>
           ) : (
-            sum.medications.map((m, i) => (
+            (sum.medications ?? []).map((m, i) => (
               <LifestyleRow key={`${m.name ?? 'medicine'}-${i}`} label={m.name ?? 'Medicine'} value={m.dose ?? '-'} styles={styles} />
             ))
           )}
@@ -314,10 +314,10 @@ export function ScanScreen() {
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Medical history</Text>
-          {sum.medical_history.length === 0 ? (
+          {(sum.medical_history ?? []).length === 0 ? (
             <Text style={styles.alertBody}>No medical history entries yet.</Text>
           ) : (
-            sum.medical_history.map((h) => (
+            (sum.medical_history ?? []).map((h) => (
               <View key={h.id} style={styles.historyEntry}>
                 <View style={styles.timelineRow}>
                   <Text style={styles.timelineDate}>
@@ -326,12 +326,12 @@ export function ScanScreen() {
                   </Text>
                   <Text style={styles.timelineText}>{h.title}</Text>
                 </View>
-                {h.medicines.length > 0 ? (
+                {(h.medicines ?? []).length > 0 ? (
                   <Text style={styles.alertBody}>
-                    {h.medicines.map((m) => (m.dose ? `${m.name} (${m.dose})` : m.name)).join(', ')}
+                    {(h.medicines ?? []).map((m) => (m.dose ? `${m.name} (${m.dose})` : m.name)).join(', ')}
                   </Text>
                 ) : null}
-                {h.files.map((file: AccessFile) => (
+                {(h.files ?? []).map((file: AccessFile) => (
                   <View key={file.id} style={styles.summaryFile}>
                     <Ionicons name={file.kind === 'report' ? 'document-text-outline' : 'medkit-outline'} size={16} color={p.accent} />
                     <View style={styles.flex}>
@@ -352,7 +352,7 @@ export function ScanScreen() {
               </View>
             ))
           )}
-          {sum.timeline.map((t, i) => (
+          {(sum.timeline ?? []).map((t, i) => (
             <View key={`${t.date}-${i}`} style={styles.timelineRow}>
               <Text style={styles.timelineDate}>{formatShortDate(t.date)}</Text>
               <Text style={styles.timelineText}>
@@ -508,7 +508,7 @@ function buildAlerts(sum: AccessSummary): { title: string; body: string }[] {
       body: `Latest recorded values are ${bp.sys} systolic and ${bp.dia} diastolic. These are unusual and may indicate an incorrect entry.`,
     });
   }
-  const weights = sum.vitals.readings.filter((r) => r.type === 'weight_kg').map((r) => r.value);
+  const weights = (sum.vitals.readings ?? []).filter((r) => r.type === 'weight_kg').map((r) => r.value);
   if (weights.length >= 2) {
     const spread = Math.max(...weights) - Math.min(...weights);
     if (spread > 5) {
