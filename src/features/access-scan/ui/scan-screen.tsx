@@ -188,6 +188,16 @@ export function ScanScreen() {
 
   if (phase.kind === 'code') {
     const trimmed = typedCode.trim();
+    // Shared by the button and the keyboard's Enter key. Does nothing while a request is running or the field is empty.
+    const submitCode = async () => {
+      if (trimmed.length === 0 || asking) return;
+      setAsking(true);
+      try {
+        await onScanned(trimmed, 'code');
+      } finally {
+        setAsking(false);
+      }
+    };
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.topRow}>
@@ -211,6 +221,9 @@ export function ScanScreen() {
             autoCorrect={false}
             placeholder="VT-1234-AB"
             placeholderTextColor={p.muted}
+            returnKeyType="send"
+            onSubmitEditing={submitCode}
+            blurOnSubmit
             style={styles.bigCodeInput}
           />
           {typedCode.length > 0 ? (
@@ -223,14 +236,7 @@ export function ScanScreen() {
           accessibilityRole="button"
           accessibilityState={{ busy: asking, disabled: trimmed.length === 0 || asking }}
           disabled={trimmed.length === 0 || asking}
-          onPress={async () => {
-            setAsking(true);
-            try {
-              await onScanned(trimmed, 'code');
-            } finally {
-              setAsking(false);
-            }
-          }}
+          onPress={submitCode}
           style={[styles.bigPrimary, (trimmed.length === 0 || asking) && styles.disabled]}>
           {asking ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="lock-open-outline" size={24} color="#FFFFFF" />}
           <Text style={styles.bigPrimaryText}>{asking ? 'Asking...' : 'Ask for access'}</Text>

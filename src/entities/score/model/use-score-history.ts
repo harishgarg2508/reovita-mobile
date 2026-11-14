@@ -1,13 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '@shared/api';
 
-import { fetchScoreHistory } from './score.api';
+import { fetchScoreHistoryPage } from './score.api';
 
-// The saved health scores over time, oldest first, for the trend graph.
+// The saved health scores, loaded a page at a time. Pages come newest first.
 export function useScoreHistory() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.score.history(),
-    queryFn: fetchScoreHistory,
+    queryFn: ({ pageParam }) => fetchScoreHistoryPage(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.has_more ? lastPage.page + 1 : undefined),
   });
 }

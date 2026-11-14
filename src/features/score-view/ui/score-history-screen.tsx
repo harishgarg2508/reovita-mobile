@@ -23,13 +23,26 @@ export function ScoreHistoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const history = useScoreHistory();
-  const entries = history.data ?? [];
+  // Pages arrive newest first. The graph needs oldest first, so the loaded scores are reversed for it.
+  const newestFirst = useMemo(() => (history.data?.pages ?? []).flatMap((page) => page.items), [history.data]);
+  const entries = useMemo(() => [...newestFirst].reverse(), [newestFirst]);
   const latest = entries.length > 0 ? entries[entries.length - 1] : null;
   const first = entries.length > 0 ? entries[0] : null;
   const change = latest && first ? latest.total - first.total : 0;
+  const loadMore = () => {
+    if (history.hasNextPage && !history.isFetchingNextPage) void history.fetchNextPage();
+  };
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16) + 8, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16) + 8, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}
+      onScroll={({ nativeEvent }) => {
+        const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+        // Load the next page when the user is within 200 px of the bottom.
+        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) loadMore();
+      }}
+      scrollEventThrottle={200}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -49,7 +62,7 @@ export function ScoreHistoryScreen() {
         <View style={styles.center}>
           <ActivityIndicator color={p.accent} />
         </View>
-      ) : history.isError ? (
+      ) : history.isError && entries.length === 0 ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Could not load your score history</Text>
           <Pressable accessibilityRole="button" onPress={() => history.refetch()} style={styles.retry}>
@@ -84,7 +97,7 @@ export function ScoreHistoryScreen() {
 
           <Text style={styles.section}>All scores</Text>
           <View style={styles.card}>
-            {[...entries].reverse().map((entry, index) => (
+            {newestFirst.map((entry, index) => (
               <View key={entry.created_at} style={[styles.item, index > 0 && styles.itemBorder]}>
                 <View style={styles.row}>
                   <View>
@@ -99,6 +112,15 @@ export function ScoreHistoryScreen() {
                 <Text style={styles.parts}>{partsLine(entry)}</Text>
               </View>
             ))}
+            {history.isFetchingNextPage ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={p.accent} />
+              </View>
+            ) : history.hasNextPage ? (
+              <Pressable accessibilityRole="button" onPress={loadMore} style={styles.moreBtn}>
+                <Text style={styles.moreText}>Load older scores</Text>
+              </Pressable>
+            ) : null}
           </View>
         </>
       )}
@@ -148,5 +170,7 @@ function makeStyles(p: Palette) {
     parts: { fontSize: 12.5, color: p.muted },
     retry: { height: 44, borderRadius: 14, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
     retryText: { color: '#FFFFFF', fontWeight: '700' },
+    moreBtn: { height: 42, borderRadius: 14, borderWidth: 1, borderColor: p.border, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+    moreText: { color: p.accent, fontWeight: '700' },
   });
 }
