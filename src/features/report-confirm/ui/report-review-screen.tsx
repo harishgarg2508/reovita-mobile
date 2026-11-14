@@ -101,7 +101,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const awaitingReport = isApiError(draft.error, 'report_processing');
   const readyStatus = useReportStatus(awaitingReport ? reportId : null);
   useEffect(() => {
-    if (readyStatus !== null && isReportReady(readyStatus)) void draft.refetch();
+    // A retake or a failure ends processing too: asking again shows the matching panel straight away.
+    if (readyStatus !== null && (isReportReady(readyStatus) || readyStatus === 'NEEDS_RETAKE' || readyStatus === 'FAILED')) {
+      void draft.refetch();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyStatus]);
   const confirm = useConfirmReport();

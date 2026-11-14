@@ -20,8 +20,10 @@ import { AppProviders } from '@app-root/providers/app-providers';
 import { AuthGuard } from '@app-root/providers/auth-guard';
 import { ThemeBridge } from '@app-root/providers/theme-provider';
 import { requestAppPermissions } from '@app-root/bootstrap/request-app-permissions';
+import { installErrorGuards } from '@app-root/bootstrap/install-error-guards';
 
 SplashScreen.preventAutoHideAsync();
+installErrorGuards();
 
 // Shown when a screen throws while rendering (for example a response with a missing field). Only that screen is
 // replaced; the app stays running, and "Try again" renders the screen again.

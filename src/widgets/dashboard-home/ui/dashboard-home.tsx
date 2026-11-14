@@ -268,6 +268,8 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   }
 
   const data = home.data;
+  // A score exists, but no lab report has added its part yet.
+  const partialScore = !!data?.health_score && data?.health_score_parts?.reports == null;
 
   return (
     <ScrollView
@@ -279,7 +281,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
       <View style={styles.header}>
         <View>
           <ReovitaLeafLogo size={32} showWordmark showTagline={false} layout="horizontal" />
-          <Text style={[styles.tagline, { color: p.muted }]}>Your Health, Our DNA</Text>
+          <Text style={[styles.tagline, { color: p.muted }]}>Your health, in one place.</Text>
         </View>
         <View style={styles.headerActions}>
           <ThemeToggle scheme={scheme} onToggle={onToggleTheme} />
@@ -351,9 +353,16 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
         </View>
         <View style={styles.heroBody}>
           <View style={styles.heroText}>
-            <Text style={[styles.heroTitle, { color: p.text }]}>{heroTitle(data?.health_score ? Number(data.health_score) : null)}</Text>
+            {/* Without lab results the score covers only lifestyle and conditions, so it is not called "healthy". */}
+            <Text style={[styles.heroTitle, { color: p.text }]}>
+              {partialScore ? 'Partial score' : heroTitle(data?.health_score ? Number(data.health_score) : null)}
+            </Text>
             <Text style={[styles.heroSub, { color: p.muted }]}>
-              {data?.health_score ? heroSubtitle(Number(data.health_score)) : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
+              {partialScore
+                ? 'Based on your lifestyle and conditions only. Add a lab report to complete it.'
+                : data?.health_score
+                  ? heroSubtitle(Number(data.health_score))
+                  : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
             </Text>
           </View>
           <ScoreRing p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} />
@@ -447,27 +456,52 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
       </Card>
       <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
         <Pressable style={styles.infoBackdrop} onPress={() => setScoreInfoOpen(false)}>
-          <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border }]} onPress={() => undefined}>
+          <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border, maxHeight: '85%' }]} onPress={() => undefined}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.infoBody}>
             <Text style={[styles.cardTitle, { color: p.text }]}>How your score is calculated</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
               Your score is the average of three parts. A part only counts once you have added its information.
+              Until a lab report is added, the score is labelled Partial, because it covers only lifestyle and conditions.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Lifestyle (starts at 100)</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Current smoker -5, former smoker -2. No exercise -3. High stress (4 or 5) -3. Poor sleep (1 or 2) -3.
+              Current smoker -15, former smoker -5. No exercise -10. Mostly sitting -5. High stress (4 or 5) -8. Poor sleep (1 or 2) -8.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Medical history (starts at 100)</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Diabetes -10, hypertension -10, heart disease -15, kidney disease -15, thyroid -5. Each condition you have is subtracted.
+              Diabetes -20, hypertension -15, heart disease -25, kidney disease -25, thyroid -10. Each condition you have is subtracted.
+              Family history and medications are saved, but they do not change the score yet.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Lab reports</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Each result scores by its status: normal 100, watch 70, high or low 40, critical 10. Results older than 12 months count half, and results older than 24 months are not counted.
+              Each result scores by its status: normal 100, watch 70, high or low 40, critical 10. Results are grouped
+              (blood count, cardiovascular, metabolic, inflammatory, thyroid, kidney, and other), and each group is averaged.
+              Results older than 12 months count half, and results older than 24 months are not counted.
+            </Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Note</Text>
+            <Text style={[styles.cardText, { color: p.muted }]}>
+              These point values are provisional and are being reviewed by a clinician. They are not a diagnosis.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Total</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              The average of the parts you have. Above 70 is green, 40 to 69 is amber, and below 40 is red.
+              The average of the parts you have.
             </Text>
+            {/* Same colours as the score ring: green 70 and above, amber 40 to 69, red below 40. */}
+            <View style={styles.legend}>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: '#1F7A3E' }]} />
+                <Text style={[styles.cardText, { color: p.muted }]}>70 and above: on track</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: '#B26A00' }]} />
+                <Text style={[styles.cardText, { color: p.muted }]}>40 to 69: needs care</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: p.red }]} />
+                <Text style={[styles.cardText, { color: p.muted }]}>Below 40: needs attention</Text>
+              </View>
+            </View>
+            </ScrollView>
             <Pressable accessibilityRole="button" onPress={() => setScoreInfoOpen(false)} style={styles.infoClose}>
               <Text style={styles.infoCloseText}>Got it</Text>
             </Pressable>
@@ -532,7 +566,11 @@ const styles = StyleSheet.create({
   partFooter: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   partStatus: { fontSize: 12, fontWeight: '700' },
   infoBackdrop: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 20 },
-  infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8 },
+  infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8, flexShrink: 1 },
+  infoBody: { gap: 8, paddingBottom: 4 },
+  legend: { gap: 6, marginTop: 2 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
   infoHead: { fontSize: 14, fontWeight: '700', marginTop: 6 },
   infoClose: { marginTop: 12, height: 46, borderRadius: 16, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
   infoCloseText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },

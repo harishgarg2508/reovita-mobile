@@ -10,6 +10,8 @@ export { useReplaceReportFile } from './model/use-replace-report-file';
 export type { ReplaceReportFileInput } from './model/use-replace-report-file';
 export { useConfirmedReport } from './model/use-confirmed-report';
 export { useReportList, fetchReportListPage } from './model/use-report-list';
+export { useReportAuditLogs } from './model/use-report-audit-logs';
+export type { ReportAuditLog, ReportAuditLogPage } from './model/use-report-audit-logs';
 export type { ReportListItem, ReportListPage } from './model/use-report-list';
 export { useReportInterpretation } from './model/use-report-interpretation';
 export { useReportStatus, isReportReady } from './model/use-report-status';

@@ -12,6 +12,7 @@ export default function ReportsLayout() {
       <Stack.Screen name="retake" options={{ headerShown: false }} />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />
       <Stack.Screen name="interpretation/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="audit/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

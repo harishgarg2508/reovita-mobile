@@ -82,7 +82,7 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       timer = setTimeout(async () => {
         // A fresh access token is needed when the old one has expired. If the refresh fails, the next attempt still goes ahead.
         await refreshSession().catch(() => null);
-        void connect();
+        connect().catch(() => undefined);
       }, delay);
       delay = Math.min(delay * 2, BACKOFF_MAX_MS);
     };
@@ -100,8 +100,12 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       }
 
       if (Platform.OS === 'web') {
+        // An abort is expected when the screen unmounts, so it is not an error and does not retry.
         readWebStream(url, token, eventName, onMessage, controller.signal)
-          .then(retryLater, () => retryLater());
+          .then(retryLater, () => {
+            if (!controller.signal.aborted) retryLater();
+          })
+          .catch(() => undefined);
         return;
       }
 
@@ -119,12 +123,21 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       });
     };
 
-    void connect();
+    connect().catch(() => undefined);
     return () => {
       closed = true;
       if (timer) clearTimeout(timer);
-      controller.abort();
-      nativeSource?.close();
+      // Cancelling the request on unmount can throw on some platforms. The stream is closed either way.
+      try {
+        controller.abort();
+      } catch {
+        // already cancelled
+      }
+      try {
+        nativeSource?.close();
+      } catch {
+        // already closed
+      }
     };
   }, [url, eventName]);
 }

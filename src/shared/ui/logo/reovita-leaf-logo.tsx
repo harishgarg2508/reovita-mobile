@@ -62,7 +62,7 @@ export function ReovitaLeafLogo({
   return (
     <View
       accessibilityRole="image"
-      accessibilityLabel="Reovita - Your Health, Our DNA"
+      accessibilityLabel="Reovita - Your health, in one place."
       style={[styles.container, isRow ? styles.rowContainer : styles.colContainer]}>
       {/* Brand emblem: the official Reovita logo from shared/assets */}
       <Image
@@ -100,7 +100,7 @@ export function ReovitaLeafLogo({
                   color: taglineColor ?? palette.muted,
                 },
               ]}>
-              Your Health, Our DNA
+              Your health, in one place.
             </Text>
           )}
         </View>

@@ -11,3 +11,4 @@ export type { UploadReportInput, UploadReportResult } from './model/use-upload-r
 export { UploadScreen } from './ui/upload-screen';
 export { RetakePhotoScreen } from './ui/retake-photo-screen';
 export { ReportsListScreen } from './ui/reports-list-screen';
+export { ReportAuditScreen } from './ui/report-audit-screen';

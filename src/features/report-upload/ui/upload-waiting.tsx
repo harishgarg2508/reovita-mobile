@@ -15,12 +15,11 @@ export function UploadWaiting({ reportId, onLater }: { reportId: string; onLater
   const status = useReportStatus(reportId);
 
   useEffect(() => {
-    if (isReportReady(status)) {
+    // Ready, or needing action (a retake or a failure): the report screen shows the right panel for each.
+    if (isReportReady(status) || status === 'NEEDS_RETAKE' || status === 'FAILED') {
       router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
     }
   }, [status, reportId, router]);
-
-  const needsAction = status === 'NEEDS_RETAKE' || status === 'FAILED';
 
   return <ReportProcessingPanel onLater={onLater} />;
 }
