@@ -17,6 +17,8 @@ export function useSaveStep() {
       return data;
     },
     onSuccess: () => {
+      // The saved values of every step are read again, so the profile shows the update straight away.
+      queryClient.invalidateQueries({ queryKey: ['onboarding', 'step'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.profile.root });
       queryClient.invalidateQueries({ queryKey: queryKeys.home.root });
     },

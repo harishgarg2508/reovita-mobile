@@ -1,5 +1,6 @@
 import type { BasicsDraft, HistoryDraft, LifestyleDraft, OnboardingSex } from '@entities/onboarding';
 import { FAMILY_CONDITION_LABELS } from './family-conditions';
+import { joinOtherConditions, OTHER_LABEL, splitOtherConditions } from './other-conditions';
 
 // Turns the values the server saved for a step (GET /v1/onboarding/steps/{step}) into the shape the step
 // forms keep in their drafts. Null or missing values are left out, so the form shows them as not filled yet.
@@ -41,12 +42,16 @@ export function historyFromSaved(saved: Saved): Partial<HistoryDraft> {
   const family = (saved.family_history as { relation: string; condition: string }[] | undefined) ?? [];
   const medications = (saved.medications as { name: string | null }[] | undefined) ?? [];
 
-  // 'other' is free text, shown in the Other box. Every other tag becomes its chip label.
+  // Every tag becomes its chip label. The free text of 'other' holds the typed conditions; when there are any,
+  // the Other chip is selected too, so its field and chips are shown.
   const conditionLabels = conditions
     .filter((c) => c.tag !== 'other')
     .map((c) => TAG_LABEL[c.tag] ?? null)
     .filter((label): label is string => label !== null);
-  const other = conditions.find((c) => c.tag === 'other')?.free_text ?? '';
+  const other = joinOtherConditions(splitOtherConditions(conditions.find((c) => c.tag === 'other')?.free_text ?? ''));
+  if (other) conditionLabels.push(OTHER_LABEL);
+  // The block was saved with no conditions: the user answered "None".
+  if (conditionLabels.length === 0 && saved.conditions_answered === true) conditionLabels.push('None');
 
   // The server stores family conditions as tags (diabetes); the picker shows their labels (Diabetes).
   const byRelation = (relation: string) =>

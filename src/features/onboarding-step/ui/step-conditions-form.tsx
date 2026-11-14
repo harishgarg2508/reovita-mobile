@@ -13,13 +13,14 @@ import { tapSelection } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 
 import { FAMILY_CONDITION_OPTIONS, FAMILY_TAG_BY_LABEL } from '../model/family-conditions';
+import { joinOtherConditions, OTHER_LABEL, splitOtherConditions } from '../model/other-conditions';
 import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 
-const INITIAL_CONDITIONS = ['Asthma', 'Diabetes', 'Hypertension', 'Thyroid', 'None'];
-const EXTRA_CONDITIONS = ['PCOS', 'Allergies', 'Migraine', 'Arthritis', 'Cholesterol', 'Anxiety', 'GERD', 'Heart Disease', 'Kidney Disease'];
+// The chips match the server's condition tags one to one. 'Other' opens a field for conditions typed by the user.
+const CONDITION_CHIPS = ['Diabetes', 'Hypertension', 'Thyroid', 'Heart Disease', 'Kidney Disease', OTHER_LABEL, 'None'];
 
-// Server tags for the conditions that have one. Other labels are sent as 'other' with the label as free text.
+// Server tags for the chips. Typed conditions are sent together as one 'other' item with the names as free text.
 const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'cvd' | 'ckd'> = {
   Diabetes: 'diabetes',
   Hypertension: 'hypertension',
@@ -27,6 +28,9 @@ const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'c
   'Heart Disease': 'cvd',
   'Kidney Disease': 'ckd',
 };
+
+const OTHER_NAME_MAX = 50;
+const OTHER_TEXT_MAX = 500; // the server limit for the free text of one condition
 
 const MEDICATION_SUGGESTIONS = [
   'Salbutamol',
@@ -71,8 +75,10 @@ export function StepConditionsForm({
   const siblingConditions = draft.sibling;
   const wifeConditions = draft.wife;
 
-  // Open the full list when a saved condition is only in it, so the saved choice is visible.
-  const [showMoreConditions, setShowMoreConditions] = useState(() => draft.conditions.some((c) => EXTRA_CONDITIONS.includes(c)));
+  // The Other field and its chips are shown only while the Other chip is selected.
+  const otherSelected = selectedConditions.includes(OTHER_LABEL);
+  const otherNames = splitOtherConditions(otherText);
+  const [otherQuery, setOtherQuery] = useState('');
   const [medQuery, setMedQuery] = useState('');
   const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
   const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);
@@ -88,23 +94,22 @@ export function StepConditionsForm({
       ...familyFor('sibling', siblingConditions),
       ...familyFor('wife', wifeConditions),
     ];
-    // Only the 'other' condition carries the typed text. Empty text is not sent, so the server clears it.
-    const typedOther = otherText.trim();
+    // Chips with a server tag are sent as that tag. The typed names go together in one 'other' item,
+    // and only while the Other chip is selected.
     const conditionItems: { tag: string; free_text?: string }[] = selectedConditions
-      .filter((c) => c !== 'None')
-      .map((label) => {
-        const tag = CONDITION_TAG[label];
-        if (tag) return { tag };
-        return { tag: 'other', free_text: [label, typedOther].filter(Boolean).join(': ') };
-      });
-    if (typedOther && !conditionItems.some((item) => item.tag === 'other')) {
-      conditionItems.push({ tag: 'other', free_text: typedOther });
+      .map((label) => CONDITION_TAG[label])
+      .filter((tag): tag is (typeof CONDITION_TAG)[string] => Boolean(tag))
+      .map((tag) => ({ tag }));
+    if (otherSelected && otherNames.length > 0) {
+      conditionItems.push({ tag: 'other', free_text: joinOtherConditions(otherNames) });
     }
 
     onChange({
-      conditions: conditionItems.length > 0 ? { items: conditionItems } : undefined,
+      // Sent whenever a chip is selected. "None" sends an empty list, which removes the conditions saved before.
+      conditions: selectedConditions.length > 0 ? { items: conditionItems } : undefined,
       medications: selectedMeds.length > 0 ? selectedMeds.map((name) => ({ name })) : undefined,
-      family_history: familyItems.length > 0 ? { items: familyItems } : undefined,
+      // Always sent once the step has loaded, so an empty list clears entries the user removed (for example "None").
+      family_history: { items: familyItems },
     });
   }, [draft, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -117,10 +122,36 @@ export function StepConditionsForm({
       const withoutNone = selectedConditions.filter((c) => c !== 'None');
       next = withoutNone.includes(item) ? withoutNone.filter((c) => c !== item) : [...withoutNone, item];
     }
-    patchDraft({ conditions: next });
+    // Turning Other off (or choosing None) also removes the typed conditions.
+    if (next.includes(OTHER_LABEL)) {
+      patchDraft({ conditions: next });
+    } else {
+      setOtherQuery('');
+      patchDraft({ conditions: next, otherText: '' });
+    }
   };
 
-  const handleOtherTextChange = (text: string) => patchDraft({ otherText: text });
+  // Turns the typed text into chips. Commas separate several names; a name already added is skipped.
+  const addOtherConditions = (text: string) => {
+    const typed = splitOtherConditions(text).map((name) => name.slice(0, OTHER_NAME_MAX));
+    setOtherQuery('');
+    if (typed.length === 0) return;
+    let names = otherNames;
+    for (const name of typed) {
+      const candidate = splitOtherConditions(joinOtherConditions([...names, name]));
+      if (joinOtherConditions(candidate).length > OTHER_TEXT_MAX) break;
+      names = candidate;
+    }
+    if (names.length !== otherNames.length) {
+      tapSelection();
+      patchDraft({ otherText: joinOtherConditions(names) });
+    }
+  };
+
+  const removeOtherCondition = (name: string) => {
+    tapSelection();
+    patchDraft({ otherText: joinOtherConditions(otherNames.filter((n) => n !== name)) });
+  };
 
   const addMedication = (name: string) => {
     const trimmed = name.trim();
@@ -158,10 +189,6 @@ export function StepConditionsForm({
     patchDraft(patch);
   };
 
-  const visibleConditionsList = showMoreConditions
-    ? [...INITIAL_CONDITIONS.filter((c) => c !== 'None'), ...EXTRA_CONDITIONS, 'None']
-    : INITIAL_CONDITIONS;
-
   const filteredMeds = MEDICATION_SUGGESTIONS.filter(
     (m) =>
       m.toLowerCase().includes(medQuery.toLowerCase()) &&
@@ -174,7 +201,7 @@ export function StepConditionsForm({
       <View style={[styles.section, missing.includes('conditions') && styles.blockError]} onLayout={(e) => onFieldLayout?.('conditions', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Conditions</Text>
         <View style={styles.chipsWrap}>
-          {visibleConditionsList.map((item) => {
+          {CONDITION_CHIPS.map((item) => {
             const isSelected = selectedConditions.includes(item);
             return (
               <Pressable
@@ -192,37 +219,56 @@ export function StepConditionsForm({
               </Pressable>
             );
           })}
-          {!showMoreConditions && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Show more conditions"
-              onPress={() => {
-                tapSelection();
-                setShowMoreConditions(true);
-              }}
-              style={styles.moreChip}>
-              <Text style={styles.moreChipText}>+ More</Text>
-            </Pressable>
-          )}
         </View>
       </View>
 
-      {/* 2. Other Notes Section */}
-      <View style={styles.section} onLayout={(e) => onFieldLayout?.('other', e.nativeEvent.layout.y)}>
-        <Text style={styles.sectionLabel}>Other</Text>
-        <View style={styles.otherCard}>
-          <TextInput
-            multiline
-            maxLength={500}
-            value={otherText}
-            onChangeText={handleOtherTextChange}
-            placeholder="Anything else to add?"
-            placeholderTextColor="#9185AA"
-            style={styles.otherInput}
-          />
-          <Text style={styles.charCount}>{otherText.length} / 500</Text>
+      {/* 2. Other conditions: shown only while the Other chip is selected. Each typed name becomes a chip. */}
+      {otherSelected ? (
+        <View style={styles.section} onLayout={(e) => onFieldLayout?.('other', e.nativeEvent.layout.y)}>
+          <Text style={styles.sectionLabel}>Other</Text>
+          {otherNames.length > 0 && (
+            <View style={styles.selectedMedsWrap}>
+              {otherNames.map((name) => (
+                <Pressable
+                  key={name}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${name}`}
+                  onPress={() => removeOtherCondition(name)}
+                  style={styles.medTag}>
+                  <Text style={styles.medTagText}>{name}</Text>
+                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <View style={styles.medSearchBar}>
+            <TextInput
+              autoFocus={otherNames.length === 0}
+              value={otherQuery}
+              onChangeText={setOtherQuery}
+              maxLength={OTHER_NAME_MAX}
+              placeholder="Type a condition and press enter"
+              placeholderTextColor="#9185AA"
+              returnKeyType="done"
+              blurOnSubmit={false}
+              onSubmitEditing={() => addOtherConditions(otherQuery)}
+              // A name typed but not entered is still kept when the user moves on.
+              onBlur={() => addOtherConditions(otherQuery)}
+              style={styles.medSearchInput}
+            />
+            {otherQuery.trim().length > 0 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add condition"
+                onPress={() => addOtherConditions(otherQuery)}
+                hitSlop={8}
+                style={styles.dropdownChevron}>
+                <Ionicons name="add" size={18} color="#1F6F3F" />
+              </Pressable>
+            )}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       {/* Closes the medication suggestions when the user taps anywhere else in the form. */}
       {medsDropdownOpen ? (
@@ -237,6 +283,23 @@ export function StepConditionsForm({
       <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
         <View style={styles.medsBox}>
+          {/* Selected medicines: always visible above the search, so the dropdown never hides them. Tap one to remove it. */}
+          {selectedMeds.length > 0 && (
+            <View style={styles.selectedMedsWrap}>
+              {selectedMeds.map((med) => (
+                <Pressable
+                  key={med}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${med}`}
+                  onPress={() => removeMedication(med)}
+                  style={styles.medTag}>
+                  <Text style={styles.medTagText}>{med}</Text>
+                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           {/* Search bar */}
           <View style={styles.medSearchBar}>
             <Ionicons name="search-outline" size={18} color="#9185AA" style={styles.searchIcon} />
@@ -292,22 +355,6 @@ export function StepConditionsForm({
             </ScrollView>
           )}
 
-          {/* Selected Medication Tags */}
-          {selectedMeds.length > 0 && (
-            <View style={styles.selectedMedsWrap}>
-              {selectedMeds.map((med) => (
-                <Pressable
-                  key={med}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${med}`}
-                  onPress={() => removeMedication(med)}
-                  style={styles.medTag}>
-                  <Text style={styles.medTagText}>{med}</Text>
-                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
-                </Pressable>
-              ))}
-            </View>
-          )}
         </View>
       </View>
 
@@ -503,48 +550,6 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     fontFamily: 'Poppins_500Medium',
     color: '#2E4D00',
-  },
-  moreChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E5E0EC',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moreChipText: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
-    color: '#655F74',
-  },
-
-  /* Other Card */
-  otherCard: {
-    borderWidth: 1,
-    borderColor: '#E5E0EC',
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    minHeight: 100,
-    justifyContent: 'space-between',
-  },
-  otherInput: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    color: '#242032',
-    lineHeight: 18,
-    minHeight: 52,
-    textAlignVertical: 'top',
-    padding: 0,
-  },
-  charCount: {
-    alignSelf: 'flex-end',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 11,
-    color: '#9185AA',
-    marginTop: 4,
   },
 
   /* Meds Box */

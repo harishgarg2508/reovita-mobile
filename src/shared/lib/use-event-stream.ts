@@ -24,6 +24,9 @@ async function readWebStream(
 ): Promise<void> {
   const res = await fetch(url, {
     headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    // Same session as every other API call: after a page reload the web build has no token in memory and is signed in
+    // by the HttpOnly cookie set at login, so the cookie must be sent here too.
+    credentials: 'include',
     signal,
   });
   if (!res.ok || !res.body) throw new Error(`stream responded ${res.status}`);
@@ -79,14 +82,22 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       timer = setTimeout(async () => {
         // A fresh access token is needed when the old one has expired. If the refresh fails, the next attempt still goes ahead.
         await refreshSession().catch(() => null);
-        connect();
+        void connect();
       }, delay);
       delay = Math.min(delay * 2, BACKOFF_MAX_MS);
     };
 
-    const connect = () => {
+    const connect = async () => {
       if (closed) return;
-      const token = getAccessToken();
+      let token = getAccessToken();
+      // The access token is kept in memory only, so it is missing right after the app starts.
+      // On a phone, get one from the stored refresh token before opening the stream. The web build has no stored
+      // refresh token: it is signed in by the session cookie, which readWebStream sends.
+      if (!token && Platform.OS !== 'web') {
+        const session = await refreshSession().catch(() => null);
+        if (closed) return;
+        token = session?.access_token ?? getAccessToken();
+      }
 
       if (Platform.OS === 'web') {
         readWebStream(url, token, eventName, onMessage, controller.signal)
@@ -108,7 +119,7 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       });
     };
 
-    connect();
+    void connect();
     return () => {
       closed = true;
       if (timer) clearTimeout(timer);

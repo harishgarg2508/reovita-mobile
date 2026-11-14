@@ -16,7 +16,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { isReportReady, useConfirmedReport, useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
+import {
+  interpretationErrorMessage,
+  isReportReady,
+  useConfirmedReport,
+  useReportDraft,
+  useReportInterpretation,
+  useReportState,
+  useReportStatus,
+} from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError } from '@shared/api';
 import { ReportProcessingPanel } from '@shared/ui/processing-panel';
@@ -109,6 +117,9 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const storedInterpretation = useReportInterpretation(reportId, { enabled: draft.isSuccess || !!confirmed.data });
   // The status stream says DONE once the interpretation is saved, so View appears without waiting for a reload.
   const liveStatus = useReportStatus(reportId);
+  // Why the last analysis did not finish, shown above the results so the user knows what to do next.
+  const reportState = useReportState(reportId, liveStatus);
+  const failureNote = liveStatus === 'INTERPRETING' ? null : interpretationErrorMessage(reportState.data?.interpretation_error ?? null);
   // INTERPRETING counts too: View opens the analysis as it is written. Opening it does not start another run.
   const hasInterpretation = storedInterpretation.isSuccess || liveStatus === 'INTERPRETING' || liveStatus === 'DONE';
   const [interpreting, setInterpreting] = useState(false);
@@ -410,6 +421,12 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         <Text style={styles.readyTitle}>Your Report is Ready!</Text>
         <Text style={styles.readySubtitle}>{"Here's what your results mean."}</Text>
 
+        {failureNote ? (
+          <View style={styles.failureNote} accessibilityRole="alert">
+            <Text style={styles.failureNoteText}>{failureNote}</Text>
+          </View>
+        ) : null}
+
         {/* "All Normal" Soft Lime Pill */}
         <View style={styles.allNormalPill}>
           <View style={styles.allNormalDot}>
@@ -635,6 +652,8 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 }
 
 const styles = StyleSheet.create({
+  failureNote: { marginTop: 12, marginHorizontal: 20, padding: 14, borderRadius: 16, backgroundColor: '#FFF4E0', borderWidth: 1, borderColor: '#F3D9A4' },
+  failureNoteText: { fontSize: 13.5, lineHeight: 19, color: '#7A4A00' },
   aiLoadingHalo: {
     width: 160,
     height: 160,

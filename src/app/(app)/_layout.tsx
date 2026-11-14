@@ -72,7 +72,8 @@ export default function AppLayout() {
       }}>
       {/* Bottom-dock tabs draw their own chrome. */}
       <Drawer.Screen name="(tabs)" options={{ headerShown: false, drawerLabel: 'Home' }} />
-      <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score' }} />
+      {/* The score history draws its own header with a back button. */}
+      <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score', headerShown: false }} />
       {/* The briefing draws its own header with a back button, so the drawer header is hidden here. */}
       <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings', headerShown: false }} />
       <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />

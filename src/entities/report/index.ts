@@ -13,6 +13,7 @@ export { useReportList, fetchReportListPage } from './model/use-report-list';
 export type { ReportListItem, ReportListPage } from './model/use-report-list';
 export { useReportInterpretation } from './model/use-report-interpretation';
 export { useReportStatus, isReportReady } from './model/use-report-status';
+export { useReportState, interpretationErrorMessage } from './model/use-report-state';
 export type { ReportProcessingStatus } from './model/use-report-status';
 export { healthStatusOf } from './ui/status-tag-for';
 export { useDeleteReport } from './model/use-delete-report';

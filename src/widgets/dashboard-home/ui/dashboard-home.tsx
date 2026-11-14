@@ -333,9 +333,21 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
             <Ionicons name="pulse" size={16} color={BRAND_GREEN} />
             <Text style={[styles.heroPillText, { color: BRAND_GREEN }]}>Health Score</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
-            <Ionicons name="information-circle-outline" size={22} color={p.muted} />
-          </Pressable>
+          <View style={styles.heroActions}>
+            {/* Opens the score history: the trend graph and every saved score. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Score history"
+              onPress={() => router.push('/(app)/health-score')}
+              hitSlop={8}
+              style={[styles.historyPill, { borderColor: p.border }]}>
+              <Ionicons name="stats-chart" size={14} color={BRAND_GREEN} />
+              <Text style={[styles.historyPillText, { color: BRAND_GREEN }]}>History</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
+              <Ionicons name="information-circle-outline" size={22} color={p.muted} />
+            </Pressable>
+          </View>
         </View>
         <View style={styles.heroBody}>
           <View style={styles.heroText}>
@@ -506,6 +518,9 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   heroPillText: { fontSize: 13, fontWeight: '700' },
+  heroActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  historyPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1 },
+  historyPillText: { fontSize: 12.5, fontWeight: '700' },
   heroBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   heroText: { flex: 1, gap: 8 },
   heroTitle: { fontSize: 22, fontWeight: '800' },

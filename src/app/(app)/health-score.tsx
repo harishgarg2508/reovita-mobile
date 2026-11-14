@@ -1,6 +1,5 @@
-// Route placeholder. Replace with the screen.
-import { View } from 'react-native';
+import { ScoreHistoryScreen } from '@features/score-view';
 
-export default function Screen() {
-  return <View />;
+export default function HealthScoreRoute() {
+  return <ScoreHistoryScreen />;
 }
