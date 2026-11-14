@@ -59,6 +59,8 @@ export function MeasurementEntryScreen() {
     setBad({ sys: !sysOk, dia: !diaOk });
     if (!sysOk || !diaOk) {
       setError(`Enter a top number from ${RANGE.sys.min} to ${RANGE.sys.max} and a bottom number from ${RANGE.dia.min} to ${RANGE.dia.max}.`);
+      // Open the allowed-values info so the user sees the ranges right away.
+      setInfoOpen(true);
       return;
     }
     const sys = Number(systolic);

@@ -61,7 +61,14 @@ export function NotificationCenter() {
           disabled={!hasUnread || markAll.isPending}
           onPress={() => markAll.mutate()}
           style={styles.allReadBtn}>
-          <Text style={[styles.markAll, { color: p.accent }, !hasUnread && styles.disabled]}>All read</Text>
+          {markAll.isPending ? (
+            <View style={styles.inlineRow}>
+              <ActivityIndicator size="small" color={p.accent} />
+              <Text style={[styles.markAll, { color: p.accent }]}>Marking...</Text>
+            </View>
+          ) : (
+            <Text style={[styles.markAll, { color: p.accent }, !hasUnread && styles.disabled]}>All read</Text>
+          )}
         </Pressable>
       </View>
 
@@ -121,6 +128,7 @@ const styles = StyleSheet.create({
   allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#171717' },
   markAll: { fontSize: 13, fontWeight: '600', color: '#1F6F3F' },
+  inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   disabled: { color: '#B8B3C7' },
   list: { paddingHorizontal: 24, paddingTop: 4 },
   separator: { height: 12 },

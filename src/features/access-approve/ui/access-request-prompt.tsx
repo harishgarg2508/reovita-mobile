@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette, type Palette } from '@shared/ui/theme';
 
@@ -27,14 +27,22 @@ export function AccessRequestPrompt() {
               disabled={decide.isPending}
               onPress={() => next && decide.mutate({ id: next.id, allow: false })}
               style={[styles.btn, styles.deny]}>
-              <Text style={styles.denyText}>Deny</Text>
+              {decide.isPending && decide.variables?.allow === false ? (
+                <ActivityIndicator color="#C22F43" />
+              ) : (
+                <Text style={styles.denyText}>Deny</Text>
+              )}
             </Pressable>
             <Pressable
               accessibilityRole="button"
               disabled={decide.isPending}
               onPress={() => next && decide.mutate({ id: next.id, allow: true })}
               style={[styles.btn, styles.allow]}>
-              <Text style={styles.allowText}>Allow</Text>
+              {decide.isPending && decide.variables?.allow === true ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.allowText}>Allow</Text>
+              )}
             </Pressable>
           </View>
         </View>

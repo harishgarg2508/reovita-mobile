@@ -7,6 +7,11 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
+import { API_URL } from '@shared/config/environment';
+import { useEventStream } from '@shared/lib';
+
+// The subject has this long to answer (the server's decision window, plus a short margin).
+const DECISION_WAIT_MS = 62_000;
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { fetchAccessStatus, fetchAccessSummary, openAccessFile, requestAccess, type AccessFile, type AccessSummary } from '../model/access-api';
@@ -59,6 +64,13 @@ export function ScanScreen() {
     }
   }
   const [typedCode, setTypedCode] = useState('');
+  // Opening the code screen always starts empty: the previous code is cleared when ?code=true is set again.
+  useEffect(() => {
+    if (params.code === 'true') {
+      setTypedCode('');
+      setCodeError(null);
+    }
+  }, [params.code]);
   // An error for the typed code, shown under the field so the user can correct it.
   const [codeError, setCodeError] = useState<string | null>(null);
   // True while the access request for a typed code is being sent, so the button shows a loader.
@@ -67,29 +79,49 @@ export function ScanScreen() {
 
   // While waiting, check the answer every 2 seconds.
   useEffect(() => {
+    // The answer arrives on the viewer stream (below). This one check covers an answer given before the stream connected,
+    // and the request's time limit ends the wait if nobody answers.
     if (phase.kind !== 'waiting') return;
     const id = phase.id;
-    const timer = setInterval(async () => {
-      try {
-        const { status } = await fetchAccessStatus(id);
-        if (status === 'approved') {
-          clearInterval(timer);
-          const summary = await fetchAccessSummary(id);
-          setPhase({ kind: 'summary', summary, requestId: id });
-        } else if (status === 'denied') {
-          clearInterval(timer);
-          setPhase({ kind: 'denied' });
-        } else if (status === 'expired') {
-          clearInterval(timer);
-          setPhase({ kind: 'message', text: 'No answer in time. Scan again to ask once more.' });
-        }
-      } catch {
-        clearInterval(timer);
-        setPhase({ kind: 'message', text: 'Could not check the request. Try again.' });
-      }
-    }, 2000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    fetchAccessStatus(id)
+      .then(({ status }) => {
+        if (!cancelled && status !== 'pending') void applyStatus(id, status);
+      })
+      .catch(() => undefined);
+    const expiry = setTimeout(() => {
+      if (!cancelled) void applyStatus(id, 'expired');
+    }, DECISION_WAIT_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(expiry);
+    };
   }, [phase]);
+
+  // Turns a final status for the request being waited on into the next screen.
+  async function applyStatus(id: string, status: 'approved' | 'denied' | 'expired') {
+    if (status === 'approved') {
+      try {
+        const summary = await fetchAccessSummary(id);
+        setPhase({ kind: 'summary', summary, requestId: id });
+      } catch {
+        setPhase({ kind: 'message', text: 'Could not load the summary. Try again.' });
+      }
+    } else if (status === 'denied') {
+      setPhase({ kind: 'denied' });
+    } else if (status === 'expired') {
+      setPhase({ kind: 'message', text: 'No answer in time. Scan again to ask once more.' });
+    }
+  }
+
+  // The viewer's live stream: the subject's answer is pushed here as soon as it is given.
+  useEventStream<{ id: string; status: 'approved' | 'denied' }>(
+    phase.kind === 'waiting' ? `${API_URL}/v1/access-requests/viewer-stream` : null,
+    'decision',
+    (decision) => {
+      if (phase.kind === 'waiting' && phase.id === decision.id) void applyStatus(decision.id, decision.status);
+    },
+  );
 
   async function onScanned(data: string, source: 'qr' | 'code' = 'qr') {
     if (busy.current) return;

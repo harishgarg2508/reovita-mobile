@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,7 +50,7 @@ const PERMISSIONS: { type: ConsentType; title: string; body: string; icon: keyof
 
 // Profile tab: the subject's code, the permissions, and log out. Colours come from the theme palette,
 // so the page follows light and dark mode.
-export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
+export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () => void; signingOut?: boolean }) {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -176,9 +176,20 @@ export function ProfilePanel({ onSignOut }: { onSignOut: () => void }) {
         )}
         {subject.isError ? <Text style={styles.error}>Could not load your code. Reopen this tab to try again.</Text> : null}
 
-        <Pressable accessibilityRole="button" onPress={onSignOut} style={styles.logout}>
-          <Ionicons name="log-out-outline" size={18} color={p.red} />
-          <Text style={styles.logoutText}>Log out</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ busy: signingOut, disabled: signingOut }}
+          disabled={signingOut}
+          onPress={onSignOut}
+          style={[styles.logout, signingOut && { opacity: 0.6 }]}>
+          {signingOut ? (
+            <ActivityIndicator size="small" color={p.red} />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={18} color={p.red} />
+              <Text style={styles.logoutText}>Log out</Text>
+            </>
+          )}
         </Pressable>
       </View>
 

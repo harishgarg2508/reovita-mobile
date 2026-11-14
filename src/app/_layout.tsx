@@ -14,6 +14,7 @@ import { Stack } from 'expo-router';
 import { usePalette } from '@shared/ui/theme';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { AppProviders } from '@app-root/providers/app-providers';
 import { AuthGuard } from '@app-root/providers/auth-guard';
@@ -21,6 +22,23 @@ import { ThemeBridge } from '@app-root/providers/theme-provider';
 import { requestAppPermissions } from '@app-root/bootstrap/request-app-permissions';
 
 SplashScreen.preventAutoHideAsync();
+
+// Shown when a screen throws while rendering (for example a response with a missing field). Only that screen is
+// replaced; the app stays running, and "Try again" renders the screen again.
+export function ErrorBoundary({ retry }: { error: Error; retry: () => void }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#FFFFFF' }}>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F1A2E', textAlign: 'center' }}>This screen could not be shown</Text>
+      <Text style={{ fontSize: 14, color: '#5B5470', textAlign: 'center', marginTop: 8 }}>The rest of the app still works.</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={retry}
+        style={{ marginTop: 20, height: 46, paddingHorizontal: 24, borderRadius: 14, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   // Icon fonts load on first use. Preload them here and ignore failures, so a slow icon font

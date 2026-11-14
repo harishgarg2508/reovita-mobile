@@ -1,29 +1,37 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
 
 import { Brand, Radius, Type } from '../theme/tokens';
 
 interface ButtonProps extends Omit<PressableProps, 'children'> {
   label: string;
   variant?: 'primary' | 'secondary' | 'ghost';
+  // While the action runs: shows a spinner in place of the label and blocks a second tap.
+  loading?: boolean;
 }
 
 // One button style per variant. Pressed state scales slightly so taps feel responsive.
-export function Button({ label, variant = 'primary', disabled, style, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'primary', disabled, loading = false, style, ...rest }: ButtonProps) {
+  const off = disabled || loading;
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ busy: loading, disabled: off }}
+      disabled={off}
       style={({ pressed }) => [
         styles.base,
         variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
+        off && styles.disabled,
+        pressed && !off && styles.pressed,
         typeof style === 'function' ? undefined : style,
       ]}
       {...rest}>
-      <Text style={[styles.label, variant === 'primary' ? styles.labelOnPrimary : styles.labelDark]}>{label}</Text>
+      {loading ? (
+        <ActivityIndicator color={variant === 'primary' ? '#FFFFFF' : Brand.ink} />
+      ) : (
+        <Text style={[styles.label, variant === 'primary' ? styles.labelOnPrimary : styles.labelDark]}>{label}</Text>
+      )}
     </Pressable>
   );
 }

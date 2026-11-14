@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
+import { Skeleton } from '@shared/ui/skeleton';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { entryStamp, openMedicalHistoryFile, type MedicalHistoryEntry, type MedicalHistoryFile } from '../model/medical-history.api';
@@ -33,6 +34,12 @@ export function MedicalHistoryList() {
 
   return (
     <View style={styles.wrap}>
+      {list.isPending ? (
+        <View style={styles.wrap}>
+          <Skeleton height={96} />
+          <Skeleton height={96} />
+        </View>
+      ) : null}
       {latest ? (
         <EntryCard entry={latest} label="Latest" styles={styles} defaultOpen onEdit={() => openEdit(latest)} onDelete={() => setPendingDelete(latest)} />
       ) : null}
