@@ -10,21 +10,33 @@ import {
   REGISTER,
   REHYDRATE,
   createMigrate,
+  createTransform,
 } from 'redux-persist';
 
 import { consentReducer } from '@/entities/consent';
-import { onboardingReducer } from '@/entities/onboarding';
+import { interactionAlertReducer } from '@/entities/interaction-finding';
+import { onboardingReducer, type HistoryDraft } from '@/entities/onboarding';
 import { preferencesReducer } from '@/entities/preferences';
 import { sessionReducer } from '@/entities/session';
 import { pendingUploadsReducer } from '@/features/report-upload';
 
 // The session is not saved on the device. It is restored from the refresh token and confirmed with the server.
 // Onboarding form values survive app restarts.
+// The medicine list is health data and stays in memory: it is left out of what is written to device storage,
+// and the step reads it back from the server when it opens.
+const withoutMedications = createTransform<HistoryDraft, HistoryDraft>(
+  (history) => ({ ...history, medications: [] }),
+  (history) => ({ ...history, medications: [] }),
+  { whitelist: ['history'] },
+);
+
 const persistedOnboardingReducer = persistReducer(
   {
     key: 'onboarding',
     storage: AsyncStorage,
-    version: 5,
+    version: 6,
+    transforms: [withoutMedications],
+    // v6 drops medicine lists that older versions saved on the device. Older drafts are reset.
     // v5 adds the wife family relation. Older drafts are reset.
     // v4 adds occupation and activity level to the lifestyle step. Older drafts are reset.
     // v2 changed the history draft shape, and v3 removes the sample step-2 selections.
@@ -46,6 +58,10 @@ const persistedOnboardingReducer = persistReducer(
         ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v5' }),
         _persist: state?._persist ?? { version: 5, rehydrated: true },
       }),
+      6: (state) => ({
+        ...onboardingReducer(undefined, { type: '@@onboarding/migrate-v6' }),
+        _persist: state?._persist ?? { version: 6, rehydrated: true },
+      }),
     }),
   },
   onboardingReducer,
@@ -61,6 +77,7 @@ const persistedConsentReducer = persistReducer(
 const rootReducer = combineReducers({
   session: sessionReducer,
   pendingUploads: pendingUploadsReducer,
+  interactionAlert: interactionAlertReducer,
   preferences: preferencesReducer,
   consent: persistedConsentReducer,
   onboarding: persistedOnboardingReducer,

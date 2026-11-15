@@ -1,6 +1,5 @@
-// Route placeholder. Replace with the screen.
-import { View } from 'react-native';
+import { InteractionScreen } from '@features/interaction-view';
 
-export default function Screen() {
-  return <View />;
+export default function MedicationInteractionsRoute() {
+  return <InteractionScreen />;
 }

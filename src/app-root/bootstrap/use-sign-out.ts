@@ -8,7 +8,7 @@ import { consentFlowReset } from '@entities/consent';
 import { onboardingDraftsReset } from '@entities/onboarding';
 import { sessionCleared } from '@entities/session';
 import { api, signOutLocally } from '@shared/api';
-import { clearRefreshToken } from '@shared/lib';
+import { clearRefreshToken, getRefreshToken } from '@shared/lib';
 
 // Signs the user out everywhere on this device:
 // server session cookie, stored refresh token, in-memory access token,
@@ -20,8 +20,10 @@ export function useSignOut() {
 
   return useCallback(async () => {
     // The server clears the HttpOnly access-token cookie. A failure here must not block sign-out.
+    // The refresh token is sent so the server ends this sign-in too, not only the cookie.
     try {
-      await api.post('/v1/auth/logout');
+      const refreshToken = await getRefreshToken();
+      await api.post('/v1/auth/logout', { refresh_token: refreshToken ?? undefined });
     } catch {
       // Ignored: the local state is cleared below either way.
     }

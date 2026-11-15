@@ -1,3 +1,4 @@
+import { newId } from '@shared/lib';
 import type { BasicsDraft, HistoryDraft, LifestyleDraft, OnboardingSex } from '@entities/onboarding';
 import { FAMILY_CONDITION_LABELS } from './family-conditions';
 import { joinOtherConditions, OTHER_LABEL, splitOtherConditions } from './other-conditions';
@@ -15,6 +16,14 @@ const TAG_LABEL: Record<string, string> = {
 };
 
 type Saved = Record<string, unknown>;
+
+interface SavedMedication {
+  id?: string;
+  name: string | null;
+  dose: string | null;
+  schedule_times?: string[];
+  ingredient_ids?: string[];
+}
 
 const num = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -40,7 +49,7 @@ export function basicsFromSaved(saved: Saved): Partial<BasicsDraft> {
 export function historyFromSaved(saved: Saved): Partial<HistoryDraft> {
   const conditions = (saved.conditions as { tag: string; free_text: string | null }[] | undefined) ?? [];
   const family = (saved.family_history as { relation: string; condition: string }[] | undefined) ?? [];
-  const medications = (saved.medications as { name: string | null }[] | undefined) ?? [];
+  const medications = (saved.medications as SavedMedication[] | undefined) ?? [];
 
   // Every tag becomes its chip label. The free text of 'other' holds the typed conditions; when there are any,
   // the Other chip is selected too, so its field and chips are shown.
@@ -63,7 +72,17 @@ export function historyFromSaved(saved: Saved): Partial<HistoryDraft> {
   return {
     conditions: conditionLabels,
     otherText: other,
-    medications: medications.map((m) => m.name).filter((name): name is string => !!name),
+    // Rows come back with the id and ingredients the server holds, so a save updates them instead of adding copies.
+    // A row from an older response without an id gets a new one, and is saved as a new medicine.
+    medications: medications
+      .filter((m): m is SavedMedication & { name: string } => !!m.name)
+      .map((m) => ({
+        id: m.id ?? newId(),
+        name: m.name,
+        dose: m.dose ?? '',
+        schedule_times: m.schedule_times ?? [],
+        ingredient_ids: m.ingredient_ids ?? [],
+      })),
     father: byRelation('father'),
     mother: byRelation('mother'),
     sibling: byRelation('sibling'),

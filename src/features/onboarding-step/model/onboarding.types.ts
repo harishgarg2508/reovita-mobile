@@ -8,7 +8,7 @@ export interface BasicsInput {
 
 export interface HistoryInput {
   conditions?: { items: { tag: string; free_text?: string }[] };
-  medications?: { name: string; dose?: string }[];
+  medications?: { id?: string; name: string; dose?: string; schedule_times?: string[]; ingredient_ids?: string[] }[];
   family_history?: { items: { relation: string; condition: string }[] };
 }
 

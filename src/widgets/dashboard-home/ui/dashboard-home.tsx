@@ -387,7 +387,13 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
               style={[styles.partCard, { backgroundColor: p.card, borderColor: p.border }]}>
               <PartRing p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
               <View style={styles.partFooter}>
-                <Text style={[styles.partStatus, { color: partStatusColor(score, p) }]}>{partStatus(score)}</Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={[styles.partStatus, { color: partStatusColor(score, p) }]}>
+                  {partStatus(score)}
+                </Text>
                 <Ionicons name="chevron-forward" size={16} color={p.muted} />
               </View>
             </Pressable>
@@ -465,7 +471,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Lifestyle (starts at 100)</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Current smoker -15, former smoker -5. No exercise -10. Mostly sitting -5. High stress (4 or 5) -8. Poor sleep (1 or 2) -8.
+              Current smoker -15, former smoker -5. No exercise -10. Mostly sitting -5. High stress (4 or 5) -8. Under 7 hours of sleep -8. Over 9 hours -4.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Medical history (starts at 100)</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
@@ -563,8 +569,9 @@ const styles = StyleSheet.create({
   viewBtnText: { fontSize: 13, fontWeight: '700' },
   partsGrid: { flexDirection: 'row', gap: 10 },
   partCard: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 12, alignItems: 'center', gap: 6 },
-  partFooter: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  partStatus: { fontSize: 12, fontWeight: '700' },
+  // Status text and arrow on one centred line.
+  partFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%' },
+  partStatus: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
   infoBackdrop: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 20 },
   infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8, flexShrink: 1 },
   infoBody: { gap: 8, paddingBottom: 4 },

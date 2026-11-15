@@ -345,7 +345,7 @@ export function ScanScreen() {
             <Text style={styles.alertBody}>No medications recorded.</Text>
           ) : (
             (sum.medications ?? []).map((m, i) => (
-              <LifestyleRow key={`${m.name ?? 'medicine'}-${i}`} label={m.name ?? 'Medicine'} value={m.dose ?? '-'} styles={styles} />
+              <LifestyleRow key={`${m.name ?? 'medicine'}-${i}`} label={m.name ?? 'Medicine'} value={[m.dose, (m.schedule_times ?? []).join(', ')].filter(Boolean).join(' · ') || '-'} styles={styles} />
             ))
           )}
         </View>

@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +15,7 @@ import { FAMILY_CONDITION_OPTIONS, FAMILY_TAG_BY_LABEL } from '../model/family-c
 import { joinOtherConditions, OTHER_LABEL, splitOtherConditions } from '../model/other-conditions';
 import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
+import { MedicationsSection } from './medications-section';
 
 // The chips match the server's condition tags one to one. 'Other' opens a field for conditions typed by the user.
 const CONDITION_CHIPS = ['Diabetes', 'Hypertension', 'Thyroid', 'Heart Disease', 'Kidney Disease', OTHER_LABEL, 'None'];
@@ -31,21 +31,6 @@ const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'c
 
 const OTHER_NAME_MAX = 50;
 const OTHER_TEXT_MAX = 500; // the server limit for the free text of one condition
-
-const MEDICATION_SUGGESTIONS = [
-  'Salbutamol',
-  'Cetirizine',
-  'Paracetamol',
-  'Metformin',
-  'Amlodipine',
-  'Atorvastatin',
-  'Omeprazole',
-  'Levothyroxine',
-  'Ibuprofen',
-  'Amoxicillin',
-  'Lisinopril',
-  'Montelukast',
-];
 
 
 /**
@@ -79,8 +64,6 @@ export function StepConditionsForm({
   const otherSelected = selectedConditions.includes(OTHER_LABEL);
   const otherNames = splitOtherConditions(otherText);
   const [otherQuery, setOtherQuery] = useState('');
-  const [medQuery, setMedQuery] = useState('');
-  const [medsDropdownOpen, setMedsDropdownOpen] = useState(false);
   const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);
 
   // Emit the payload whenever the saved draft changes (also on mount, to restore the step).
@@ -107,7 +90,16 @@ export function StepConditionsForm({
     onChange({
       // Sent whenever a chip is selected. "None" sends an empty list, which removes the conditions saved before.
       conditions: selectedConditions.length > 0 ? { items: conditionItems } : undefined,
-      medications: selectedMeds.length > 0 ? selectedMeds.map((name) => ({ name })) : undefined,
+      // Always sent once the step has loaded, so a medicine the user removed is deleted on the server.
+      // The id makes the server update this row instead of adding another. An empty ingredient list is sent as it is:
+      // it means "not matched", and the server never guesses ingredients from the name.
+      medications: selectedMeds.map((m) => ({
+        id: m.id,
+        name: m.name,
+        dose: m.dose.trim(),
+        schedule_times: m.schedule_times,
+        ingredient_ids: m.ingredient_ids,
+      })),
       // Always sent once the step has loaded, so an empty list clears entries the user removed (for example "None").
       family_history: { items: familyItems },
     });
@@ -153,22 +145,6 @@ export function StepConditionsForm({
     patchDraft({ otherText: joinOtherConditions(otherNames.filter((n) => n !== name)) });
   };
 
-  const addMedication = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if (!selectedMeds.includes(trimmed)) {
-      tapSelection();
-      patchDraft({ medications: [...selectedMeds, trimmed] });
-    }
-    setMedQuery('');
-    setMedsDropdownOpen(false);
-  };
-
-  const removeMedication = (name: string) => {
-    tapSelection();
-    patchDraft({ medications: selectedMeds.filter((m) => m !== name) });
-  };
-
   const toggleFamilyCondition = (cond: string) => {
     tapSelection();
     if (activeFamilyRelation === null) return;
@@ -188,12 +164,6 @@ export function StepConditionsForm({
         : { wife: next };
     patchDraft(patch);
   };
-
-  const filteredMeds = MEDICATION_SUGGESTIONS.filter(
-    (m) =>
-      m.toLowerCase().includes(medQuery.toLowerCase()) &&
-      !selectedMeds.includes(m)
-  );
 
   return (
     <View style={styles.container}>
@@ -270,92 +240,10 @@ export function StepConditionsForm({
         </View>
       ) : null}
 
-      {/* Closes the medication suggestions when the user taps anywhere else in the form. */}
-      {medsDropdownOpen ? (
-        <Pressable
-          accessibilityLabel="Close medication suggestions"
-          onPress={() => setMedsDropdownOpen(false)}
-          style={styles.dropdownBackdrop}
-        />
-      ) : null}
-
       {/* 3. Meds Section */}
       <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
-        <View style={styles.medsBox}>
-          {/* Selected medicines: always visible above the search, so the dropdown never hides them. Tap one to remove it. */}
-          {selectedMeds.length > 0 && (
-            <View style={styles.selectedMedsWrap}>
-              {selectedMeds.map((med) => (
-                <Pressable
-                  key={med}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${med}`}
-                  onPress={() => removeMedication(med)}
-                  style={styles.medTag}>
-                  <Text style={styles.medTagText}>{med}</Text>
-                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
-                </Pressable>
-              ))}
-            </View>
-          )}
-
-          {/* Search bar */}
-          <View style={styles.medSearchBar}>
-            <Ionicons name="search-outline" size={18} color="#9185AA" style={styles.searchIcon} />
-            <TextInput
-              value={medQuery}
-              onChangeText={(text) => {
-                setMedQuery(text);
-                setMedsDropdownOpen(true);
-              }}
-              onFocus={() => setMedsDropdownOpen(true)}
-              placeholder="Search medications"
-              placeholderTextColor="#9185AA"
-              returnKeyType="done"
-              onSubmitEditing={() => addMedication(medQuery)}
-              style={styles.medSearchInput}
-            />
-            <Pressable
-              onPress={() => setMedsDropdownOpen((prev) => !prev)}
-              hitSlop={8}
-              style={styles.dropdownChevron}>
-              <Ionicons
-                name={medsDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color="#1F6F3F"
-              />
-            </Pressable>
-          </View>
-
-          {/* Suggestions Dropdown */}
-          {medsDropdownOpen && (
-            <ScrollView
-              style={styles.suggestionsDropdown}
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled">
-              {medQuery.trim().length > 0 && !selectedMeds.includes(medQuery.trim()) && (
-                <Pressable
-                  onPress={() => addMedication(medQuery)}
-                  style={styles.suggestionItem}>
-                  <Text style={styles.addCustomMedText}>
-                    Add &quot;{medQuery.trim()}&quot;
-                  </Text>
-                </Pressable>
-              )}
-              {filteredMeds.slice(0, 5).map((med) => (
-                <Pressable
-                  key={med}
-                  onPress={() => addMedication(med)}
-                  style={styles.suggestionItem}>
-                  <Text style={styles.suggestionText}>{med}</Text>
-                  <Ionicons name="add" size={16} color="#1F6F3F" />
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-
-        </View>
+        <MedicationsSection medications={selectedMeds} onChange={(medications) => patchDraft({ medications })} />
       </View>
 
       {/* 4. Family Section */}
@@ -593,14 +481,9 @@ const styles = StyleSheet.create({
     zIndex: 50,
     elevation: 50,
   },
+  // In the page flow under the search box (not floating), so it never covers the sections below.
   suggestionsDropdown: {
-    position: 'absolute',
-    top: 58,
-    left: 0,
-    right: 0,
     maxHeight: 220,
-    zIndex: 70,
-    elevation: 70,
     borderWidth: 1,
     borderColor: '#E5E0EC',
     borderRadius: 12,
@@ -652,6 +535,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#2E4D00',
   },
+  medCard: { borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 14, backgroundColor: '#FFFFFF', padding: 12, gap: 8 },
+  medCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  medDoseInput: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#242032',
+  },
+  medTimesLabel: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#9185AA' },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#E8F8CE',
+    borderWidth: 1,
+    borderColor: '#1F6F3F',
+  },
+  timeTagText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#2E4D00' },
+  timeAdder: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  timeInput: {
+    width: 76,
+    height: 30,
+    borderWidth: 1,
+    borderColor: '#E5E0EC',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 12,
+    color: '#242032',
+  },
+  timeAddBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
+  suggestionForm: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: '#9185AA' },
+  searchingText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#9185AA', paddingHorizontal: 14, paddingVertical: 8 },
   medTagClose: {
     marginLeft: 2,
   },

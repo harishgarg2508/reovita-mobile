@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ElementRef, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useDispatch } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@shared/ui/button';
 import { tapConfirm } from '@shared/lib';
 
+import { interactionJobQueued } from '@entities/interaction-finding';
 import { useProfileCompleteness } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '../model/step-href';
 import { useSaveStep } from '../model/use-save-step';
@@ -35,6 +37,7 @@ export function OnboardingStepper({ step }: { step: number }) {
   const editing = edit === 'true';
   const insets = useSafeAreaInsets();
   const save = useSaveStep();
+  const dispatch = useDispatch();
 
   const [basics, setBasics] = useState<BasicsInput | null>(null);
   const [history, setHistory] = useState<HistoryInput | null>(null);
@@ -117,7 +120,13 @@ export function OnboardingStepper({ step }: { step: number }) {
       return;
     }
     if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
-    if (step === 2 && history) await save.mutateAsync({ step: 2, body: history });
+    if (step === 2 && history) {
+      const result = await save.mutateAsync({ step: 2, body: history });
+      // The save queues an interaction check when the medicines changed. It is followed at the app root,
+      // so it carries on after this screen is left.
+      const jobId = (result as { interaction_job_id?: unknown } | undefined)?.interaction_job_id;
+      if (typeof jobId === 'string') dispatch(interactionJobQueued(jobId));
+    }
     if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
     if (editing) {
       router.back();
@@ -243,6 +252,10 @@ export function OnboardingStepper({ step }: { step: number }) {
           <View style={styles.errorRow}>
             <Ionicons name="information-circle-outline" size={14} color="#C22F43" />
             <Text style={styles.errorText}>{save.error?.message || 'Could not save this step. Please check your entries.'}</Text>
+            {/* Nothing the user entered is cleared by a failed save, so Retry sends the same list again. */}
+            <Pressable accessibilityRole="button" onPress={onSave} hitSlop={8}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
           </View>
         ) : null}
       </View>
@@ -413,6 +426,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 8,
   },
+  retryText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: '#1F6F3F', textDecorationLine: 'underline' },
   errorText: {
     fontFamily: 'Poppins_400Regular',
     color: '#C22F43',

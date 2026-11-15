@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 
+import { InteractionJobFollower } from './interaction-job-follower';
 import { QueryProvider } from './query-provider';
 import { ReduxProvider } from './redux-provider';
 import { SessionProvider } from './session-provider';
@@ -9,7 +10,10 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <ReduxProvider>
       <QueryProvider>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <InteractionJobFollower />
+        </SessionProvider>
       </QueryProvider>
     </ReduxProvider>
   );

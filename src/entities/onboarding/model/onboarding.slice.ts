@@ -10,10 +10,22 @@ export interface BasicsDraft {
   weight: string;
 }
 
+// One medicine on the list. dose and schedule_times are optional; ingredient_ids come from the knowledge base when a name is matched.
+// An empty ingredient_ids means "not matched": the medicine is kept, but it is not checked for interactions.
+// The id is made on the device and is what the server updates by, so a rename does not create a second row.
+// The medicine list is never written to device storage (see the transform in app-root/store).
+export interface MedicationDraft {
+  id: string;
+  name: string;
+  dose: string;
+  schedule_times: string[];
+  ingredient_ids: string[];
+}
+
 export interface HistoryDraft {
   conditions: string[];
   otherText: string;
-  medications: string[];
+  medications: MedicationDraft[];
   father: string[];
   mother: string[];
   sibling: string[];

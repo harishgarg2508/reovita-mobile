@@ -1,2 +1,1 @@
-// index.ts - placeholder
-export {};
+export { InteractionScreen } from './ui/interaction-screen';

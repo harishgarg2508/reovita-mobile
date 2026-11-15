@@ -18,7 +18,7 @@ export interface AccessSummary {
   };
   timeline: { date: string; status: string; flagged: number }[];
   family_history: { relation: string; condition: string }[];
-  medications: { name: string | null; dose: string | null }[];
+  medications: { name: string | null; dose: string | null; schedule_times?: string[] }[];
   medical_history: {
     id: string;
     title: string;
