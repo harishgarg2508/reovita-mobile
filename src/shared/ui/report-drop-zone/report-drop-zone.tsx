@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '@shared/ui/theme';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Report upload block: dashed drop zone, encryption note, and an optional skip link.
 // Used by onboarding Step 4 (with skip) and the upload screen (without).
@@ -14,12 +16,14 @@ export function ReportDropZone({
   onSkip?: () => void;
   disabled?: boolean;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const p = usePalette();
   return (
     <View style={styles.wrap}>
       <View style={[styles.dropZone, { backgroundColor: p.card, borderColor: p.accent }]}>
         <View style={[styles.iconBox, { backgroundColor: p.card }]}>
-          <Ionicons name="document-attach-outline" size={28} color="#1F6F3F" />
+          <Ionicons name="document-attach-outline" size={28} color={colors.accent} />
         </View>
         <Text style={[styles.dropTitle, { color: p.text }]}>Drop your report here</Text>
         <Text style={[styles.dropHint, { color: p.muted }]}>PDF, JPG or PNG · Up to 20 MB</Text>
@@ -28,7 +32,7 @@ export function ReportDropZone({
           disabled={disabled}
           onPress={onChoose}
           style={({ pressed }) => [styles.chooseBtn, { backgroundColor: p.accentSoft }, pressed && styles.pressed, disabled && styles.disabled]}>
-          <Ionicons name="add" size={16} color="#1F6F3F" />
+          <Ionicons name="add" size={16} color={colors.accent} />
           <Text style={[styles.chooseText, { color: p.accent }]}>Choose file</Text>
         </Pressable>
       </View>
@@ -45,18 +49,19 @@ export function ReportDropZone({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   wrap: { gap: 16 },
   dropZone: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#1F6F3F',
+    borderColor: colors.accent,
     borderRadius: 20,
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   iconBox: {
     width: 64,
@@ -64,13 +69,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#D4FF3F',
-    backgroundColor: '#FBFFF0',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
-  dropTitle: { fontFamily: 'Poppins_500Medium', fontSize: 16, color: '#242032' },
-  dropHint: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#6B7280' },
+  dropTitle: { fontFamily: 'Poppins_500Medium', fontSize: 16, color: colors.text },
+  dropHint: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.muted },
   chooseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -79,9 +84,9 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
   },
-  chooseText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#1F6F3F' },
+  chooseText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.accent },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.5 },
   banner: {
@@ -90,9 +95,9 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 16,
     borderRadius: 14,
-    backgroundColor: '#F4FFD6',
+    backgroundColor: colors.accentSoft,
   },
-  bannerText: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: '#3D5500' },
-  later: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280', textAlign: 'center', marginTop: 8 },
-  skip: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#1F6F3F', textAlign: 'center' },
+  bannerText: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: colors.onSoft },
+  later: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.muted, textAlign: 'center', marginTop: 8 },
+  skip: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.accent, textAlign: 'center' },
 });

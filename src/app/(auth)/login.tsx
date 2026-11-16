@@ -49,7 +49,7 @@ export default function LoginRoute() {
       errorMessage={signIn.isError ? friendlySignInError(signIn.error) : null}
       />
       <Modal visible={recoverOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setRecoverOpen(false)}>
-        <View style={styles.backdrop}>
+        <View style={[styles.backdrop, { backgroundColor: palette.bg }]}>
           <View style={[styles.dialog, { backgroundColor: palette.card, borderColor: palette.border }]}>
             <Text style={[styles.title, { color: palette.text }]}>Reactivate your account?</Text>
             <Text style={[styles.body, { color: palette.muted }]}>

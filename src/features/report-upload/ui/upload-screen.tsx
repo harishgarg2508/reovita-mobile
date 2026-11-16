@@ -198,7 +198,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onDecline={() => setLlmSheetOpen(false)}
       />
       <Modal visible={infoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setInfoOpen(false)}>
-        <View style={styles.backdrop}>
+        <View style={[styles.backdrop, { backgroundColor: p.bg }]}>
           <View style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]}>
             <Text style={[styles.dialogTitle, { color: p.text }]}>Your reports are encrypted</Text>
             <Text style={[styles.dialogBody, { color: p.muted }]}>

@@ -1,6 +1,6 @@
 import type { BasicsDraft, HistoryDraft, LifestyleDraft } from '@entities/onboarding';
 
-import { OTHER_LABEL, splitOtherConditions } from './other-conditions';
+import { OTHER_LABEL } from './other-conditions';
 
 // The required fields of a step that are still empty, in the order they appear on screen.
 // Step 1: sex, height and weight. Step 2: at least one condition (or "None"). Step 3: every lifestyle choice.
@@ -24,7 +24,7 @@ export function missingFields(
   if (step === 2) {
     const conditions = history.conditions ?? [];
     // Other alone is not an answer until at least one condition is typed for it.
-    const otherEmpty = conditions.includes(OTHER_LABEL) && splitOtherConditions(history.otherText ?? '').length === 0;
+    const otherEmpty = conditions.includes(OTHER_LABEL) && (history.otherText ?? '').trim().length === 0;
     const answered = conditions.filter((label) => label !== OTHER_LABEL).length > 0 || (conditions.includes(OTHER_LABEL) && !otherEmpty);
     return answered ? [] : ['conditions'];
   }

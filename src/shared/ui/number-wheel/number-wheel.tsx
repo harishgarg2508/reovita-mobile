@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { tapSelection } from '@shared/lib';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE = 3;
@@ -25,6 +26,8 @@ interface NumberWheelProps {
 
 // Scrolling number picker with guaranteed auto-centering on scroll stop across all platforms.
 export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheelProps) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const years = useMemo(() => {
     const list: number[] = [];
     for (let y = minValue; y <= maxValue; y++) list.push(y);
@@ -205,7 +208,7 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
           onPress={handlePrevYear}
           hitSlop={12}
           style={styles.chevronBtn}>
-          <Ionicons name="chevron-up" size={18} color={currentYear <= minValue ? '#C5BDD4' : '#1F6F3F'} />
+          <Ionicons name="chevron-up" size={18} color={currentYear <= minValue ? colors.disabledIcon : colors.accent} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -214,7 +217,7 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
           onPress={handleNextYear}
           hitSlop={12}
           style={styles.chevronBtn}>
-          <Ionicons name="chevron-down" size={18} color={currentYear >= maxValue ? '#C5BDD4' : '#1F6F3F'} />
+          <Ionicons name="chevron-down" size={18} color={currentYear >= maxValue ? colors.disabledIcon : colors.accent} />
         </Pressable>
       </View>
 
@@ -259,13 +262,14 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   wheel: {
     height: WHEEL_HEIGHT + 2, // 134px allows exactly 132px inner height after 1px top/bottom border
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     overflow: 'hidden',
     position: 'relative',
     justifyContent: 'center',
@@ -277,7 +281,7 @@ const styles = StyleSheet.create({
     top: ITEM_HEIGHT,
     height: ITEM_HEIGHT,
     borderRadius: 10,
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
     zIndex: 0,
   },
   chevronOverlay: {
@@ -304,7 +308,7 @@ const styles = StyleSheet.create({
   year: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 18,
-    color: '#9185AA',
+    color: colors.placeholder,
     textAlign: 'center',
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -312,7 +316,7 @@ const styles = StyleSheet.create({
   yearSelected: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 24,
-    color: '#1F6F3F',
+    color: colors.accent,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },

@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@shared/ui/chip';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 import { useLifestyleDraft } from '../model/use-onboarding-drafts';
 import type { LifestyleInput } from '../model/onboarding.types';
@@ -66,6 +67,8 @@ function ChoiceRow<T>({
   missing: boolean;
   onFieldLayout?: (name: string, y: number) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View
       style={[styles.chips, missing && styles.chipsError]}
@@ -87,6 +90,8 @@ export function StepLifestyleForm({
   missing?: string[];
   onFieldLayout?: (name: string, y: number) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [draft, patchDraft] = useLifestyleDraft();
 
   function set<K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) {
@@ -121,9 +126,10 @@ export function StepLifestyleForm({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   form: { gap: 10 },
-  label: { fontSize: 14, fontWeight: '600', color: '#171717', marginTop: 6 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chipsError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 8 },
+  chipsError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 8 },
 });

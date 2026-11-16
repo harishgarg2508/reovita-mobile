@@ -461,7 +461,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
         )}
       </Card>
       <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
-        <Pressable style={styles.infoBackdrop} onPress={() => setScoreInfoOpen(false)}>
+        <Pressable style={[styles.infoBackdrop, { backgroundColor: p.bg }]} onPress={() => setScoreInfoOpen(false)}>
           <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border, maxHeight: '85%' }]} onPress={() => undefined}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.infoBody}>
             <Text style={[styles.cardTitle, { color: p.text }]}>How your score is calculated</Text>

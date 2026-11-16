@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useBasicsDraft } from '../model/use-onboarding-drafts';
@@ -6,6 +7,7 @@ import type { BasicsInput } from '../model/onboarding.types';
 
 import { DEFAULT_BIRTH_YEAR } from '@entities/onboarding';
 import { NumberWheel } from '@shared/ui/number-wheel';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 type Sex = BasicsInput['sex'];
 
@@ -40,6 +42,8 @@ export function StepIdentityForm({
   missing?: string[];
   onFieldLayout?: (name: string, y: number) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [draft, patchDraft] = useBasicsDraft();
 
   function update(patch: Partial<typeof draft>) {
@@ -76,7 +80,7 @@ export function StepIdentityForm({
       <View style={[styles.block, missing.includes('year') && styles.blockError]} onLayout={(e) => onFieldLayout?.('year', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
-            <Ionicons name="calendar-outline" size={13} color="#1F6F3F" />
+            <Ionicons name="calendar-outline" size={13} color={colors.accent} />
           </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
@@ -87,7 +91,7 @@ export function StepIdentityForm({
       <View style={[styles.block, sexMissing && styles.blockError]} onLayout={(e) => onFieldLayout?.('sex', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
           <View style={styles.labelBadge}>
-            <Ionicons name="male-female-outline" size={13} color="#1F6F3F" />
+            <Ionicons name="male-female-outline" size={13} color={colors.accent} />
           </View>
           <Text style={styles.label}>Sex *</Text>
         </View>
@@ -113,7 +117,7 @@ export function StepIdentityForm({
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
-              <Ionicons name="resize-outline" size={13} color="#1F6F3F" />
+              <Ionicons name="resize-outline" size={13} color={colors.accent} />
             </View>
             <Text style={styles.label}>Height *</Text>
           </View>
@@ -124,7 +128,7 @@ export function StepIdentityForm({
               value={draft.height}
               onChangeText={(v) => update({ height: v })}
               placeholder="170"
-              placeholderTextColor="#9185AA"
+              placeholderTextColor={colors.placeholder}
             />
             <Text style={styles.unit}>cm</Text>
           </View>
@@ -132,7 +136,7 @@ export function StepIdentityForm({
         <View style={styles.half}>
           <View style={styles.labelRow}>
             <View style={styles.labelBadge}>
-              <Ionicons name="speedometer-outline" size={13} color="#1F6F3F" />
+              <Ionicons name="speedometer-outline" size={13} color={colors.accent} />
             </View>
             <Text style={styles.label}>Weight *</Text>
           </View>
@@ -143,7 +147,7 @@ export function StepIdentityForm({
               value={draft.weight}
               onChangeText={(v) => update({ weight: v })}
               placeholder="65"
-              placeholderTextColor="#9185AA"
+              placeholderTextColor={colors.placeholder}
             />
             <Text style={styles.unit}>kg</Text>
           </View>
@@ -180,9 +184,10 @@ export function StepIdentityForm({
   );
 }
 
-const styles = StyleSheet.create({
-  fieldError: { borderColor: '#C22F43', borderWidth: 1.5 },
-  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
+  fieldError: { borderColor: colors.error, borderWidth: 1.5 },
+  blockError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 10 },
   form: { gap: 24 },
   block: { gap: 8 },
   labelRow: {
@@ -194,34 +199,34 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 7,
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: '#242032' },
+  label: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: colors.text },
 
   segments: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, padding: 4, borderRadius: 999, backgroundColor: '#F1EDF7',
+    flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, padding: 4, borderRadius: 999, backgroundColor: colors.surfaceAlt,
   },
   segment: { flex: 1, minWidth: 0, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   segmentWide: { flex: 2.4 },
-  segmentOn: { backgroundColor: '#1F6F3F' },
-  segmentText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#655F74' },
-  segmentTextOn: { fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF' },
+  segmentOn: { backgroundColor: colors.accentFill },
+  segmentText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.muted },
+  segmentTextOn: { fontFamily: 'Poppins_600SemiBold', color: colors.onAccent },
 
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1, gap: 8 },
   numeric: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 64,
-    padding: 16, borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 14, backgroundColor: '#FFFFFF',
+    padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card,
   },
-  numericValue: { flex: 1, minWidth: 0, width: 0, fontFamily: 'Poppins_400Regular', fontSize: 24, color: '#242032', padding: 0 },
-  unit: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280', flexShrink: 0, marginLeft: 8 },
+  numericValue: { flex: 1, minWidth: 0, width: 0, fontFamily: 'Poppins_400Regular', fontSize: 24, color: colors.text, padding: 0 },
+  unit: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.muted, flexShrink: 0, marginLeft: 8 },
 
-  bmiCard: { backgroundColor: '#F1EDF7', borderRadius: 16, padding: 16, gap: 12 },
+  bmiCard: { backgroundColor: colors.surfaceAlt, borderRadius: 16, padding: 16, gap: 12 },
   bmiTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  bmiLabel: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: '#655F74' },
-  bmiValue: { fontFamily: 'Poppins_500Medium', fontSize: 26, color: '#242032' },
+  bmiLabel: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: colors.muted },
+  bmiValue: { fontFamily: 'Poppins_500Medium', fontSize: 26, color: colors.text },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, backgroundColor: '#D4FF3F',
@@ -229,8 +234,8 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#3D5500' },
   bmiBands: { flexDirection: 'row', gap: 4 },
   band: { flex: 1, alignItems: 'center', gap: 4 },
-  bandBar: { height: 4, alignSelf: 'stretch', borderRadius: 999, backgroundColor: '#E5E0EC' },
-  bandBarOn: { backgroundColor: '#1F6F3F' },
-  bandText: { fontFamily: 'Poppins_400Regular', fontSize: 10, color: '#6B7280' },
-  bandTextOn: { color: '#1F6F3F' },
+  bandBar: { height: 4, alignSelf: 'stretch', borderRadius: 999, backgroundColor: colors.border },
+  bandBarOn: { backgroundColor: colors.accentFill },
+  bandText: { fontFamily: 'Poppins_400Regular', fontSize: 10, color: colors.muted },
+  bandTextOn: { color: colors.accent },
 });

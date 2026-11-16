@@ -8,6 +8,7 @@ export interface AccessSummary {
   sex: string | null;
   bmi: number | null;
   conditions: string[];
+  conditions_other?: string | null;
   lifestyle: { smoking: string | null; exercise: string | null; stress: number | null; sleep: number | null } | null;
   score: { total: number; parts: { lifestyle: number | null; conditions: number | null; reports: number | null } | null } | null;
   reports_count: number;

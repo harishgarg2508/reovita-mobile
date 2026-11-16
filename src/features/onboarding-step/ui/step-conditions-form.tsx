@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 
 import { tapSelection } from '@shared/lib';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 
 import { FAMILY_CONDITION_OPTIONS, FAMILY_TAG_BY_LABEL } from '../model/family-conditions';
-import { joinOtherConditions, OTHER_LABEL, splitOtherConditions } from '../model/other-conditions';
+import { OTHER_LABEL, OTHER_TEXT_MAX } from '../model/other-conditions';
 import { useHistoryDraft } from '../model/use-onboarding-drafts';
 import type { HistoryInput } from '../model/onboarding.types';
 import { MedicationsSection } from './medications-section';
@@ -29,8 +30,6 @@ const CONDITION_TAG: Record<string, 'diabetes' | 'hypertension' | 'thyroid' | 'c
   'Kidney Disease': 'ckd',
 };
 
-const OTHER_NAME_MAX = 50;
-const OTHER_TEXT_MAX = 500; // the server limit for the free text of one condition
 
 
 /**
@@ -50,6 +49,8 @@ export function StepConditionsForm({
   missing?: string[];
   onFieldLayout?: (name: string, y: number) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // Saved selections live in Redux; only the UI-only state stays local.
   const [draft, patchDraft] = useHistoryDraft();
   const selectedConditions = draft.conditions;
@@ -62,8 +63,6 @@ export function StepConditionsForm({
 
   // The Other field and its chips are shown only while the Other chip is selected.
   const otherSelected = selectedConditions.includes(OTHER_LABEL);
-  const otherNames = splitOtherConditions(otherText);
-  const [otherQuery, setOtherQuery] = useState('');
   const [activeFamilyRelation, setActiveFamilyRelation] = useState<'father' | 'mother' | 'sibling' | 'wife' | null>(null);
 
   // Emit the payload whenever the saved draft changes (also on mount, to restore the step).
@@ -83,8 +82,8 @@ export function StepConditionsForm({
       .map((label) => CONDITION_TAG[label])
       .filter((tag): tag is (typeof CONDITION_TAG)[string] => Boolean(tag))
       .map((tag) => ({ tag }));
-    if (otherSelected && otherNames.length > 0) {
-      conditionItems.push({ tag: 'other', free_text: joinOtherConditions(otherNames) });
+    if (otherSelected && otherText.trim().length > 0) {
+      conditionItems.push({ tag: 'other', free_text: otherText.trim() });
     }
 
     onChange({
@@ -118,31 +117,8 @@ export function StepConditionsForm({
     if (next.includes(OTHER_LABEL)) {
       patchDraft({ conditions: next });
     } else {
-      setOtherQuery('');
       patchDraft({ conditions: next, otherText: '' });
     }
-  };
-
-  // Turns the typed text into chips. Commas separate several names; a name already added is skipped.
-  const addOtherConditions = (text: string) => {
-    const typed = splitOtherConditions(text).map((name) => name.slice(0, OTHER_NAME_MAX));
-    setOtherQuery('');
-    if (typed.length === 0) return;
-    let names = otherNames;
-    for (const name of typed) {
-      const candidate = splitOtherConditions(joinOtherConditions([...names, name]));
-      if (joinOtherConditions(candidate).length > OTHER_TEXT_MAX) break;
-      names = candidate;
-    }
-    if (names.length !== otherNames.length) {
-      tapSelection();
-      patchDraft({ otherText: joinOtherConditions(names) });
-    }
-  };
-
-  const removeOtherCondition = (name: string) => {
-    tapSelection();
-    patchDraft({ otherText: joinOtherConditions(otherNames.filter((n) => n !== name)) });
   };
 
   const toggleFamilyCondition = (cond: string) => {
@@ -181,7 +157,7 @@ export function StepConditionsForm({
                 onPress={() => toggleCondition(item)}
                 style={[styles.chip, isSelected && styles.chipSelected]}>
                 {isSelected && (
-                  <Ionicons name="checkmark" size={13} color="#2E4D00" style={styles.chipCheck} />
+                  <Ionicons name="checkmark" size={13} color={colors.onSoft} style={styles.chipCheck} />
                 )}
                 <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                   {item}
@@ -192,50 +168,26 @@ export function StepConditionsForm({
         </View>
       </View>
 
-      {/* 2. Other conditions: shown only while the Other chip is selected. Each typed name becomes a chip. */}
+      {/* 2. Other conditions: shown only while the Other chip is selected. Free text, written as the user likes. */}
       {otherSelected ? (
         <View style={styles.section} onLayout={(e) => onFieldLayout?.('other', e.nativeEvent.layout.y)}>
           <Text style={styles.sectionLabel}>Other</Text>
-          {otherNames.length > 0 && (
-            <View style={styles.selectedMedsWrap}>
-              {otherNames.map((name) => (
-                <Pressable
-                  key={name}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${name}`}
-                  onPress={() => removeOtherCondition(name)}
-                  style={styles.medTag}>
-                  <Text style={styles.medTagText}>{name}</Text>
-                  <Ionicons name="close" size={14} color="#1F6F3F" style={styles.medTagClose} />
-                </Pressable>
-              ))}
-            </View>
-          )}
-          <View style={styles.medSearchBar}>
+          <View style={styles.otherBox}>
             <TextInput
-              autoFocus={otherNames.length === 0}
-              value={otherQuery}
-              onChangeText={setOtherQuery}
-              maxLength={OTHER_NAME_MAX}
-              placeholder="Type a condition and press enter"
-              placeholderTextColor="#9185AA"
-              returnKeyType="done"
-              blurOnSubmit={false}
-              onSubmitEditing={() => addOtherConditions(otherQuery)}
-              // A name typed but not entered is still kept when the user moves on.
-              onBlur={() => addOtherConditions(otherQuery)}
-              style={styles.medSearchInput}
+              autoFocus={otherText.length === 0}
+              value={otherText}
+              onChangeText={(text) => patchDraft({ otherText: text.slice(0, OTHER_TEXT_MAX) })}
+              maxLength={OTHER_TEXT_MAX}
+              multiline
+              textAlignVertical="top"
+              placeholder="Describe any other condition, in your own words"
+              placeholderTextColor={colors.placeholder}
+              accessibilityLabel="Other conditions"
+              style={styles.otherInput}
             />
-            {otherQuery.trim().length > 0 && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add condition"
-                onPress={() => addOtherConditions(otherQuery)}
-                hitSlop={8}
-                style={styles.dropdownChevron}>
-                <Ionicons name="add" size={18} color="#1F6F3F" />
-              </Pressable>
-            )}
+            <Text style={styles.otherCounter}>
+              {otherText.length} / {OTHER_TEXT_MAX}
+            </Text>
           </View>
         </View>
       ) : null}
@@ -266,7 +218,7 @@ export function StepConditionsForm({
                 {fatherConditions.length > 0 ? fatherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color={colors.accent} style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -287,7 +239,7 @@ export function StepConditionsForm({
                 {motherConditions.length > 0 ? motherConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color={colors.accent} style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -308,7 +260,7 @@ export function StepConditionsForm({
                 {siblingConditions.length > 0 ? siblingConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color={colors.accent} style={styles.familyAddIcon} />
           </Pressable>
 
           <View style={styles.familyDivider} />
@@ -329,7 +281,7 @@ export function StepConditionsForm({
                 {wifeConditions.length > 0 ? wifeConditions.join(', ') : 'Add tags'}
               </Text>
             </View>
-            <Ionicons name="add" size={18} color="#1F6F3F" style={styles.familyAddIcon} />
+            <Ionicons name="add" size={18} color={colors.accent} style={styles.familyAddIcon} />
           </Pressable>
         </View>
       </View>
@@ -351,7 +303,7 @@ export function StepConditionsForm({
                 onPress={() => setActiveFamilyRelation(null)}
                 hitSlop={8}
                 style={styles.modalCloseBtn}>
-                <Ionicons name="close" size={20} color="#242032" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
@@ -372,7 +324,7 @@ export function StepConditionsForm({
                     onPress={() => toggleFamilyCondition(cond)}
                     style={[styles.modalChip, isSelected && styles.modalChipSelected]}>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={13} color="#2E4D00" style={styles.chipCheck} />
+                      <Ionicons name="checkmark" size={13} color={colors.onSoft} style={styles.chipCheck} />
                     )}
                     <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                       {cond}
@@ -393,7 +345,8 @@ export function StepConditionsForm({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   container: {
     gap: 20,
     position: 'relative',
@@ -401,11 +354,11 @@ const styles = StyleSheet.create({
   section: {
     gap: 8,
   },
-  blockError: { borderWidth: 1.5, borderColor: '#C22F43', borderRadius: 14, padding: 10 },
+  blockError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 10 },
   sectionLabel: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#242032',
+    color: colors.text,
   },
   chipsWrap: {
     flexDirection: 'row',
@@ -419,12 +372,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   chipSelected: {
-    backgroundColor: '#E8F8CE',
-    borderColor: '#1F6F3F',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
     borderWidth: 1.5,
   },
   chipCheck: {
@@ -433,11 +386,11 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    color: '#655F74',
+    color: colors.muted,
   },
   chipTextSelected: {
     fontFamily: 'Poppins_500Medium',
-    color: '#2E4D00',
+    color: colors.onSoft,
   },
 
   /* Meds Box */
@@ -448,14 +401,17 @@ const styles = StyleSheet.create({
     elevation: 60,
     overflow: 'visible',
   },
+  otherBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 6 },
+  otherInput: { minHeight: 96, fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.text, padding: 0 },
+  otherCounter: { alignSelf: 'flex-end', fontFamily: 'Poppins_400Regular', fontSize: 11, color: colors.placeholder },
   medSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 48,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingHorizontal: 14,
   },
   searchIcon: {
@@ -465,7 +421,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    color: '#242032',
+    color: colors.text,
     padding: 0,
   },
   dropdownChevron: {
@@ -485,9 +441,9 @@ const styles = StyleSheet.create({
   suggestionsDropdown: {
     maxHeight: 220,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -501,17 +457,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F1EDF7',
+    borderBottomColor: colors.surfaceAlt,
   },
   suggestionText: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    color: '#242032',
+    color: colors.text,
   },
   addCustomMedText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#1F6F3F',
+    color: colors.accent,
   },
   selectedMedsWrap: {
     flexDirection: 'row',
@@ -526,28 +482,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#E8F8CE',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1.5,
-    borderColor: '#1F6F3F',
+    borderColor: colors.accent,
   },
   medTagText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#2E4D00',
+    color: colors.onSoft,
   },
-  medCard: { borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 14, backgroundColor: '#FFFFFF', padding: 12, gap: 8 },
+  medCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 8 },
   medCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   medDoseInput: {
     height: 40,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    color: '#242032',
+    color: colors.text,
   },
-  medTimesLabel: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#9185AA' },
+  medTimesLabel: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.placeholder },
   timeTag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -555,26 +511,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: '#E8F8CE',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: '#1F6F3F',
+    borderColor: colors.accent,
   },
-  timeTagText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#2E4D00' },
+  timeTagText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: colors.onSoft },
   timeAdder: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   timeInput: {
     width: 76,
     height: 30,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 999,
     paddingHorizontal: 10,
     fontFamily: 'Poppins_400Regular',
     fontSize: 12,
-    color: '#242032',
+    color: colors.text,
   },
-  timeAddBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
-  suggestionForm: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: '#9185AA' },
-  searchingText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#9185AA', paddingHorizontal: 14, paddingVertical: 8 },
+  timeAddBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.accentFill, alignItems: 'center', justifyContent: 'center' },
+  suggestionForm: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: colors.placeholder },
+  searchingText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.placeholder, paddingHorizontal: 14, paddingVertical: 8 },
   medTagClose: {
     marginLeft: 2,
   },
@@ -582,9 +538,9 @@ const styles = StyleSheet.create({
   /* Family Card */
   familyCard: {
     borderWidth: 1,
-    borderColor: '#E5E0EC',
+    borderColor: colors.border,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     overflow: 'hidden',
   },
   familyRow: {
@@ -597,7 +553,7 @@ const styles = StyleSheet.create({
     width: 104,
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#242032',
+    color: colors.text,
   },
   familyValueCol: {
     flex: 1,
@@ -606,28 +562,28 @@ const styles = StyleSheet.create({
   familyTagsText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 12,
-    color: '#1F6F3F',
+    color: colors.accent,
   },
   familyPlaceholderText: {
     fontFamily: 'Poppins_400Regular',
-    color: '#9185AA',
+    color: colors.placeholder,
   },
   familyAddIcon: {
     marginLeft: 'auto',
   },
   familyDivider: {
     height: 1,
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
   },
 
   /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -642,7 +598,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
-    color: '#242032',
+    color: colors.text,
   },
   modalCloseBtn: {
     padding: 4,
@@ -663,18 +619,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E5E0EC',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   modalChipSelected: {
-    backgroundColor: '#E8F8CE',
-    borderColor: '#1F6F3F',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
     borderWidth: 1.5,
   },
   modalDoneBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
@@ -682,6 +638,6 @@ const styles = StyleSheet.create({
   modalDoneBtnText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
 });

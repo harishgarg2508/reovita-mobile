@@ -1,4 +1,5 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 
@@ -17,6 +18,8 @@ export function BottomSheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [translateY] = useState(() => new Animated.Value(SCREEN_HEIGHT));
 
   const panResponder = useMemo(
@@ -58,14 +61,15 @@ export function BottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'transparent',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -78,7 +82,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#D9D4EA',
+    backgroundColor: colors.border2,
     marginBottom: 4,
   },
 });

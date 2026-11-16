@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { type ElementRef, useEffect, useRef, useState } from 'react';
+import { type ElementRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@shared/ui/button';
 import { tapConfirm } from '@shared/lib';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 import { interactionJobQueued } from '@entities/interaction-finding';
 import { useProfileCompleteness } from '@entities/profile';
@@ -36,6 +37,8 @@ export function OnboardingStepper({ step }: { step: number }) {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const editing = edit === 'true';
   const insets = useSafeAreaInsets();
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const save = useSaveStep();
   const dispatch = useDispatch();
 
@@ -204,7 +207,7 @@ export function OnboardingStepper({ step }: { step: number }) {
         <View style={styles.actionWrap}>
           {step === 1 ? (
             <View style={styles.requiredPill}>
-              <Ionicons name="information-circle-outline" size={15} color="#1F6F3F" />
+              <Ionicons name="information-circle-outline" size={15} color={colors.accent} />
               <Text style={styles.requiredPillText}>All fields required</Text>
             </View>
           ) : null}
@@ -250,7 +253,7 @@ export function OnboardingStepper({ step }: { step: number }) {
 
         {save.isError ? (
           <View style={styles.errorRow}>
-            <Ionicons name="information-circle-outline" size={14} color="#C22F43" />
+            <Ionicons name="information-circle-outline" size={14} color={colors.error} />
             <Text style={styles.errorText}>{save.error?.message || 'Could not save this step. Please check your entries.'}</Text>
             {/* Nothing the user entered is cleared by a failed save, so Retry sends the same list again. */}
             <Pressable accessibilityRole="button" onPress={onSave} hitSlop={8}>
@@ -279,10 +282,11 @@ function stableJson(value: unknown): string {
   });
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg,
   },
   container: {
     paddingHorizontal: 24,
@@ -318,7 +322,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: '#1B152B',
+    color: colors.textStrong,
     letterSpacing: -0.4,
   },
   stepRow: {
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   stepPill: {
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
@@ -336,34 +340,34 @@ const styles = StyleSheet.create({
   stepBadge: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 12,
-    color: '#1F6F3F',
+    color: colors.accent,
     letterSpacing: 0.2,
   },
   stepTrack: {
     width: 64,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#E5E0EC',
+    backgroundColor: colors.border,
     overflow: 'hidden',
   },
   stepFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: colors.accentFill,
   },
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 34,
     lineHeight: 40,
     letterSpacing: -0.8,
-    color: '#1B152B',
+    color: colors.textStrong,
     marginTop: 2,
   },
   subtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
     lineHeight: 20,
-    color: '#655F74',
+    color: colors.muted,
   },
   stepBody: {
     flex: 1,
@@ -377,20 +381,20 @@ const styles = StyleSheet.create({
     gap: 6,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
     marginBottom: 12,
   },
   requiredPillText: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
-    color: '#655F74',
+    color: colors.muted,
   },
   footerFixed: {
     paddingHorizontal: 24,
     paddingTop: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E0EC',
+    borderTopColor: colors.border,
   },
   actionWrap: {
     width: '100%',
@@ -406,15 +410,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#D9D4EA',
+    borderColor: colors.border2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   skipButtonText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: '#5C6080',
+    color: colors.muted,
   },
   nextGroupItem: {
     flex: 1,
@@ -426,10 +430,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 8,
   },
-  retryText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: '#1F6F3F', textDecorationLine: 'underline' },
+  retryText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: colors.accent, textDecorationLine: 'underline' },
   errorText: {
     fontFamily: 'Poppins_400Regular',
-    color: '#C22F43',
+    color: colors.error,
     fontSize: 13,
     textAlign: 'center',
   },

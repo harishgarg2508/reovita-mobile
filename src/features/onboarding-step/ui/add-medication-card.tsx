@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { tapSelection } from '@shared/lib';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 import { matchMedication, useIngredientSearch, type IngredientSuggestion } from '../model/use-ingredient-search';
 
@@ -19,6 +20,8 @@ export interface NewMedication {
 // a typed name is checked with the server when "Add" is pressed. Whatever the outcome, the medicine can always be added;
 // one that could not be matched is kept and marked as not checked.
 export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existingNames: string[]; onAdd: (med: NewMedication) => void; onCancel: () => void }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [name, setName] = useState('');
   const [dose, setDose] = useState('');
   // Set when a suggestion was picked. Typing again clears it, so ingredients never follow a name the user changed.
@@ -67,7 +70,7 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
   return (
     <View style={styles.card}>
       <View style={styles.inputRow}>
-        <Ionicons name="search-outline" size={18} color="#9185AA" />
+        <Ionicons name="search-outline" size={18} color={colors.placeholder} />
         <TextInput
           autoFocus
           value={name}
@@ -78,13 +81,13 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
             setListOpen(true);
           }}
           placeholder="Search or type a medicine"
-          placeholderTextColor="#9185AA"
+          placeholderTextColor={colors.placeholder}
           maxLength={NAME_MAX}
           returnKeyType="done"
           onSubmitEditing={submit}
           style={styles.input}
         />
-        {search.searching ? <ActivityIndicator size="small" color="#1F6F3F" /> : null}
+        {search.searching ? <ActivityIndicator size="small" color={colors.accent} /> : null}
       </View>
 
       {listOpen && !candidates && search.items.length > 0 ? (
@@ -92,7 +95,7 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
           {search.items.map((item) => (
             <Pressable key={`${item.alias}-${item.ingredient_ids.join()}`} accessibilityRole="button" onPress={() => pick(item)} style={styles.listItem}>
               <Text style={styles.listText}>{item.alias}</Text>
-              <Ionicons name="add" size={16} color="#1F6F3F" />
+              <Ionicons name="add" size={16} color={colors.accent} />
             </Pressable>
           ))}
         </View>
@@ -107,12 +110,12 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
               accessibilityRole="radio"
               onPress={() => finish(item.ingredient_ids, trimmed)}
               style={styles.listItem}>
-              <Ionicons name="radio-button-off" size={18} color="#1F6F3F" />
+              <Ionicons name="radio-button-off" size={18} color={colors.accent} />
               <Text style={[styles.listText, styles.radioText]}>{item.alias}</Text>
             </Pressable>
           ))}
           <Pressable accessibilityRole="radio" onPress={() => finish([])} style={styles.listItem}>
-            <Ionicons name="radio-button-off" size={18} color="#655F74" />
+            <Ionicons name="radio-button-off" size={18} color={colors.muted} />
             <Text style={[styles.listText, styles.radioText]}>None of these</Text>
           </Pressable>
         </View>
@@ -122,7 +125,7 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
         value={dose}
         onChangeText={(text) => setDose(text.slice(0, DOSE_MAX))}
         placeholder="Dose, e.g. 500 mg (optional)"
-        placeholderTextColor="#9185AA"
+        placeholderTextColor={colors.placeholder}
         maxLength={DOSE_MAX}
         style={styles.dose}
       />
@@ -139,28 +142,29 @@ export function AddMedicationCard({ existingNames, onAdd, onCancel }: { existing
           disabled={!trimmed || duplicate || checking}
           onPress={submit}
           style={[styles.add, (!trimmed || duplicate || checking) && styles.addDisabled]}>
-          {checking ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.addText}>Add</Text>}
+          {checking ? <ActivityIndicator size="small" color={colors.onAccent} /> : <Text style={styles.addText}>Add</Text>}
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 14, backgroundColor: '#FFFFFF', padding: 12, gap: 10 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 12, paddingHorizontal: 12 },
-  input: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#242032', padding: 0 },
-  list: { borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 12, backgroundColor: '#FFFFFF', paddingVertical: 4 },
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 10 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12 },
+  input: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.text, padding: 0 },
+  list: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.card, paddingVertical: 4 },
   listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  listText: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#242032', flexShrink: 1 },
+  listText: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.text, flexShrink: 1 },
   radioText: { flex: 1 },
-  question: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: '#242032', paddingHorizontal: 12, paddingTop: 6 },
-  dose: { height: 40, borderWidth: 1, borderColor: '#E5E0EC', borderRadius: 10, paddingHorizontal: 12, fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#242032' },
-  note: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: '#C22F43' },
+  question: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: colors.text, paddingHorizontal: 12, paddingTop: 6 },
+  dose: { height: 40, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.text },
+  note: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.error },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  cancel: { height: 40, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, borderColor: '#D9D4EA', alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: '#5C6080' },
-  add: { height: 40, minWidth: 72, paddingHorizontal: 18, borderRadius: 999, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
+  cancel: { height: 40, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, borderColor: colors.border2, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: colors.muted },
+  add: { height: 40, minWidth: 72, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accentFill, alignItems: 'center', justifyContent: 'center' },
   addDisabled: { opacity: 0.4 },
-  addText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: '#FFFFFF' },
+  addText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: colors.onAccent },
 });

@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+
+import { useFormColors, type FormColors } from '../theme/form-colors';
 
 interface ChipProps {
   label: string;
@@ -8,6 +11,8 @@ interface ChipProps {
 
 // Tag-cloud style toggle used for conditions, relations and single-choice answers.
 export function Chip({ label, selected, onPress }: ChipProps) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable
       accessibilityRole="button"
@@ -19,9 +24,10 @@ export function Chip({ label, selected, onPress }: ChipProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#E0E1E6' },
-  selected: { backgroundColor: '#1F6F3F', borderColor: '#1F6F3F' },
-  label: { fontSize: 14, color: '#171717' },
-  selectedLabel: { color: '#FFFFFF', fontWeight: '600' },
-});
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    selected: { backgroundColor: colors.accentFill, borderColor: colors.accentFill },
+    label: { fontSize: 14, color: colors.text },
+    selectedLabel: { color: colors.onAccent, fontWeight: '600' },
+  });

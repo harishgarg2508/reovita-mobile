@@ -314,6 +314,7 @@ export function ScanScreen() {
                 </View>
               ))}
             </View>
+            {sum.conditions_other ? <Text style={styles.otherText}>Other: {sum.conditions_other}</Text> : null}
           </View>
         </View>
 
@@ -655,6 +656,7 @@ function makeStyles(p: Palette) {
     chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: p.accentSoft },
     chipText: { fontSize: 12, fontWeight: '700', color: p.accent },
+    otherText: { marginTop: 8, fontSize: 12, lineHeight: 18, color: p.text },
     timelineRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     timelineDate: { fontSize: 12.5, fontWeight: '700', color: p.textStrong },
     timelineText: { fontSize: 12.5, color: p.muted, flexShrink: 1, textAlign: 'right' },
