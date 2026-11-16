@@ -1,3 +1,4 @@
+import { useThemeTransition } from '@app-root/providers/theme-transition';
 import { useAppDispatch } from '@app-root/store';
 import { themeModeSet } from '@entities/preferences';
 import { useResolvedScheme } from '@shared/ui/theme';
@@ -7,5 +8,13 @@ import { DashboardHome } from '@widgets/dashboard-home';
 export default function DashboardRoute() {
   const dispatch = useAppDispatch();
   const scheme = useResolvedScheme();
-  return <DashboardHome onToggleTheme={() => dispatch(themeModeSet(scheme === 'dark' ? 'light' : 'dark'))} />;
+  const playThemeChange = useThemeTransition();
+  return (
+    <DashboardHome
+      onToggleTheme={(origin) => {
+        const next = scheme === 'dark' ? 'light' : 'dark';
+        playThemeChange(next, origin, () => dispatch(themeModeSet(next)));
+      }}
+    />
+  );
 }

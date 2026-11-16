@@ -132,7 +132,7 @@ function partStatusColor(score: number | null, p: Palette): string {
 }
 
 // Dashboard: header, the most urgent card first, then the health score, briefing and reports.
-export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) {
+export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x: number; y: number }) => void }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const home = useHome();

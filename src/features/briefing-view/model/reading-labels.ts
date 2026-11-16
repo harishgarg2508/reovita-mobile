@@ -17,8 +17,10 @@ export interface Band {
   // Upper edge of the band. The last band has no edge.
   upTo: number | null;
   tone: Tone;
-  // A short, calm name shown on the reading's chip.
+  // The name of the band, in the words of the US AQI scale.
   label: string;
+  // A shorter name for a small chip, when the full one is long.
+  short?: string;
   // One gentle sentence about the reading, shown on the air quality card.
   sentence?: string;
 }
@@ -35,13 +37,14 @@ export type ScaleName = 'aqi' | 'uv' | 'pm25' | 'pm10' | 'temperature' | 'feelsL
 export const SCALES: Record<ScaleName, Scale> = {
   aqi: {
     min: 0,
-    max: 300,
+    max: 500,
     bands: [
-      { upTo: 50, tone: 'good', label: 'Fresh', sentence: 'The air is clean and fresh. A good day to be outdoors.' },
-      { upTo: 100, tone: 'watch', label: 'Fair', sentence: 'Air quality is acceptable. Very sensitive people may notice mild effects.' },
-      { upTo: 150, tone: 'high', label: 'Elevated', sentence: 'Sensitive respiratory groups may notice mild irritation outdoors today.' },
-      { upTo: 200, tone: 'high', label: 'Elevated', sentence: 'Many people may notice irritation outdoors. Shorter time outside may feel better.' },
-      { upTo: null, tone: 'severe', label: 'Very elevated', sentence: 'The air is heavily polluted. Keeping outdoor time to a minimum may feel better.' },
+      { upTo: 50, tone: 'good', label: 'Good', sentence: 'The air is clean and fresh. A good day to be outdoors.' },
+      { upTo: 100, tone: 'watch', label: 'Moderate', sentence: 'Air quality is acceptable. Very sensitive people may notice mild effects.' },
+      { upTo: 150, tone: 'high', label: 'Unhealthy for Sensitive Groups', short: 'Sensitive groups', sentence: 'Sensitive respiratory groups may notice mild irritation outdoors today.' },
+      { upTo: 200, tone: 'high', label: 'Unhealthy', sentence: 'Many people may notice irritation outdoors. Shorter time outside may feel better.' },
+      { upTo: 300, tone: 'severe', label: 'Very Unhealthy', sentence: 'The air is heavily polluted. Keeping outdoor time to a minimum may feel better.' },
+      { upTo: null, tone: 'severe', label: 'Hazardous', sentence: 'The air is dangerously polluted. Staying indoors with windows closed may feel best.' },
     ],
   },
   uv: {
