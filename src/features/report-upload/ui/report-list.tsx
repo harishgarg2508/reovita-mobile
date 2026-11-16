@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,6 +8,7 @@ import { useDeleteReport, type ReportListItem } from '@entities/report';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette } from '@shared/ui/theme';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // The subject's reports, newest first. Only this list scrolls. The next page loads when the user
 // reaches the end of the list.
@@ -26,6 +27,8 @@ export function ReportList({
   onLoadMore: () => void;
   onOpen: (id: string) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const p = usePalette();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   // The report whose "more actions" menu is open.
@@ -45,7 +48,7 @@ export function ReportList({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       ListFooterComponent={
-        loadingMore ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : footer ? <>{footer}</> : undefined
+        loadingMore ? <ActivityIndicator color={colors.accent} style={styles.footer} /> : footer ? <>{footer}</> : undefined
       }
       renderItem={({ item }) => (
         <View style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
@@ -103,8 +106,8 @@ export function ReportList({
               if (id) setPendingDelete(id);
             }}
             style={styles.menuItem}>
-            <Ionicons name="trash-outline" size={20} color="#C22F43" />
-            <Text style={[styles.menuText, { color: '#C22F43' }]}>Delete</Text>
+            <Ionicons name="trash-outline" size={20} color={colors.error} />
+            <Text style={[styles.menuText, { color: colors.error }]}>Delete</Text>
           </Pressable>
         </View>
       </BottomSheet>
@@ -132,7 +135,8 @@ function formatDate(iso: string): string {
     : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   list: { flex: 1 },
   more: { alignItems: 'center', paddingVertical: 12 },
   moreText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#7545ED' },
@@ -145,19 +149,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#ECEAEF',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   pressed: { opacity: 0.85 },
   rowOpen: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   trash: { marginLeft: 12, padding: 4 },
   menu: { gap: 4, paddingBottom: 8 },
-  menuHeader: { gap: 2, paddingHorizontal: 8, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ECEAEF' },
+  menuHeader: { gap: 2, paddingHorizontal: 8, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   menuTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
   menuId: { fontFamily: 'Poppins_400Regular', fontSize: 12 },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 8 },
   menuText: { fontFamily: 'Poppins_500Medium', fontSize: 16 },
-  label: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: '#242032' },
-  date: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#655F74' },
+  label: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.text },
+  date: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.muted },
   footer: { paddingVertical: 12 },
 });

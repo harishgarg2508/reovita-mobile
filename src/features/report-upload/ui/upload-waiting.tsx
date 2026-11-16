@@ -1,11 +1,12 @@
 import { ReportProcessingPanel } from '@shared/ui/processing-panel';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isReportReady, useReportStatus } from '@entities/report';
 import { Skeleton } from '@shared/ui/skeleton';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Shown right after an upload. The report is read in the background; the app learns about each
 // status change over the server's event stream, and opens the report once the observations are ready.
@@ -24,29 +25,30 @@ export function UploadWaiting({ reportId, onLater }: { reportId: string; onLater
   return <ReportProcessingPanel onLater={onLater} />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
     gap: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: '#171717',
+    color: colors.text,
   },
   subtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
     lineHeight: 20,
-    color: '#60646C',
+    color: colors.muted,
   },
   error: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
     lineHeight: 20,
-    color: '#C22F43',
+    color: colors.error,
   },
   spacer: {
     flex: 1,
@@ -56,11 +58,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1EDF7',
+    backgroundColor: colors.surfaceAlt,
   },
   laterText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: '#1F6F3F',
+    color: colors.accent,
   },
 });

@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { usePalette } from '@shared/ui/theme';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const GREEN = '#1F6F3F';
 
 // Shown while the report is still being read. The event stream tells the screen when the observations are ready.
 export function ReportProcessingPanel({ onLater }: { onLater: () => void }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const p = usePalette();
   const insets = useSafeAreaInsets();
   // The clock on the badge turns continuously while the report is read.
@@ -54,7 +57,7 @@ export function ReportProcessingPanel({ onLater }: { onLater: () => void }) {
           This usually takes a minute or two. You can leave this screen. We will notify you when your observations are ready.
         </Text>
         <Pressable accessibilityRole="button" onPress={onLater} style={styles.button}>
-          <Ionicons name="refresh" size={18} color="#FFFFFF" />
+          <Ionicons name="refresh" size={18} color={colors.onAccent} />
           <Text style={styles.buttonText}>Come back later</Text>
         </Pressable>
       </View>
@@ -62,7 +65,8 @@ export function ReportProcessingPanel({ onLater }: { onLater: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   screen: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   card: { width: '100%', borderRadius: 24, borderWidth: 1, padding: 22, alignItems: 'center', gap: 10 },
   iconCircle: {
@@ -107,5 +111,5 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN,
     marginTop: 8,
   },
-  buttonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  buttonText: { fontSize: 15, fontWeight: '700', color: colors.onAccent },
 });

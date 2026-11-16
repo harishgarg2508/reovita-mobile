@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,6 +16,7 @@ import { useUploadReport } from '../model/use-upload-report';
 import { Skeleton } from '@shared/ui/skeleton';
 import { ReportList } from './report-list';
 import { UploadWaiting } from './upload-waiting';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const ERROR_TEXT: Record<string, string> = {
   unsupported_file_type: 'Only PDF, JPEG and PNG files are accepted.',
@@ -27,6 +28,8 @@ type UploadFile = { uri: string; name: string; type: string };
 
 // Upload screen with the same layout as onboarding Step 4 ("Your First Report").
 export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const upload = useUploadReport();
@@ -214,12 +217,13 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   headerSection: {
     flexDirection: 'row',
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: '#1B152B',
+    color: colors.text,
     letterSpacing: -0.4,
   },
   title: {
@@ -258,14 +262,14 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 40,
     letterSpacing: -0.8,
-    color: '#1B152B',
+    color: colors.text,
     marginTop: 2,
   },
   subtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
     lineHeight: 20,
-    color: '#655F74',
+    color: colors.muted,
   },
   body: {
     marginTop: 18,
@@ -276,12 +280,12 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backdrop: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
   dialogTitle: { fontSize: 18, fontWeight: '800' },
   dialogBody: { fontSize: 14, lineHeight: 20 },
-  dialogButton: { alignSelf: 'flex-end', paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1F6F3F' },
-  dialogButtonText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  dialogButton: { alignSelf: 'flex-end', paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentFill },
+  dialogButtonText: { fontSize: 14, fontWeight: '700', color: colors.onAccent },
   listWrap: {
     flex: 1,
     marginTop: 20,
@@ -305,13 +309,13 @@ const styles = StyleSheet.create({
   uploading: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
-    color: '#1F6F3F',
+    color: colors.accent,
     textAlign: 'center',
     marginTop: 16,
   },
   error: {
     fontFamily: 'Poppins_400Regular',
-    color: '#C22F43',
+    color: colors.error,
     fontSize: 13,
     textAlign: 'center',
     marginTop: 14,

@@ -3,7 +3,7 @@ import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   Animated,
   Easing,
@@ -39,13 +39,15 @@ import { CelebrationCheck } from '@shared/ui/celebration-check';
 
 import { useConfirmReport } from '../model/use-confirm-report';
 import { ReportNotReadablePanel } from './report-not-readable-panel';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Shown while OCR is still running (the server answers 409 report_processing until then).
-const loadingStyles = StyleSheet.create({
+const createLoadingStyles = (colors: FormColors) =>
+  StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 18, fontWeight: '800', color: '#171717' },
-  subtitle: { fontSize: 14, color: '#60646C' },
-  error: { fontSize: 14, color: '#C22F43' },
+  title: { fontSize: 18, fontWeight: '800', color: colors.text },
+  subtitle: { fontSize: 14, color: colors.muted },
+  error: { fontSize: 14, color: colors.error },
 });
 
 const HERO_CHART_SVG = `<svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -89,6 +91,9 @@ function WatchInterpretation({ reportId, onDone }: { reportId: string; onDone: (
 }
 
 export function ReportReviewScreen({ reportId }: { reportId: string }) {
+  const colors = useFormColors();
+  const loadingStyles = useMemo(() => createLoadingStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   // The confirm result is cached by useConfirmReport. Once it exists, observations are not requested again.
@@ -586,13 +591,13 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
                         minWidth: 0,
                         fontSize: 15,
                         fontWeight: '600',
-                        color: '#171717',
+                        color: colors.text,
                         paddingHorizontal: 10,
                         paddingVertical: 7,
                         borderWidth: 1.5,
-                        borderColor: '#1F6F3F',
+                        borderColor: colors.accent,
                         borderRadius: 10,
-                        backgroundColor: '#F8F5FF',
+                        backgroundColor: colors.surfaceAlt,
                       }}
                     />
                     <Text style={styles.biomarkerValue}>{obs.unit}</Text>
@@ -643,7 +648,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
         </Animated.View>
       </View>
       )}
-      {confirmError ? <Text style={[styles.confirmError, { color: '#C22F43' }]}>{confirmError}</Text> : null}
+      {confirmError ? <Text style={[styles.confirmError, { color: colors.error }]}>{confirmError}</Text> : null}
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}
@@ -654,9 +659,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  failureNote: { marginTop: 12, marginHorizontal: 20, padding: 14, borderRadius: 16, backgroundColor: '#FFF4E0', borderWidth: 1, borderColor: '#F3D9A4' },
-  failureNoteText: { fontSize: 13.5, lineHeight: 19, color: '#7A4A00' },
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
+  failureNote: { marginTop: 12, marginHorizontal: 20, padding: 14, borderRadius: 16, backgroundColor: colors.warnBg, borderWidth: 1, borderColor: colors.warnBorder },
+  failureNoteText: { fontSize: 13.5, lineHeight: 19, color: colors.warnText },
   aiLoadingHalo: {
     width: 160,
     height: 160,
@@ -668,18 +674,18 @@ const styles = StyleSheet.create({
     height: 160,
   },
   aiLoadingAccent: {
-    color: '#1F6F3F',
+    color: colors.accent,
     fontFamily: 'Poppins_700Bold',
   },
   container: {
     paddingHorizontal: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg,
     flexGrow: 1,
     justifyContent: 'space-between',
   },
   screenCenter: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
@@ -701,18 +707,18 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 22,
-    color: '#171717',
+    color: colors.text,
     fontWeight: '700',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
   },
   infoCallout: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3EEFD',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -729,17 +735,17 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
     marginBottom: 2,
   },
   infoSubtitle: {
     fontSize: 13,
-    color: '#60646C',
+    color: colors.muted,
   },
   tableCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: '#E8E3FA',
+    borderColor: colors.border,
     borderRadius: 18,
     overflow: 'hidden',
   },
@@ -750,7 +756,7 @@ const styles = StyleSheet.create({
   },
   tableRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F0ECFA',
+    borderBottomColor: colors.border,
   },
   nameColumn: {
     flex: 1,
@@ -760,7 +766,7 @@ const styles = StyleSheet.create({
   columnDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: '#F0ECFA',
+    backgroundColor: colors.surfaceAlt,
   },
   valueColumn: {
     flex: 1,
@@ -770,12 +776,12 @@ const styles = StyleSheet.create({
   biomarkerName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#171717',
+    color: colors.text,
   },
   biomarkerValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#171717',
+    color: colors.text,
   },
   dualActionRow: {
     flexDirection: 'row',
@@ -787,20 +793,20 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 1.8,
-    borderColor: '#1F6F3F',
+    borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   editBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F6F3F',
+    color: colors.accent,
   },
   confirmBtn: {
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1F6F3F',
@@ -813,7 +819,7 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
   centerHeroSection: {
     alignItems: 'center',
@@ -830,7 +836,7 @@ const styles = StyleSheet.create({
   aiLoadingTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: '#171717',
+    color: colors.text,
     textAlign: 'center',
     lineHeight: 35,
     letterSpacing: -0.3,
@@ -839,7 +845,7 @@ const styles = StyleSheet.create({
   aiLoadingSubtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 15,
-    color: '#6B7280',
+    color: colors.muted,
     textAlign: 'center',
     marginTop: 8,
     letterSpacing: 0.1,
@@ -873,13 +879,13 @@ const styles = StyleSheet.create({
   readyTitle: {
     fontSize: 25,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 6,
   },
   readySubtitle: {
     fontSize: 14,
-    color: '#60646C',
+    color: colors.muted,
     textAlign: 'center',
     marginBottom: 18,
   },
@@ -887,7 +893,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: '#EBF9D5',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -906,7 +912,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   allNormalText: {
     fontSize: 14,
@@ -917,9 +923,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FCF2',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1.5,
-    borderColor: '#E4F1D2',
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 18,
@@ -931,7 +937,7 @@ const styles = StyleSheet.create({
   scoreCardLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
     marginBottom: 4,
   },
   scoreNumRow: {
@@ -942,7 +948,7 @@ const styles = StyleSheet.create({
   scoreBig: {
     fontSize: 38,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
     letterSpacing: -1,
   },
   scoreUpArrow: {
@@ -953,7 +959,7 @@ const styles = StyleSheet.create({
   scoreDenominator: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8E929A',
+    color: colors.muted,
   },
   sparklineCol: {
     justifyContent: 'center',
@@ -966,7 +972,7 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
   },
   insightItem: {
     flexDirection: 'row',
@@ -984,16 +990,16 @@ const styles = StyleSheet.create({
   greenCheckText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
   insightText: {
     fontSize: 14,
-    color: '#171717',
+    color: colors.text,
     fontWeight: '500',
     flex: 1,
   },
   detailedSection: {
-    backgroundColor: '#F9F8FD',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 16,
     padding: 16,
     gap: 8,
@@ -1005,12 +1011,12 @@ const styles = StyleSheet.create({
   },
   detailedName: {
     fontSize: 13,
-    color: '#60646C',
+    color: colors.muted,
   },
   detailedVal: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
   },
   actionColumn: {
     gap: 12,
@@ -1021,7 +1027,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1F6F3F',
@@ -1033,21 +1039,21 @@ const styles = StyleSheet.create({
   primaryReportBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
   secondaryDashboardBtn: {
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: '#E2E0EC',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryDashboardBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
   },
 });

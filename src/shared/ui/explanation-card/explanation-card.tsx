@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const STATUS_COLOR: Record<string, string> = {
   Normal: '#3D5500',
@@ -10,6 +12,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 // One explanation: status and biomarker name on top, the explanation text below.
 export function ExplanationCard({ status, biomarkerCode, text }: { status?: string; biomarkerCode?: string; text: string }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -25,14 +29,15 @@ export function ExplanationCard({ status, biomarkerCode, text }: { status?: stri
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   card: {
     padding: 16,
     gap: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#ECEAEF',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   header: {
     flexDirection: 'row',
@@ -46,9 +51,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E0E1E6',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
-  pillText: { fontSize: 12, fontWeight: '600', color: '#171717', textTransform: 'uppercase', letterSpacing: 0.4 },
-  body: { fontSize: 14, lineHeight: 20, color: '#3B3F47' },
+  pillText: { fontSize: 12, fontWeight: '600', color: colors.text, textTransform: 'uppercase', letterSpacing: 0.4 },
+  body: { fontSize: 14, lineHeight: 20, color: colors.muted },
 });

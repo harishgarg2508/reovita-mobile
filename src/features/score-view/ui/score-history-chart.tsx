@@ -1,49 +1,35 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { HealthScoreEntry } from '@entities/score';
+import { SCORE_ZONES, scoreZone, type HealthScoreEntry } from '@entities/score';
 import type { Palette } from '@shared/ui/theme';
 
 const HEIGHT = 190;
-const PAD = { top: 14, right: 14, bottom: 8, left: 34 };
+const PAD = { top: 10, right: 14, bottom: 8, left: 62 };
 
-// The lowest and highest grid line: the scores' range widened to whole tens, and at least 20 points tall
-// so a flat history is not drawn as a wild zig-zag.
-function scale(values: number[]): { min: number; max: number } {
-  let min = Math.floor(Math.min(...values) / 10) * 10;
-  let max = Math.ceil(Math.max(...values) / 10) * 10;
-  if (max - min < 20) {
-    min = Math.max(0, min - 10);
-    max = Math.min(100, max + 10);
-  }
-  if (max - min < 20) min = Math.max(0, max - 20);
-  return { min, max };
-}
-
-// Line graph of the total score over time, oldest on the left. Drawn with react-native-svg.
+// Line graph of the health score over time, oldest on the left. It shows no numbers: three coloured bands, Critical, Watch
+// and Normal, run behind the line, so where the line sits says how the user is doing. Drawn with react-native-svg.
 export function ScoreHistoryChart({ entries, p }: { entries: HealthScoreEntry[]; p: Palette }) {
   const [width, setWidth] = useState(0);
   const totals = entries.map((entry) => entry.total);
-  const { min, max } = scale(totals);
   const innerW = Math.max(0, width - PAD.left - PAD.right);
   const innerH = HEIGHT - PAD.top - PAD.bottom;
 
   const x = (index: number) => PAD.left + (entries.length === 1 ? innerW / 2 : (index / (entries.length - 1)) * innerW);
-  const y = (value: number) => PAD.top + (1 - (value - min) / (max - min)) * innerH;
+  const y = (value: number) => PAD.top + (1 - Math.min(Math.max(value, 0), 100) / 100) * innerH;
   const line = totals.map((value, index) => `${index === 0 ? 'M' : 'L'}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(' ');
-  const gridValues = [max, (max + min) / 2, min];
   const last = entries.length - 1;
 
   return (
     <View
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       accessibilityRole="image"
-      accessibilityLabel={`Health score graph. ${entries.length} scores, from ${totals[0]} to ${totals[last]}.`}>
+      accessibilityLabel={`Health score graph. ${entries.length} scores, from ${scoreZone(totals[0]).word} to ${scoreZone(totals[last]).word}.`}>
       {width > 0 ? (
         <Svg width={width} height={HEIGHT}>
-          {gridValues.map((value) => (
-            <Line key={value} x1={PAD.left} x2={width - PAD.right} y1={y(value)} y2={y(value)} stroke={p.border} strokeWidth={1} />
+          {SCORE_ZONES.map((zone) => (
+            <Rect key={zone.word} x={PAD.left} y={y(zone.to)} width={innerW} height={y(zone.from) - y(zone.to)} fill={zone.color} fillOpacity={0.14} />
           ))}
           {entries.length > 1 ? <Path d={line} stroke={p.accent} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" /> : null}
           {totals.map((value, index) => (
@@ -61,11 +47,11 @@ export function ScoreHistoryChart({ entries, p }: { entries: HealthScoreEntry[];
       ) : (
         <View style={{ height: HEIGHT }} />
       )}
-      {/* Grid labels sit over the left edge, in text so they follow the app font and theme. */}
+      {/* The zone names sit at the left edge, in text so they follow the app font. */}
       {width > 0
-        ? gridValues.map((value) => (
-            <Text key={value} style={[styles.gridLabel, { top: y(value) - 8, color: p.muted }]}>
-              {Math.round(value)}
+        ? SCORE_ZONES.map((zone) => (
+            <Text key={zone.word} style={[styles.zoneLabel, { top: (y(zone.to) + y(zone.from)) / 2 - 8, color: zone.color }]}>
+              {zone.word}
             </Text>
           ))
         : null}
@@ -82,7 +68,7 @@ function shortDate(iso: string): string {
 }
 
 const styles = StyleSheet.create({
-  gridLabel: { position: 'absolute', left: 0, width: PAD.left - 8, textAlign: 'right', fontSize: 11 },
+  zoneLabel: { position: 'absolute', left: 0, width: PAD.left - 8, textAlign: 'right', fontSize: 11, fontWeight: '700' },
   dates: { flexDirection: 'row', justifyContent: 'space-between' },
   date: { fontSize: 11 },
 });

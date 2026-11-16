@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { healthStatusOf, type Observation } from '@entities/report';
 import { StatusTag } from '@shared/ui/status-tag';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Card layout per observation (not a wide table) so it reads on a phone.
 export function ObservationEditTable({
@@ -11,6 +13,8 @@ export function ObservationEditTable({
   observations: Observation[];
   onChangeValue: (index: number, value: string) => void;
 }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.list}>
       {observations.map((obs, index) => (
@@ -38,12 +42,13 @@ export function ObservationEditTable({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   list: { gap: 10 },
-  card: { padding: 14, borderRadius: 14, backgroundColor: '#F0F0F3', gap: 6 },
+  card: { padding: 14, borderRadius: 14, backgroundColor: colors.surfaceAlt, gap: 6 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontSize: 15, fontWeight: '700', color: '#171717', flex: 1, marginRight: 8 },
+  name: { fontSize: 15, fontWeight: '700', color: colors.text, flex: 1, marginRight: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 10, fontSize: 16, color: '#171717' },
-  meta: { fontSize: 13, color: '#60646C' },
+  input: { flex: 1, backgroundColor: colors.card, borderRadius: 10, padding: 10, fontSize: 16, color: colors.text },
+  meta: { fontSize: 13, color: colors.muted },
 });

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ScoreTrendBadge, useScoreHistory, type HealthScoreEntry } from '@entities/score';
+import { partWord, ScoreTrendBadge, scoreZone, useScoreHistory, type HealthScoreEntry } from '@entities/score';
 import { goBackOr } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
@@ -80,13 +80,13 @@ export function ScoreHistoryScreen() {
             <View style={styles.row}>
               <View>
                 <Text style={styles.muted}>Latest score</Text>
-                <Text style={styles.total}>{Math.round(latest.total)}</Text>
+                <Text style={[styles.total, { color: scoreZone(latest.total).color }]}>{scoreZone(latest.total).word}</Text>
               </View>
               <View style={styles.right}>
                 <ScoreTrendBadge trend={latest.trend} />
                 {entries.length > 1 ? (
                   <Text style={styles.muted}>
-                    {change === 0 ? 'No change' : `${change > 0 ? '+' : ''}${Math.round(change)} points`} since {longDate(first!.created_at)}
+                    {Math.abs(change) < 1 ? 'No change' : change > 0 ? 'Higher' : 'Lower'} since {longDate(first!.created_at)}
                   </Text>
                 ) : null}
               </View>
@@ -106,7 +106,7 @@ export function ScoreHistoryScreen() {
                   </View>
                   <View style={styles.itemRight}>
                     <ScoreTrendBadge trend={entry.trend} />
-                    <Text style={styles.itemTotal}>{Math.round(entry.total)}</Text>
+                    <Text style={[styles.itemTotal, { color: scoreZone(entry.total).color }]}>{scoreZone(entry.total).word}</Text>
                   </View>
                 </View>
                 <Text style={styles.parts}>{partsLine(entry)}</Text>
@@ -128,11 +128,11 @@ export function ScoreHistoryScreen() {
   );
 }
 
-// "Lifestyle 89 · Conditions 85 · Reports 100". A part with no information yet is left out.
+// "Lifestyle Normal · Conditions Watch · Reports Normal". A part with no information yet is left out.
 function partsLine(entry: HealthScoreEntry): string {
   const parts = PARTS.map(({ key, label }) => {
-    const value = entry.parts?.[key];
-    return value === null || value === undefined ? null : `${label} ${Math.round(value)}`;
+    const word = partWord(entry.parts?.[key]);
+    return word === null ? null : `${label} ${word}`;
   }).filter((text): text is string => text !== null);
   return parts.join('  ·  ');
 }
@@ -160,13 +160,13 @@ function makeStyles(p: Palette) {
     muted: { fontSize: 12.5, color: p.muted, lineHeight: 18 },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
     right: { alignItems: 'flex-end', gap: 6, flexShrink: 1 },
-    total: { fontSize: 44, fontWeight: '800', color: p.textStrong, letterSpacing: 1 },
+    total: { fontSize: 32, fontWeight: '800', color: p.textStrong },
     section: { fontSize: 15, fontWeight: '700', color: p.textStrong, marginTop: 4 },
     item: { gap: 6, paddingVertical: 12 },
     itemBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border },
     itemDate: { fontSize: 14, fontWeight: '600', color: p.textStrong },
     itemRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    itemTotal: { fontSize: 22, fontWeight: '800', color: p.textStrong, minWidth: 38, textAlign: 'right' },
+    itemTotal: { fontSize: 16, fontWeight: '800', color: p.textStrong, minWidth: 64, textAlign: 'right' },
     parts: { fontSize: 12.5, color: p.muted },
     retry: { height: 44, borderRadius: 14, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
     retryText: { color: '#FFFFFF', fontWeight: '700' },

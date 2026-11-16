@@ -23,6 +23,8 @@ const LIGHT = {
   warnBg: '#FFF1D6',
   warnText: '#8A5A00',
   disabledIcon: '#C5BDD4',
+  warnBorder: '#F3D9A4',
+  errorBorder: '#F9CBD2',
 };
 
 const DARK: typeof LIGHT = {
@@ -44,6 +46,8 @@ const DARK: typeof LIGHT = {
   warnBg: '#3A2C10',
   warnText: '#F5C26B',
   disabledIcon: '#4A4668',
+  warnBorder: '#5A4318',
+  errorBorder: '#5A2430',
 };
 
 export type FormColors = typeof LIGHT;

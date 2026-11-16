@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { Skeleton } from '@shared/ui/skeleton';
 import { ConfirmDialog } from '@shared/ui';
 import { useDeleteReport } from '@entities/report';
@@ -17,6 +18,8 @@ export function RecordsScreen() {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
+  const listRef = useRef<FlatList<RecordItem>>(null);
+  useScrollToTopOnFocus(listRef);
   const records = useRecords();
   const items = records.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -36,6 +39,7 @@ export function RecordsScreen() {
         <Text style={styles.empty}>No records yet. Upload a lab report to see it here.</Text>
       ) : (
         <FlatList
+          ref={listRef}
           data={items}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 20) + 110 }]}

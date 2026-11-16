@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { useConsentGrants, useGrantConsentType, useRevokeConsent, type ConsentTy
 import { useCurrentSubject } from '@entities/subject';
 import { useDeactivateAccount } from '@features/account-deactivate';
 import { ProfileDetailsCard } from '@features/profile-details';
-import { tapConfirm } from '@shared/lib';
+import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
 import { Skeleton } from '@shared/ui/skeleton';
@@ -54,6 +54,8 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const subject = useCurrentSubject();
   const consents = useConsentGrants();
@@ -134,6 +136,7 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
       <View style={styles.header}>

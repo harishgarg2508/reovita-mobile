@@ -1,6 +1,6 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Animated,
   Pressable,
@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goBackOr, RetakeCameraGraphic } from '@shared/ui';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 /**
  * Reovita Retake Photo Screen.
@@ -22,6 +23,8 @@ import { goBackOr, RetakeCameraGraphic } from '@shared/ui';
  * - Solid royal purple 'Retake Photo' button & 'Back' link
  */
 export function RetakePhotoScreen() {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -126,10 +129,11 @@ export function RetakePhotoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg,
     paddingHorizontal: 24,
     justifyContent: 'space-between',
   },
@@ -147,13 +151,13 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 22,
-    color: '#171717',
+    color: colors.text,
     fontWeight: '700',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
   },
   centerContent: {
     flex: 1,
@@ -172,13 +176,13 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 14,
-    color: '#60646C',
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -191,7 +195,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1F6F3F',
@@ -203,7 +207,7 @@ const styles = StyleSheet.create({
   retakeBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
   backLink: {
     alignItems: 'center',
@@ -213,7 +217,7 @@ const styles = StyleSheet.create({
   backLinkText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F6F3F',
+    color: colors.accent,
   },
 });
 

@@ -219,6 +219,8 @@ export function ScanScreen() {
             onChangeText={setTypedCode}
             autoCapitalize="characters"
             autoCorrect={false}
+            // A code is always VT-NNNN-XX: 10 characters.
+            maxLength={10}
             placeholder="VT-1234-AB"
             placeholderTextColor={p.muted}
             returnKeyType="send"

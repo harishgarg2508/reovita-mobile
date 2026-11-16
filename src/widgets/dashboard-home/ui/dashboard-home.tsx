@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useHome } from '@entities/home';
@@ -10,6 +9,8 @@ import { useReportList } from '@entities/report';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileBmiCard } from '@features/profile-details';
+import { SCORE_ZONES } from '@entities/score';
+import { ScoreGauge } from './score-gauge';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
@@ -60,101 +61,15 @@ function IconBox({ p, name, color }: { p: Palette; name: keyof typeof Ionicons.g
   );
 }
 
-// The score ring. Filled in proportion to the score, empty when there is no score yet.
-// Ring colour from the score: red below 40, amber from 40 to 69, green from 70. No score uses the palette accent.
-function scoreColor(score: number | null, p: Palette): string {
-  if (score === null) return p.lime;
-  if (score < 40) return p.red;
-  if (score < 70) return '#B26A00';
-  return '#1F7A3E';
-}
-
-// Animates a 0..1 fill from 0 up to the target. It runs again each time runId changes (each time Home is opened),
-// so the arc sweeps in whenever the screen is shown, and eases to a new value when the score changes.
-function useAnimatedFraction(target: number, runId: number): number {
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    setShown(0);
-    const value = new Animated.Value(0);
-    const id = value.addListener(({ value: v }) => setShown(v));
-    Animated.timing(value, { toValue: target, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-    return () => {
-      value.stopAnimation();
-      value.removeListener(id);
-    };
-  }, [target, runId]);
-  return shown;
-}
-
-function ScoreRing({ p, score, runId }: { p: Palette; score: number | null; runId: number }) {
-  const radius = 46;
-  const circumference = 2 * Math.PI * radius;
-  const fraction = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100;
-  const shown = useAnimatedFraction(fraction, runId);
+// One small speedometer for a score part (lifestyle, conditions or reports), with its icon and name under the dial.
+function PartGauge({ p, label, icon, score, runId }: { p: Palette; label: string; icon: keyof typeof Ionicons.glyphMap; score: number | null; runId: number }) {
   return (
-    <View style={styles.ringWrap}>
-      <View style={styles.ringRotate}>
-        <Svg width={120} height={120} viewBox="0 0 120 120">
-          <Circle cx="60" cy="60" r={radius} stroke={p.track} strokeWidth={10} fill="none" />
-          <Circle
-            cx="60"
-            cy="60"
-            r={radius}
-            stroke={scoreColor(score, p)}
-            strokeWidth={10}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={`${circumference * shown} ${circumference}`}
-          />
-        </Svg>
+    <View style={styles.partGaugeCell}>
+      <ScoreGauge p={p} score={score} runId={runId} size="small" />
+      <View style={styles.partGaugeLabel}>
+        <Ionicons name={icon} size={14} color={score === null ? p.muted : p.text} />
+        <Text style={[styles.partRingLabel, { color: p.muted }]}>{label}</Text>
       </View>
-      <View style={styles.ringCenter}>
-        <Ionicons name="heart" size={34} color={p.text} />
-      </View>
-    </View>
-  );
-}
-
-// One radial chart for a score part (lifestyle, conditions or reports). No number: the arc shows how high it is.
-function PartRing({
-  p,
-  label,
-  icon,
-  score,
-  runId,
-}: {
-  p: Palette;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  score: number | null;
-  runId: number;
-}) {
-  const radius = 30;
-  const circumference = 2 * Math.PI * radius;
-  const fraction = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100;
-  const shown = useAnimatedFraction(fraction, runId);
-  return (
-    <View style={styles.partRingCell}>
-      <View style={styles.partRingBox}>
-        <Svg width={72} height={72} viewBox="0 0 72 72">
-          <Circle cx="36" cy="36" r={radius} stroke={p.track} strokeWidth={7} fill="none" />
-          <Circle
-            cx="36"
-            cy="36"
-            r={radius}
-            stroke={scoreColor(score, p)}
-            strokeWidth={7}
-            fill="none"
-            strokeLinecap="round"
-            transform="rotate(-90 36 36)"
-            strokeDasharray={`${circumference * shown} ${circumference}`}
-          />
-        </Svg>
-        <View style={styles.partRingIcon}>
-          <Ionicons name={icon} size={18} color={score === null ? p.muted : p.text} />
-        </View>
-      </View>
-      <Text style={[styles.partRingLabel, { color: p.muted }]}>{label}</Text>
     </View>
   );
 }
@@ -204,9 +119,9 @@ function heroSubtitle(score: number): string {
 
 function partStatus(score: number | null): string {
   if (score === null) return 'Add info';
-  if (score >= 70) return 'On track';
-  if (score >= 40) return 'Needs care';
-  return 'Needs attention';
+  if (score >= 70) return 'Normal';
+  if (score >= 40) return 'Watch';
+  return 'Critical';
 }
 
 function partStatusColor(score: number | null, p: Palette): string {
@@ -234,7 +149,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   // Coming back to Home always starts at the top.
   const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
-  // Each time Home comes into view, the rings animate again from empty.
+  // Each time Home comes into view, the dials sweep in again from empty.
   const [runId, setRunId] = useState(0);
   useFocusEffect(useCallback(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -365,11 +280,11 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
                   : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
             </Text>
           </View>
-          <ScoreRing p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} />
+          <ScoreGauge p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} size="large" />
         </View>
       </View>
 
-      {/* The three parts: each card shows its ring and status, and opens the step that adds its information. */}
+      {/* The three parts: each card shows its dial and status, and opens the step that adds its information. */}
       <View style={styles.partsGrid}>
         {PART_CARDS.map((part) => {
           const score = data?.health_score_parts?.[part.key] ?? null;
@@ -385,7 +300,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
                 )
               }
               style={[styles.partCard, { backgroundColor: p.card, borderColor: p.border }]}>
-              <PartRing p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
+              <PartGauge p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
               <View style={styles.partFooter}>
                 <Text
                   numberOfLines={1}
@@ -466,46 +381,44 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: () => void }) 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.infoBody}>
             <Text style={[styles.cardTitle, { color: p.text }]}>How your score is calculated</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Your score is the average of three parts. A part only counts once you have added its information.
-              Until a lab report is added, the score is labelled Partial, because it covers only lifestyle and conditions.
+              Your score is shown as an indicator, Normal, Watch or Critical, from the three parts below. A part only counts once you have
+              added its information. Until a lab report is added, the score is labelled Partial, because it covers only lifestyle and conditions.
             </Text>
-            <Text style={[styles.infoHead, { color: p.text }]}>Lifestyle (starts at 100)</Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Lifestyle</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Current smoker -15, former smoker -5. No exercise -10. Mostly sitting -5. High stress (4 or 5) -8. Under 7 hours of sleep -8. Over 9 hours -4.
+              Smoking lowers this part the most, then no exercise, high stress and too little sleep. Mostly sitting, a lot of sleep and having
+              stopped smoking lower it a little.
             </Text>
-            <Text style={[styles.infoHead, { color: p.text }]}>Medical history (starts at 100)</Text>
+            <Text style={[styles.infoHead, { color: p.text }]}>Medical history</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Diabetes -20, hypertension -15, heart disease -25, kidney disease -25, thyroid -10. Each condition you have is subtracted.
-              Family history and medications are saved, but they do not change the score yet.
+              Each condition you have lowers this part. Heart and kidney disease lower it the most, then diabetes and high blood pressure,
+              then thyroid conditions. Family history and medications are saved, but they do not change the score yet.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Lab reports</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              Each result scores by its status: normal 100, watch 70, high or low 40, critical 10. Results are grouped
-              (blood count, cardiovascular, metabolic, inflammatory, thyroid, kidney, and other), and each group is averaged.
-              Results older than 12 months count half, and results older than 24 months are not counted.
+              Each result counts by its indicator: Normal counts the most, then Watch, then High or Low, then Critical. Results are grouped
+              (blood count, cardiovascular, metabolic, inflammatory, thyroid, kidney, and other), and each group is averaged. Results older
+              than a year count half, and results older than two years are not counted.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Note</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              These point values are provisional and are being reviewed by a clinician. They are not a diagnosis.
+              This weighting is provisional and is being reviewed by a clinician. It is not a diagnosis.
             </Text>
             <Text style={[styles.infoHead, { color: p.text }]}>Total</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              The average of the parts you have.
+              The average of the parts you have, shown as one of these indicators:
             </Text>
-            {/* Same colours as the score ring: green 70 and above, amber 40 to 69, red below 40. */}
+            {/* The same three bands and colours as the dial and the history graph. */}
             <View style={styles.legend}>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: '#1F7A3E' }]} />
-                <Text style={[styles.cardText, { color: p.muted }]}>70 and above: on track</Text>
-              </View>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: '#B26A00' }]} />
-                <Text style={[styles.cardText, { color: p.muted }]}>40 to 69: needs care</Text>
-              </View>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: p.red }]} />
-                <Text style={[styles.cardText, { color: p.muted }]}>Below 40: needs attention</Text>
-              </View>
+              {[...SCORE_ZONES].reverse().map((zone) => (
+                <View key={zone.word} style={styles.legendRow}>
+                  <View style={[styles.legendDot, { backgroundColor: zone.color }]} />
+                  <Text style={[styles.cardText, { color: p.muted }]}>
+                    <Text style={{ color: zone.color, fontWeight: '800' }}>{zone.word}</Text>
+                    {zone.word === 'Normal' ? ': you are on track' : zone.word === 'Watch' ? ': worth some attention' : ': needs attention soon'}
+                  </Text>
+                </View>
+              ))}
             </View>
             </ScrollView>
             <Pressable accessibilityRole="button" onPress={() => setScoreInfoOpen(false)} style={styles.infoClose}>
@@ -581,9 +494,8 @@ const styles = StyleSheet.create({
   infoHead: { fontSize: 14, fontWeight: '700', marginTop: 6 },
   infoClose: { marginTop: 12, height: 46, borderRadius: 16, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
   infoCloseText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  partRingCell: { alignItems: 'center', gap: 8 },
-  partRingBox: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
-  partRingIcon: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  partGaugeCell: { alignItems: 'center', gap: 8 },
+  partGaugeLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   partRingLabel: { fontSize: 12.5, fontWeight: '600' },
   recentList: { gap: 8, marginTop: 4 },
   recentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
@@ -595,10 +507,7 @@ const styles = StyleSheet.create({
   scoreTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   scoreBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   scoreValue: { fontSize: 44, fontWeight: '800', letterSpacing: 2 },
-  ringWrap: { width: 120, height: 120, alignItems: 'center', justifyContent: 'center' },
   // Rotating the whole SVG (not a group inside it) starts the arc at the top. Works on web too.
-  ringRotate: { transform: [{ rotate: '-90deg' }] },
-  ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },

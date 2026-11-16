@@ -1,16 +1,19 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import { useRouter } from 'expo-router';
 
 import { useDeleteReport, useRetryReport } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { ConfirmDialog } from '@shared/ui';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const VIOLET = '#1F6F3F';
 
 // Shown when OCR could not read the stored file. Runs OCR again on the same file (no new upload), or deletes it.
 export function ReportNotReadablePanel({ reportId }: { reportId: string }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const retry = useRetryReport();
   const remove = useDeleteReport();
   const router = useRouter();
@@ -55,7 +58,7 @@ export function ReportNotReadablePanel({ reportId }: { reportId: string }) {
         onPress={onRetry}
         disabled={retry.isPending}
         style={[styles.button, retry.isPending && styles.buttonDisabled]}>
-        {retry.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Try reading again</Text>}
+        {retry.isPending ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.buttonText}>Try reading again</Text>}
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -78,11 +81,12 @@ export function ReportNotReadablePanel({ reportId }: { reportId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#FFFFFF' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1F1A2E', textAlign: 'center', marginBottom: 12 },
-  body: { fontSize: 14, color: '#5B5470', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  error: { fontSize: 13, color: '#C22F43', textAlign: 'center', marginBottom: 12 },
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.card },
+  title: { fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'center', marginBottom: 12 },
+  body: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  error: { fontSize: 13, color: colors.error, textAlign: 'center', marginBottom: 12 },
   button: {
     backgroundColor: VIOLET,
     borderRadius: 24,
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  deleteButton: { marginTop: 14, paddingVertical: 12, paddingHorizontal: 28, minWidth: 220, alignItems: 'center', borderRadius: 24, borderWidth: 1, borderColor: '#F9CBD2' },
-  deleteText: { color: '#C22F43', fontSize: 15, fontWeight: '600' },
-  buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  deleteButton: { marginTop: 14, paddingVertical: 12, paddingHorizontal: 28, minWidth: 220, alignItems: 'center', borderRadius: 24, borderWidth: 1, borderColor: colors.errorBorder },
+  deleteText: { color: colors.error, fontSize: 15, fontWeight: '600' },
+  buttonText: { color: colors.onAccent, fontSize: 15, fontWeight: '600' },
 });

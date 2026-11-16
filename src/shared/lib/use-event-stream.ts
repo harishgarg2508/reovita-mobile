@@ -13,30 +13,43 @@ interface NativeStreamLike {
   close(): void;
 }
 
-// Reads a text/event-stream body and calls onMessage for each event named eventName. Resolves when the server closes the stream,
-// rejects when the response is not OK. It uses fetch, so the Bearer token goes in the Authorization header (EventSource cannot set headers).
+// What the screen and the reader share, so the screen can stop the reader without aborting the request. Aborting a fetch makes
+// the browser raise an AbortError that it reports as an uncaught error; closing the reader does not.
+interface WebStreamState {
+  closed: boolean;
+  reader: ReadableStreamDefaultReader<Uint8Array> | null;
+}
+
+// Reads a text/event-stream body and calls onMessage for each event named eventName. Resolves when the server closes the stream
+// or the screen has closed it, rejects when the response is not OK. It uses fetch, so the Bearer token goes in the Authorization
+// header (EventSource cannot set headers).
 async function readWebStream(
   url: string,
   token: string | null,
   eventName: string,
   onMessage: (data: string) => void,
-  signal: AbortSignal,
+  state: WebStreamState,
 ): Promise<void> {
   const res = await fetch(url, {
     headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     // Same session as every other API call: after a page reload the web build has no token in memory and is signed in
     // by the HttpOnly cookie set at login, so the cookie must be sent here too.
     credentials: 'include',
-    signal,
   });
+  // The screen was closed while the request was on its way: drop the response without reading it.
+  if (state.closed) {
+    await res.body?.cancel().catch(() => undefined);
+    return;
+  }
   if (!res.ok || !res.body) throw new Error(`stream responded ${res.status}`);
 
   const reader = res.body.getReader();
+  state.reader = reader;
   const decoder = new TextDecoder();
   let buffer = '';
   for (;;) {
     const { done, value } = await reader.read();
-    if (done) return;
+    if (done || state.closed) return;
     buffer += decoder.decode(value, { stream: true });
     let end = buffer.indexOf('\n\n');
     while (end !== -1) {
@@ -69,7 +82,7 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
     let closed = false;
     let delay = BACKOFF_START_MS;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const controller = new AbortController();
+    const web: WebStreamState = { closed: false, reader: null };
     let nativeSource: NativeStreamLike | null = null;
 
     const onMessage = (data: string) => {
@@ -100,11 +113,9 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
       }
 
       if (Platform.OS === 'web') {
-        // An abort is expected when the screen unmounts, so it is not an error and does not retry.
-        readWebStream(url, token, eventName, onMessage, controller.signal)
-          .then(retryLater, () => {
-            if (!controller.signal.aborted) retryLater();
-          })
+        // A stream that ends because the screen was closed is not an error and does not retry (retryLater checks closed).
+        readWebStream(url, token, eventName, onMessage, web)
+          .then(retryLater, retryLater)
           .catch(() => undefined);
         return;
       }
@@ -127,12 +138,9 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
     return () => {
       closed = true;
       if (timer) clearTimeout(timer);
-      // Cancelling the request on unmount can throw on some platforms. The stream is closed either way.
-      try {
-        controller.abort();
-      } catch {
-        // already cancelled
-      }
+      // Closing the reader ends the read and the connection, without the AbortError that aborting the request would raise.
+      web.closed = true;
+      web.reader?.cancel().catch(() => undefined);
       try {
         nativeSource?.close();
       } catch {

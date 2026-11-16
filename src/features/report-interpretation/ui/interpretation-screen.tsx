@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { isApiError } from '@shared/api';
 import { DISCLAIMER_V1 } from '@shared/config/constants';
 import { Chip } from '@shared/ui/chip';
 import { Skeleton } from '@shared/ui/skeleton';
+import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 const STATUS_COLOR: Record<string, string> = {
   Normal: '#3D5500',
@@ -20,6 +21,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 // Interpretation of one report, read directly from GET /v1/health/reports/{id}/interpretation.
 export function InterpretationScreen({ reportId }: { reportId: string }) {
+  const colors = useFormColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   // Pipeline order: upload, then observations, then confirm, then interpretation. The status comes first.
@@ -127,11 +130,12 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: FormColors) =>
+  StyleSheet.create({
   container: {
     paddingHorizontal: 24,
     gap: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg,
     flexGrow: 1,
   },
   headerBar: {
@@ -148,32 +152,32 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 22,
-    color: '#171717',
+    color: colors.text,
     fontWeight: '700',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#171717',
+    color: colors.text,
   },
   section: { gap: 10 },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
   },
   card: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#ECEAEF',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     gap: 6,
   },
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#171717',
+    color: colors.text,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -188,23 +192,23 @@ const styles = StyleSheet.create({
   code: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#655F74',
+    color: colors.muted,
     letterSpacing: 0.3,
   },
   body: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#3B3F47',
+    color: colors.muted,
   },
   error: {
     fontSize: 14,
-    color: '#C22F43',
+    color: colors.error,
     textAlign: 'center',
   },
   disclaimer: {
     fontSize: 12,
     lineHeight: 17,
-    color: '#8E929A',
+    color: colors.muted,
     marginTop: 8,
   },
 });

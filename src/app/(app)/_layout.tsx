@@ -9,6 +9,7 @@ import { useActiveConsent } from '@entities/consent';
 import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
+import { usePalette } from '@shared/ui/theme';
 import { AccessRequestPrompt } from '@features/access-approve';
 
 const ACCENT = '#1F6F3F';
@@ -21,6 +22,7 @@ const HIDDEN_FROM_MENU = {
 // Gatekeeper for every screen under (app): sign-in, then health consent, then onboarding step 1.
 // Signed-in screens sit behind a side drawer.
 export default function AppLayout() {
+  const p = usePalette();
   const dispatch = useAppDispatch();
   const signedIn = useAppSelector(selectIsSignedIn);
   const consent = useActiveConsent('health_data');
@@ -66,7 +68,10 @@ export default function AppLayout() {
         headerShown: true,
         headerTitle: '',
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerStyle: { backgroundColor: p.bg },
+        headerTintColor: p.text,
+        drawerStyle: { backgroundColor: p.bg },
+        sceneStyle: { backgroundColor: p.bg },
         drawerActiveTintColor: ACCENT,
         drawerLabelStyle: { fontWeight: '600' },
       }}>
