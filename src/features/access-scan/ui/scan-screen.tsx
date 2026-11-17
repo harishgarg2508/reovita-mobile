@@ -15,6 +15,10 @@ const DECISION_WAIT_MS = 62_000;
 import { usePalette, type Palette } from '@shared/ui/theme';
 import { ScoreTrendBadge, scoreZone, type ScoreTrend } from '@entities/score';
 
+import { QrScanOverlay } from './qr-scan-overlay';
+import { ReportAnalysisSection } from './report-analysis-section';
+import { useSummaryLists } from '../model/use-summary-lists';
+
 import { fetchAccessStatus, fetchAccessSummary, openAccessFile, requestAccess, type AccessFile, type AccessSummary } from '../model/access-api';
 
 type Phase =
@@ -43,6 +47,10 @@ export function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const params = useLocalSearchParams<ScanParams>();
   const [phase, setPhase] = useState<Phase>(() => phaseFromParams(params));
+  // The code the camera has found, while the lock and scatter animation plays and before access is asked for.
+  const [captured, setCaptured] = useState<string | null>(null);
+  // The summary comes with the first 10 entries of each list. The next 10 are fetched from the server when the viewer asks.
+  const lists = useSummaryLists(phase.kind === 'summary' ? phase.requestId : null, phase.kind === 'summary' ? phase.summary : null);
   // Follow the URL: a change to ?qr or ?code switches the screen.
   useEffect(() => {
     setPhase(phaseFromParams(params));
@@ -274,7 +282,9 @@ export function ScanScreen() {
           </View>
         </View>
 
-        <ScoreSection sum={sum} score={score} p={p} styles={styles} />
+        <ScoreSection sum={sum} score={score} history={lists.items('score_history')} hasMore={lists.hasMore('score_history')} loading={lists.loading === 'score_history'} onMore={() => void lists.loadMore('score_history')} p={p} styles={styles} />
+
+        <ReportAnalysisSection requestId={phase.requestId} reports={lists.items('reports')} hasMore={lists.hasMore('reports')} loading={lists.loading === 'reports'} onMore={() => void lists.loadMore('reports')} />
 
         {alerts.length > 0 ? (
           <View style={styles.alertCard}>
@@ -317,10 +327,10 @@ export function ScanScreen() {
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Family history</Text>
-          {(sum.family_history ?? []).length === 0 ? (
+          {lists.items<{ relation: string; condition: string }>('family_history').length === 0 ? (
             <Text style={styles.alertBody}>No family history recorded.</Text>
           ) : (
-            (sum.family_history ?? []).map((f, i) => (
+            lists.items<{ relation: string; condition: string }>('family_history').map((f, i) => (
               <LifestyleRow
                 key={`${f.relation}-${f.condition}-${i}`}
                 label={RELATION_LABEL[f.relation] ?? capitalize(f.relation)}
@@ -329,25 +339,27 @@ export function ScanScreen() {
               />
             ))
           )}
+          <LoadMore visible={lists.hasMore('family_history')} loading={lists.loading === 'family_history'} onPress={() => void lists.loadMore('family_history')} p={p} styles={styles} />
         </View>
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Medications</Text>
-          {(sum.medications ?? []).length === 0 ? (
+          {lists.items<NonNullable<AccessSummary['medications']>[number]>('medications').length === 0 ? (
             <Text style={styles.alertBody}>No medications recorded.</Text>
           ) : (
-            (sum.medications ?? []).map((m, i) => (
+            lists.items<NonNullable<AccessSummary['medications']>[number]>('medications').map((m, i) => (
               <LifestyleRow key={`${m.name ?? 'medicine'}-${i}`} label={m.name ?? 'Medicine'} value={[m.dose, (m.schedule_times ?? []).join(', ')].filter(Boolean).join(' · ') || '-'} styles={styles} />
             ))
           )}
+          <LoadMore visible={lists.hasMore('medications')} loading={lists.loading === 'medications'} onPress={() => void lists.loadMore('medications')} p={p} styles={styles} />
         </View>
 
         <View style={styles.boxFull}>
           <Text style={styles.boxTitle}>Medical history</Text>
-          {(sum.medical_history ?? []).length === 0 ? (
+          {lists.items<AccessSummary['medical_history'][number]>('medical_history').length === 0 ? (
             <Text style={styles.alertBody}>No medical history entries yet.</Text>
           ) : (
-            (sum.medical_history ?? []).map((h) => (
+            lists.items<AccessSummary['medical_history'][number]>('medical_history').map((h) => (
               <View key={h.id} style={styles.historyEntry}>
                 <View style={styles.timelineRow}>
                   <Text style={styles.timelineDate}>
@@ -382,7 +394,8 @@ export function ScanScreen() {
               </View>
             ))
           )}
-          {(sum.timeline ?? []).map((t, i) => (
+          <LoadMore visible={lists.hasMore('medical_history')} loading={lists.loading === 'medical_history'} onPress={() => void lists.loadMore('medical_history')} p={p} styles={styles} />
+          {lists.items<AccessSummary['timeline'][number]>('timeline').map((t, i) => (
             <View key={`${t.date}-${i}`} style={styles.timelineRow}>
               <Text style={styles.timelineDate}>{formatShortDate(t.date)}</Text>
               <Text style={styles.timelineText}>
@@ -390,6 +403,7 @@ export function ScanScreen() {
               </Text>
             </View>
           ))}
+          <LoadMore visible={lists.hasMore('timeline')} loading={lists.loading === 'timeline'} onPress={() => void lists.loadMore('timeline')} p={p} styles={styles} />
         </View>
 
         <Pressable accessibilityRole="button" onPress={resetToChoose} style={styles.primaryBtn}>
@@ -496,7 +510,18 @@ export function ScanScreen() {
           facing="back"
           style={StyleSheet.absoluteFill}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={({ data }) => void onScanned(data)}
+          // The first code found is held: the overlay locks on it and scatters, and only then is access asked for.
+          onBarcodeScanned={({ data }) => {
+            if (captured === null && !busy.current) setCaptured(data);
+          }}
+        />
+        <QrScanOverlay
+          locked={captured !== null}
+          onFinished={() => {
+            const data = captured;
+            setCaptured(null);
+            if (data !== null) void onScanned(data);
+          }}
         />
       </View>
       <Text style={styles.body}>Point the camera at the QR code on the subject's phone.</Text>
@@ -576,12 +601,20 @@ function buildAlerts(sum: AccessSummary): { title: string; body: string }[] {
   return alerts;
 }
 
+// "Load more" for a list sent 10 at a time. It is only there while the server has another page, and it fetches that page.
+function LoadMore({ visible, loading, onPress, p, styles }: { visible: boolean; loading: boolean; onPress: () => void; p: Palette; styles: Styles }) {
+  if (!visible) return null;
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} disabled={loading} style={styles.historyMore}>
+      {loading ? <ActivityIndicator size="small" color={p.accent} /> : <Text style={styles.historyMoreText}>Show more</Text>}
+      {loading ? null : <Ionicons name="chevron-down" size={14} color={p.accent} />}
+    </Pressable>
+  );
+}
+
 // The score card with an info icon that says how the score is calculated, the three parts, and the history of the score.
-function ScoreSection({ sum, score, p, styles }: { sum: AccessSummary; score: number | null; p: Palette; styles: Styles }) {
+function ScoreSection({ sum, score, history, hasMore, loading, onMore, p, styles }: { sum: AccessSummary; score: number | null; history: { total: number; trend: string; created_at: string }[]; hasMore: boolean; loading: boolean; onMore: () => void; p: Palette; styles: Styles }) {
   const [infoOpen, setInfoOpen] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const history = sum.score_history ?? [];
-  const shown = showAll ? history : history.slice(0, 5);
   return (
     <>
       <View style={styles.scoreCard}>
@@ -621,19 +654,14 @@ function ScoreSection({ sum, score, p, styles }: { sum: AccessSummary; score: nu
               <View key={`${entry.created_at}-${i}`} style={[styles.historyDot, { backgroundColor: scoreColorFor(entry.total) }]} />
             ))}
           </View>
-          {shown.map((entry, i) => (
+          {history.map((entry, i) => (
             <View key={`${entry.created_at}-${i}`} style={styles.historyRow}>
               <Text style={styles.historyDate}>{new Date(entry.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</Text>
               <ScoreTrendBadge trend={entry.trend as ScoreTrend} />
               <Text style={[styles.historyWord, { color: scoreColorFor(entry.total) }]}>{scoreShortLabel(entry.total)}</Text>
             </View>
           ))}
-          {history.length > 5 ? (
-            <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={styles.historyMore}>
-              <Text style={styles.historyMoreText}>{showAll ? 'Show fewer' : `Show all ${history.length}`}</Text>
-              <Ionicons name={showAll ? 'chevron-up' : 'chevron-down'} size={14} color={p.accent} />
-            </Pressable>
-          ) : null}
+          <LoadMore visible={hasMore} loading={loading} onPress={onMore} p={p} styles={styles} />
         </View>
       ) : null}
     </>

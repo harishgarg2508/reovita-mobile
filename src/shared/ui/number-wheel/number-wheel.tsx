@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,8 @@ import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 const ITEM_HEIGHT = 44;
 const VISIBLE = 3;
 const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE; // 132
+// How long the wheel must be still before it lands on a row. A mouse wheel sends its turns a fraction of a second apart.
+const SETTLE_DELAY_MS = 180;
 
 interface NumberWheelProps {
   value: number;
@@ -35,149 +38,128 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
   }, [minValue, maxValue]);
 
   const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
+  const clampIndex = useCallback((index: number) => Math.max(0, Math.min(years.length - 1, index)), [years.length]);
   const indexOf = useCallback((year: number) => year - minValue, [minValue]);
 
-  const initialIndex = Math.max(0, Math.min(years.length - 1, indexOf(value)));
+  const initialIndex = clampIndex(indexOf(value));
+  // The row shown as selected while the wheel moves. The form is told the year only when the wheel has settled on a row.
   const [centerIndex, setCenterIndex] = useState(initialIndex);
-  const activeIndexRef = useRef(initialIndex);
   const latestOffsetRef = useRef(initialIndex * ITEM_HEIGHT);
   const isDraggingRef = useRef(false);
-  const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Sync state if value changes externally while user is not interacting
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // While the wheel is moved by the code (a tap, or the snap itself) its scroll events are not a new gesture, so they are ignored.
+  const ignoreScrollUntilRef = useRef(0);
+  // The latest value and callback, so a timer that fires later never uses an old one.
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    if (!isDraggingRef.current) {
-      const target = Math.max(0, Math.min(years.length - 1, indexOf(value)));
-      if (target !== activeIndexRef.current) {
-        activeIndexRef.current = target;
-        latestOffsetRef.current = target * ITEM_HEIGHT;
-        setCenterIndex(target);
-        scrollRef.current?.scrollTo({ y: target * ITEM_HEIGHT, animated: true });
-      }
-    }
-  }, [value, indexOf, years.length]);
+    valueRef.current = value;
+    onChangeRef.current = onChange;
+  });
 
-  // Guaranteed snap to nearest row center when scrolling stops
-  const snapToNearestCenter = useCallback(() => {
+  const clearSettleTimer = useCallback(() => {
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  }, []);
+
+  // Tells the form the year of a row, once, when it differs from the year the form already has.
+  const commit = useCallback(
+    (index: number) => {
+      const year = years[clampIndex(index)];
+      if (year !== undefined && year !== valueRef.current) {
+        valueRef.current = year;
+        onChangeRef.current(year);
+      }
+    },
+    [years, clampIndex],
+  );
+
+  const scrollToRow = useCallback((index: number, animated: boolean) => {
+    ignoreScrollUntilRef.current = Date.now() + (animated ? 350 : 80);
+    latestOffsetRef.current = index * ITEM_HEIGHT;
+    scrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated });
+  }, []);
+
+  // The wheel has stopped: land exactly on the nearest row, and report that row's year. A wheel that is still being moved
+  // (touch drag, or a mouse wheel turning) is never snapped back, because this only runs after it has been still for a moment.
+  const settle = useCallback(() => {
+    clearSettleTimer();
     if (isDraggingRef.current) return;
-
-    const currentY = latestOffsetRef.current;
-    const targetIndex = Math.max(0, Math.min(years.length - 1, Math.round(currentY / ITEM_HEIGHT)));
-    const targetOffset = targetIndex * ITEM_HEIGHT;
-
-    // If already dead center (within 0.5px), just ensure state is committed
-    if (Math.abs(currentY - targetOffset) <= 0.5) {
-      if (targetIndex !== activeIndexRef.current) {
-        activeIndexRef.current = targetIndex;
-        setCenterIndex(targetIndex);
-        const selectedYear = years[targetIndex];
-        if (selectedYear !== undefined && selectedYear !== value) {
-          onChange(selectedYear);
-        }
-      }
-      return;
+    const index = clampIndex(Math.round(latestOffsetRef.current / ITEM_HEIGHT));
+    setCenterIndex(index);
+    commit(index);
+    if (Math.abs(latestOffsetRef.current - index * ITEM_HEIGHT) > 0.5) {
+      tapSelection();
+      scrollToRow(index, true);
     }
+  }, [clampIndex, clearSettleTimer, commit, scrollToRow]);
 
-    // Auto-animate smoothly to exact center
-    activeIndexRef.current = targetIndex;
-    latestOffsetRef.current = targetOffset;
-    setCenterIndex(targetIndex);
-
-    const selectedYear = years[targetIndex];
-    if (selectedYear !== undefined && selectedYear !== value) {
-      onChange(selectedYear);
+  // A year changed from outside (the form was loaded or reset): move the wheel to it, unless it is already there.
+  useEffect(() => {
+    if (isDraggingRef.current) return;
+    const target = clampIndex(indexOf(value));
+    if (Math.round(latestOffsetRef.current / ITEM_HEIGHT) !== target) {
+      setCenterIndex(target);
+      scrollToRow(target, true);
     }
-    tapSelection();
+  }, [value, clampIndex, indexOf, scrollToRow]);
 
-    scrollRef.current?.scrollTo({
-      y: targetOffset,
-      animated: true,
-    });
-  }, [years, value, onChange]);
-
-  // Programmatic smooth scroll to a target index (used by taps on chevrons or year rows)
+  // A tap on a row or a chevron: move there and report it at once.
   const animateToCenter = useCallback(
     (index: number) => {
-      if (scrollEndTimerRef.current) {
-        clearTimeout(scrollEndTimerRef.current);
-        scrollEndTimerRef.current = null;
-      }
-
-      const clamped = Math.max(0, Math.min(years.length - 1, index));
-      const targetOffset = clamped * ITEM_HEIGHT;
-
-      activeIndexRef.current = clamped;
-      latestOffsetRef.current = targetOffset;
+      clearSettleTimer();
+      const clamped = clampIndex(index);
       setCenterIndex(clamped);
-
-      const selectedYear = years[clamped];
-      if (selectedYear !== undefined && selectedYear !== value) {
-        onChange(selectedYear);
-      }
+      commit(clamped);
       tapSelection();
-
-      scrollRef.current?.scrollTo({
-        y: targetOffset,
-        animated: true,
-      });
+      scrollToRow(clamped, true);
     },
-    [years, value, onChange]
+    [clampIndex, clearSettleTimer, commit, scrollToRow],
   );
 
   const onScrollBeginDrag = useCallback(() => {
     isDraggingRef.current = true;
-    if (scrollEndTimerRef.current) {
-      clearTimeout(scrollEndTimerRef.current);
-      scrollEndTimerRef.current = null;
-    }
-  }, []);
+    clearSettleTimer();
+  }, [clearSettleTimer]);
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (Date.now() < ignoreScrollUntilRef.current) return;
       const offsetY = e.nativeEvent.contentOffset.y;
       latestOffsetRef.current = offsetY;
-
-      const index = Math.max(0, Math.min(years.length - 1, Math.round(offsetY / ITEM_HEIGHT)));
-      if (index !== activeIndexRef.current) {
-        activeIndexRef.current = index;
-        setCenterIndex(index);
-        tapSelection();
-      }
-
-      // If user has released finger, auto-center once scrolling motion pauses/stops
+      const index = clampIndex(Math.round(offsetY / ITEM_HEIGHT));
+      setCenterIndex((current) => {
+        if (current !== index) tapSelection();
+        return index;
+      });
+      // Any scrolling that is not a finger on the screen (the mouse wheel, the keyboard) settles after a pause.
       if (!isDraggingRef.current) {
-        if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current);
-        scrollEndTimerRef.current = setTimeout(snapToNearestCenter, 80);
+        clearSettleTimer();
+        settleTimerRef.current = setTimeout(settle, SETTLE_DELAY_MS);
       }
     },
-    [years.length, snapToNearestCenter]
+    [clampIndex, clearSettleTimer, settle],
   );
 
   const onScrollEndDrag = useCallback(() => {
     isDraggingRef.current = false;
-    // User lifted finger: schedule snap-to-center as soon as scrolling stops
-    if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current);
-    scrollEndTimerRef.current = setTimeout(snapToNearestCenter, 80);
-  }, [snapToNearestCenter]);
+    // The finger is up. The wheel may still be coasting, and every scroll event pushes this back; it runs once it is still.
+    clearSettleTimer();
+    settleTimerRef.current = setTimeout(settle, SETTLE_DELAY_MS);
+  }, [clearSettleTimer, settle]);
 
   const onMomentumScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       isDraggingRef.current = false;
       latestOffsetRef.current = e.nativeEvent.contentOffset.y;
-      if (scrollEndTimerRef.current) {
-        clearTimeout(scrollEndTimerRef.current);
-        scrollEndTimerRef.current = null;
-      }
-      snapToNearestCenter();
+      settle();
     },
-    [snapToNearestCenter]
+    [settle],
   );
 
-  useEffect(() => {
-    return () => {
-      if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current);
-    };
-  }, []);
+  useEffect(() => clearSettleTimer, [clearSettleTimer]);
 
   const currentYear = years[centerIndex] ?? value;
 
@@ -228,14 +210,12 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
         style={{ height: WHEEL_HEIGHT }}
         contentOffset={{ x: 0, y: initialIndex * ITEM_HEIGHT }}
         onLayout={() => {
-          scrollRef.current?.scrollTo({
-            y: activeIndexRef.current * ITEM_HEIGHT,
-            animated: false,
-          });
+          scrollRef.current?.scrollTo({ y: latestOffsetRef.current, animated: false });
         }}
-        snapToInterval={ITEM_HEIGHT}
+        // The phone snaps by itself. In the browser the wheel settles in code, after it has stopped, so it is never pulled back mid-scroll.
+        snapToInterval={Platform.OS === 'web' ? undefined : ITEM_HEIGHT}
         snapToAlignment="start"
-        decelerationRate="fast"
+        decelerationRate={Platform.OS === 'web' ? 'normal' : 'fast'}
         scrollEventThrottle={16}
         onScrollBeginDrag={onScrollBeginDrag}
         onScroll={onScroll}
