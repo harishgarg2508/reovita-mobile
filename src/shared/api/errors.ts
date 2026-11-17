@@ -31,6 +31,10 @@ export const API_ERROR_CODES = [
   'request_not_pending',
   'access_not_approved',
   'briefing_unavailable',
+  'sensitive_answer_wrong',
+  'sensitive_locked',
+  'sensitive_not_found',
+  'question_required',
   'unauthorized',
   'unknown',
 ] as const;

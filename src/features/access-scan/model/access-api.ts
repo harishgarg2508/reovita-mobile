@@ -11,6 +11,8 @@ export interface AccessSummary {
   conditions_other?: string | null;
   lifestyle: { smoking: string | null; exercise: string | null; stress: number | null; sleep: number | null } | null;
   score: { total: number; parts: { lifestyle: number | null; conditions: number | null; reports: number | null } | null } | null;
+  // The last scores, newest first. Shown as words, never as numbers.
+  score_history?: { total: number; trend: string; created_at: string }[];
   reports_count: number;
   vitals: {
     bp: { sys: number; dia: number; at: string } | null;

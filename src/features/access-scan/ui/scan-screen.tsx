@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
@@ -13,6 +13,7 @@ import { useEventStream } from '@shared/lib';
 // The subject has this long to answer (the server's decision window, plus a short margin).
 const DECISION_WAIT_MS = 62_000;
 import { usePalette, type Palette } from '@shared/ui/theme';
+import { ScoreTrendBadge, scoreZone, type ScoreTrend } from '@entities/score';
 
 import { fetchAccessStatus, fetchAccessSummary, openAccessFile, requestAccess, type AccessFile, type AccessSummary } from '../model/access-api';
 
@@ -273,19 +274,7 @@ export function ScanScreen() {
           </View>
         </View>
 
-        <View style={styles.scoreCard}>
-          <ScoreDial score={score} p={p} />
-          <View style={styles.flex}>
-            <Text style={styles.scoreTitle}>Overall Health Score</Text>
-            <Text style={[styles.scoreBadge, { color: scoreColorFor(score) }]}>{scoreLabel(score)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.partsRow}>
-          <PartTile label="Lifestyle" value={sum.score?.parts?.lifestyle ?? null} styles={styles} />
-          <PartTile label="Conditions" value={sum.score?.parts?.conditions ?? null} styles={styles} />
-          <PartTile label="Reports" value={sum.score?.parts?.reports ?? null} styles={styles} />
-        </View>
+        <ScoreSection sum={sum} score={score} p={p} styles={styles} />
 
         {alerts.length > 0 ? (
           <View style={styles.alertCard}>
@@ -455,16 +444,47 @@ export function ScanScreen() {
     );
   }
 
-  // Scanning: ask for camera permission first.
+  // Scanning: ask for camera permission first. If the user has said no for good, the system will not ask again, so the button
+  // opens the app's settings instead.
   if (!permission?.granted) {
+    const blocked = permission !== null && permission.canAskAgain === false;
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top + 12 }]}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
         {header}
-        <Text style={styles.body}>Allow the camera to scan a Reovita code.</Text>
-        <Pressable accessibilityRole="button" onPress={() => void requestPermission()} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>Allow camera</Text>
-        </Pressable>
-      </View>
+        <View style={styles.permCard}>
+          <View style={styles.permIconRing}>
+            <View style={styles.permIcon}>
+              <MaterialCommunityIcons name="qrcode-scan" size={44} color={p.accent} />
+            </View>
+            <View style={styles.permBadge}>
+              <Ionicons name="camera" size={15} color="#FFFFFF" />
+            </View>
+          </View>
+          <Text style={styles.permTitle}>{blocked ? 'Camera access is turned off' : 'Allow camera access'}</Text>
+          <Text style={styles.permText}>{blocked ? 'Turn the camera on for Reovita in your settings to scan a code.' : 'Reovita uses the camera to read a code. That is all it is used for.'}</Text>
+          <View style={styles.permPoints}>
+            <View style={styles.permPoint}>
+              <Ionicons name="eye-off-outline" size={18} color={p.accent} />
+              <Text style={styles.permPointText}>Nothing is recorded, photographed or saved.</Text>
+            </View>
+            <View style={styles.permPoint}>
+              <Ionicons name="time-outline" size={18} color={p.accent} />
+              <Text style={styles.permPointText}>The camera is on only while this screen is open.</Text>
+            </View>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => (blocked ? void Linking.openSettings() : void requestPermission())}
+            style={styles.permPrimary}>
+            <Ionicons name={blocked ? "settings-outline" : "camera-outline"} size={18} color="#FFFFFF" />
+            <Text style={styles.primaryText}>{blocked ? 'Open settings' : 'Allow camera'}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => setPhase({ kind: 'code' })} style={styles.permSecondary}>
+            <Ionicons name="keypad-outline" size={17} color={p.accent} />
+            <Text style={styles.permSecondaryText}>Enter the code instead</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -484,26 +504,20 @@ export function ScanScreen() {
   );
 }
 
+// The score in words, from the same three bands as the rest of the app (Normal, Watch, Critical). No numbers are shown.
 function scoreLabel(score: number | null): string {
   if (score === null) return 'Not calculated yet';
-  if (score >= 70) return 'Good Health';
-  if (score >= 40) return 'Needs Care';
-  return 'Needs Attention';
+  const word = scoreZone(score).word;
+  return word === 'Normal' ? 'Healthy range' : word === 'Watch' ? 'Worth watching' : 'Needs attention';
 }
 
 // The one-word status shown inside the ring instead of the number.
 function scoreShortLabel(score: number | null): string {
-  if (score === null) return '-';
-  if (score >= 70) return 'Good';
-  if (score >= 40) return 'Care';
-  return 'Attention';
+  return score === null ? '-' : scoreZone(score).word;
 }
 
 function scoreColorFor(score: number | null): string {
-  if (score === null) return '#655F74';
-  if (score >= 70) return '#1F7A3E';
-  if (score >= 40) return '#B26A00';
-  return '#C22F43';
+  return score === null ? '#655F74' : scoreZone(score).color;
 }
 
 function capitalize(value: string | null | undefined): string {
@@ -560,6 +574,70 @@ function buildAlerts(sum: AccessSummary): { title: string; body: string }[] {
     }
   }
   return alerts;
+}
+
+// The score card with an info icon that says how the score is calculated, the three parts, and the history of the score.
+function ScoreSection({ sum, score, p, styles }: { sum: AccessSummary; score: number | null; p: Palette; styles: Styles }) {
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const history = sum.score_history ?? [];
+  const shown = showAll ? history : history.slice(0, 5);
+  return (
+    <>
+      <View style={styles.scoreCard}>
+        <ScoreDial score={score} p={p} />
+        <View style={styles.flex}>
+          <View style={styles.scoreTitleRow}>
+            <Text style={styles.scoreTitle}>Overall Health Score</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" accessibilityState={{ expanded: infoOpen }} onPress={() => setInfoOpen((v) => !v)} hitSlop={8}>
+              <Ionicons name={infoOpen ? 'information-circle' : 'information-circle-outline'} size={20} color={infoOpen ? p.accent : p.muted} />
+            </Pressable>
+          </View>
+          <Text style={[styles.scoreBadge, { color: scoreColorFor(score) }]}>{scoreLabel(score)}</Text>
+        </View>
+      </View>
+
+      {infoOpen ? (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>How the score is calculated</Text>
+          <Text style={styles.infoText}>The score is built from up to three parts: lifestyle, medical conditions and lab reports. A part counts once its information has been added.</Text>
+          <Text style={styles.infoText}>It is shown as Normal, Watch or Critical. Lifestyle and conditions lower it for factors such as smoking, little exercise, high stress or short sleep, and for each condition. Lab results count by how far they are from their range, and older results count less.</Text>
+          <Text style={styles.infoText}>The weighting is provisional and is being reviewed by a clinician. It is not a diagnosis.</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.partsRow}>
+        <PartTile label="Lifestyle" value={sum.score?.parts?.lifestyle ?? null} styles={styles} />
+        <PartTile label="Conditions" value={sum.score?.parts?.conditions ?? null} styles={styles} />
+        <PartTile label="Reports" value={sum.score?.parts?.reports ?? null} styles={styles} />
+      </View>
+
+      {history.length > 0 ? (
+        <View style={styles.boxFull}>
+          <Text style={styles.boxTitle}>Score history</Text>
+          {/* Oldest on the left, newest on the right: one dot per saved score, in the colour of its band. */}
+          <View style={styles.historyStrip} accessibilityLabel="Score history, oldest to newest">
+            {[...history].reverse().map((entry, i) => (
+              <View key={`${entry.created_at}-${i}`} style={[styles.historyDot, { backgroundColor: scoreColorFor(entry.total) }]} />
+            ))}
+          </View>
+          {shown.map((entry, i) => (
+            <View key={`${entry.created_at}-${i}`} style={styles.historyRow}>
+              <Text style={styles.historyDate}>{new Date(entry.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</Text>
+              <ScoreTrendBadge trend={entry.trend as ScoreTrend} />
+              <Text style={[styles.historyWord, { color: scoreColorFor(entry.total) }]}>{scoreShortLabel(entry.total)}</Text>
+            </View>
+          ))}
+          {history.length > 5 ? (
+            <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={styles.historyMore}>
+              <Text style={styles.historyMoreText}>{showAll ? 'Show fewer' : `Show all ${history.length}`}</Text>
+              <Ionicons name={showAll ? 'chevron-up' : 'chevron-down'} size={14} color={p.accent} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </>
+  );
 }
 
 function ScoreDial({ score, p }: { score: number | null; p: Palette }) {
@@ -620,6 +698,18 @@ function makeStyles(p: Palette) {
     cardTitle: { fontSize: 18, fontWeight: '800', color: p.textStrong },
     card: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 18, gap: 4 },
     cameraBox: { flex: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
+    permCard: { alignItems: 'center', gap: 14, padding: 24, borderRadius: 26, backgroundColor: p.card, borderWidth: 1, borderColor: p.border, marginTop: 8 },
+    permIconRing: { width: 112, height: 112, borderRadius: 56, backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+    permIcon: { width: 84, height: 84, borderRadius: 42, backgroundColor: p.card, alignItems: 'center', justifyContent: 'center' },
+    permBadge: { position: 'absolute', right: 4, bottom: 6, width: 34, height: 34, borderRadius: 17, backgroundColor: p.accent, borderWidth: 3, borderColor: p.card, alignItems: 'center', justifyContent: 'center' },
+    permTitle: { fontSize: 20, fontWeight: '800', color: p.textStrong, textAlign: 'center' },
+    permText: { fontSize: 13.5, lineHeight: 20, color: p.muted, textAlign: 'center' },
+    permPoints: { alignSelf: 'stretch', gap: 10, padding: 14, borderRadius: 16, backgroundColor: p.surface },
+    permPoint: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    permPointText: { flex: 1, fontSize: 12.5, lineHeight: 18, color: p.text },
+    permPrimary: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 16, backgroundColor: p.accent },
+    permSecondary: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 16, borderWidth: 1, borderColor: p.border },
+    permSecondaryText: { fontSize: 14, fontWeight: '700', color: p.accent },
     primaryBtn: { height: 48, borderRadius: 16, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     primaryText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
     fitBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 26, paddingHorizontal: 28, backgroundColor: '#1F6F3F' },
@@ -634,6 +724,17 @@ function makeStyles(p: Palette) {
     avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center' },
     codeLine: { fontSize: 20, fontWeight: '800', color: p.textStrong },
     scoreCard: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 22, backgroundColor: p.card, borderWidth: 1, borderColor: p.border },
+    scoreTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    infoCard: { gap: 6, padding: 14, borderRadius: 16, backgroundColor: p.card, borderWidth: 1, borderColor: p.border },
+    infoTitle: { fontSize: 13.5, fontWeight: '800', color: p.textStrong },
+    infoText: { fontSize: 12.5, lineHeight: 18, color: p.muted },
+    historyStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingVertical: 4 },
+    historyDot: { width: 14, height: 14, borderRadius: 7 },
+    historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border },
+    historyDate: { flex: 1, fontSize: 12.5, color: p.muted },
+    historyWord: { fontSize: 13, fontWeight: '800', minWidth: 64, textAlign: 'right' },
+    historyMore: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingTop: 6 },
+    historyMoreText: { fontSize: 12.5, fontWeight: '700', color: p.accent },
     scoreTitle: { fontSize: 15, fontWeight: '700', color: p.textStrong },
     scoreBadge: { fontSize: 14, fontWeight: '700', marginTop: 4 },
     partsRow: { flexDirection: 'row', gap: 10 },

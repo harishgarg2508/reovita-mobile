@@ -29,13 +29,17 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
   // The interpretation exists only after confirmation, so it is requested only for those states.
   const status = useReportStatus(reportId);
   const confirmed = status === 'INTERPRETING' || status === 'DONE';
-  const interpretation = useReportInterpretation(reportId, { enabled: confirmed });
+  // The status arrives over a live stream a moment after the screen opens, and until it does it is null. The explanation is asked for
+  // in that moment too: the user pressed View analysis because it is ready, and waiting for the stream would only delay it.
+  const interpretation = useReportInterpretation(reportId, { enabled: confirmed || status === null });
 
   // Not confirmed yet (or needs the user): the review screen handles observations, confirm and retakes.
   const needsReview = status === 'AWAITING_CONFIRMATION' || status === 'NEEDS_RETAKE' || status === 'FAILED';
   // While the interpretation is being written, "not found" is expected: show the analysing state instead.
   const analysing = status === 'INTERPRETING' && !interpretation.data;
-  const notConfirmed = status !== 'INTERPRETING' && isApiError(interpretation.error, 'interpretation_not_found');
+  // "Not found" only sends the user back once the status is known. Before that, an old "not found" kept from earlier (while the report
+  // was still being analysed) would wrongly look like "not confirmed" and bounce the screen back to the review the moment it opened.
+  const notConfirmed = status !== null && status !== 'INTERPRETING' && status !== 'DONE' && isApiError(interpretation.error, 'interpretation_not_found');
   // When the status reaches DONE, fetch the saved interpretation once.
   useEffect(() => {
     if (status === 'DONE') void interpretation.refetch();
@@ -50,7 +54,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
   const output = interpretation.data?.output_json;
   const explanations = (output?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
 
-  const errorText = analysing ? null : interpretation.isError
+  const errorText = analysing || (interpretation.isFetching && !interpretation.data) ? null : interpretation.isError
     ? isApiError(interpretation.error, 'interpretation_not_found')
       ? 'This report has no explanation yet.'
       : isApiError(interpretation.error, 'report_not_found')
@@ -75,7 +79,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         <View style={styles.backBtn} />
       </View>
 
-      {interpretation.isLoading ? (
+      {interpretation.isLoading || (interpretation.isFetching && !interpretation.data) ? (
         <>
           <Skeleton height={96} />
           <Skeleton height={64} />

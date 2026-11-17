@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { queryKeys } from '@shared/api';
 import { useHome } from '@entities/home';
 import { useReportList } from '@entities/report';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
@@ -136,6 +138,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const home = useHome();
+  const queryClient = useQueryClient();
   // The first unfinished onboarding step, from the status endpoint. The profile card opens it.
   const nextStep = useProfileCompleteness().data?.next_step ?? null;
   const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
@@ -151,10 +154,17 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
   const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
   // Each time Home comes into view, the dials sweep in again from empty.
   const [runId, setRunId] = useState(0);
-  useFocusEffect(useCallback(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-    setRunId((n) => n + 1);
-  }, []));
+  // Each time Home comes into view the data is asked for again. The server works the score out from what is saved at that moment,
+  // so a report added or deleted, or a step changed, since the last visit shows in the score right away. A request that is already
+  // running (the first load) is left alone rather than restarted.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      setRunId((n) => n + 1);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.home.root }, { cancelRefetch: false });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.score.root }, { cancelRefetch: false });
+    }, [queryClient]),
+  );
 
   if (home.isLoading) {
     return (
@@ -260,6 +270,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
               style={[styles.historyPill, { borderColor: p.border }]}>
               <Ionicons name="stats-chart" size={14} color={BRAND_GREEN} />
               <Text style={[styles.historyPillText, { color: BRAND_GREEN }]}>History</Text>
+              <Ionicons name="chevron-forward" size={13} color={BRAND_GREEN} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
               <Ionicons name="information-circle-outline" size={22} color={p.muted} />

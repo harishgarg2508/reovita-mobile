@@ -4,6 +4,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
 import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Animated,
   Easing,
@@ -26,7 +27,7 @@ import {
   useReportStatus,
 } from '@entities/report';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
-import { isApiError } from '@shared/api';
+import { isApiError, queryKeys } from '@shared/api';
 import { ReportProcessingPanel } from '@shared/ui/processing-panel';
 import {
   BottomWaveMist,
@@ -125,6 +126,11 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const storedInterpretation = useReportInterpretation(reportId, { enabled: draft.isSuccess || !!confirmed.data });
   // The status stream says DONE once the interpretation is saved, so View appears without waiting for a reload.
   const liveStatus = useReportStatus(reportId);
+  // The check above can have kept a "not found" while the analysis was being written. Once it is done that answer is out of date.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (liveStatus === 'DONE') void queryClient.invalidateQueries({ queryKey: queryKeys.report.interpretation(reportId) });
+  }, [liveStatus, queryClient, reportId]);
   // Why the last analysis did not finish, shown above the results so the user knows what to do next.
   const reportState = useReportState(reportId, liveStatus);
   const failureNote = liveStatus === 'INTERPRETING' ? null : interpretationErrorMessage(reportState.data?.interpretation_error ?? null);

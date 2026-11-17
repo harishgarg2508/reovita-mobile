@@ -9,6 +9,7 @@ import { onboardingDraftsReset } from '@entities/onboarding';
 import { sessionCleared } from '@entities/session';
 import { api, signOutLocally } from '@shared/api';
 import { clearRefreshToken, getRefreshToken } from '@shared/lib';
+import { getFirebaseAuth } from '@shared/lib/firebase';
 
 // Signs the user out everywhere on this device:
 // server session cookie, stored refresh token, in-memory access token,
@@ -30,6 +31,9 @@ export function useSignOut() {
 
     await clearRefreshToken();
     signOutLocally();
+    // The Firebase sign-in is ended too. The app signs in again from it without asking when a session runs out, so a user who has
+    // chosen to log out must not be left signed in to Firebase.
+    await getFirebaseAuth()?.signOut().catch(() => undefined);
     // Clears the Google account choice so the next sign-in shows the picker again. Best effort.
     try {
       await GoogleSignin.signOut();
