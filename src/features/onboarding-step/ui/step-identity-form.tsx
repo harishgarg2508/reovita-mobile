@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useBasicsDraft } from '../model/use-onboarding-drafts';
@@ -46,23 +46,19 @@ export function StepIdentityForm({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [draft, patchDraft] = useBasicsDraft();
 
+  // Report the step whenever the draft changes, also on mount, so values restored from the server or an earlier visit are saved too.
+  // Before this, only typing reported the values, and an already filled step was skipped when Continue was pressed.
+  useEffect(() => {
+    const height = Number(draft.height);
+    const weight = Number(draft.weight);
+    // The wheel shows the default year until the user moves it, so an untouched wheel counts as that year.
+    const year = draft.year ?? DEFAULT_BIRTH_YEAR;
+    const valid = year >= MIN_YEAR && year <= MAX_YEAR && draft.sex !== null && height >= 50 && height <= 260 && weight >= 20 && weight <= 400;
+    onChange(valid && draft.sex ? { birth_year: year, sex: draft.sex, height_cm: height, weight_kg: weight } : null);
+  }, [draft, onChange]);
+
   function update(patch: Partial<typeof draft>) {
-    const next = { ...draft, ...patch };
     patchDraft(patch);
-
-    const cm = Number(next.height);
-    const kg = Number(next.weight);
-    const valid =
-      next.year !== null &&
-      next.year >= MIN_YEAR &&
-      next.year <= MAX_YEAR &&
-      next.sex !== null &&
-      cm >= 50 &&
-      cm <= 260 &&
-      kg >= 20 &&
-      kg <= 400;
-
-    onChange(valid && next.sex ? { birth_year: next.year ?? 0, sex: next.sex, height_cm: cm, weight_kg: kg } : null);
   }
 
   const cm = Number(draft.height);

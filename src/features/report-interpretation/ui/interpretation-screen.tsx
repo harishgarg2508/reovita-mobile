@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useReportInterpretation, useReportStatus } from '@entities/report';
+import { useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { DISCLAIMER_V1 } from '@shared/config/constants';
 import { Chip } from '@shared/ui/chip';
@@ -18,6 +19,28 @@ const STATUS_COLOR: Record<string, string> = {
   Low: '#C22F43',
   Critical: '#C22F43',
 };
+
+const OUT_OF_RANGE = ['High', 'Low', 'Critical'];
+
+// The small box behind the info icon of a result outside its range: which test it is, in which report, and by how much.
+function OutsideRangeInfo({ observation, status, styles }: { observation: { name_raw: string; value_num: number; unit: string; ref_low?: number | null; ref_high?: number | null; collected_on?: string } | undefined; status?: string; styles: ReturnType<typeof createStyles> }) {
+  if (!observation) return <Text style={styles.infoBox}>This result is {status?.toLowerCase()} in this report.</Text>;
+  const range =
+    observation.ref_low != null && observation.ref_high != null
+      ? `${observation.ref_low}–${observation.ref_high} ${observation.unit}`
+      : observation.ref_high != null
+        ? `up to ${observation.ref_high} ${observation.unit}`
+        : observation.ref_low != null
+          ? `from ${observation.ref_low} ${observation.unit}`
+          : null;
+  const date = observation.collected_on ? new Date(observation.collected_on).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  return (
+    <Text style={styles.infoBox}>
+      {observation.name_raw} is {status?.toLowerCase()} in this report{date ? ` (${date})` : ''}. Your value is {observation.value_num} {observation.unit}
+      {range ? `, and the range given is ${range}` : ''}.
+    </Text>
+  );
+}
 
 // Interpretation of one report, read directly from GET /v1/health/reports/{id}/interpretation.
 export function InterpretationScreen({ reportId }: { reportId: string }) {
@@ -50,6 +73,12 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
       router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
     }
   }, [needsReview, notConfirmed, reportId, router]);
+
+  // The values of this report, so a result outside its range can say which test it is and how far out it is.
+  const draft = useReportDraft(reportId, { enabled: confirmed });
+  const observations = draft.data ?? [];
+  // The result whose info box is open.
+  const [infoOpen, setInfoOpen] = useState<string | null>(null);
 
   const output = interpretation.data?.output_json;
   const explanations = (output?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
@@ -104,14 +133,26 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
             <View key={`${item.biomarker_code ?? 'item'}-${index}`} style={styles.card}>
               {item.status || item.biomarker_code ? (
                 <View style={styles.cardHeader}>
-                  {item.status ? (
-                    <Text style={[styles.status, { color: STATUS_COLOR[item.status] ?? '#171717' }]}>{item.status}</Text>
-                  ) : null}
+                  <View style={styles.statusRow}>
+                    {item.status ? (
+                      <Text style={[styles.status, { color: STATUS_COLOR[item.status] ?? '#171717' }]}>{item.status}</Text>
+                    ) : null}
+                    {item.status && OUT_OF_RANGE.includes(item.status) ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Which result is outside the range"
+                        hitSlop={8}
+                        onPress={() => setInfoOpen(infoOpen === `${index}` ? null : `${index}`)}>
+                        <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
+                      </Pressable>
+                    ) : null}
+                  </View>
                   {item.biomarker_code ? (
                     <Chip label={item.biomarker_code} selected={false} onPress={() => undefined} />
                   ) : null}
                 </View>
               ) : null}
+              {infoOpen === `${index}` ? <OutsideRangeInfo observation={observations.find((o) => o.biomarker_code === item.biomarker_code)} status={item.status} styles={styles} /> : null}
               <Text style={styles.body}>{item.text}</Text>
             </View>
           ))}
@@ -120,7 +161,8 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
 
       {output?.action_points && output.action_points.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What to do next</Text>
+          <Text style={styles.sectionTitle}>Preventive measures</Text>
+          <Text style={styles.note}>General habits that support your health. They are not medical advice, and a doctor can guide you on your own results.</Text>
           {output.action_points.map((point, index) => (
             <View key={`${index}-${point}`} style={styles.card}>
               <Text style={styles.body}>{point}</Text>
@@ -189,6 +231,9 @@ const createStyles = (colors: FormColors) =>
     justifyContent: 'space-between',
     gap: 8,
   },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  note: { fontSize: 12.5, lineHeight: 18, color: colors.muted },
+  infoBox: { fontSize: 12.5, lineHeight: 18, color: colors.text, backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12 },
   status: {
     fontSize: 12,
     fontWeight: '700',

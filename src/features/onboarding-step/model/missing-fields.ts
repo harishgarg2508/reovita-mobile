@@ -3,7 +3,7 @@ import type { BasicsDraft, HistoryDraft, LifestyleDraft } from '@entities/onboar
 import { OTHER_LABEL } from './other-conditions';
 
 // The required fields of a step that are still empty, in the order they appear on screen.
-// Step 1: sex, height and weight. Step 2: at least one condition (or "None"). Step 3: every lifestyle choice.
+// Step 1: sex, height and weight (the birth year always has a value). Step 2: at least one condition (or "None"). Step 3: every lifestyle choice.
 // Step 4 has no form fields here.
 export function missingFields(
   step: number,
@@ -13,7 +13,7 @@ export function missingFields(
 ): string[] {
   if (step === 1) {
     const missing: string[] = [];
-    if (basics.year === null) missing.push('year');
+    // The birth year wheel always shows a year (the default one until it is moved), so the year is never empty.
     if (basics.sex === null) missing.push('sex');
     const height = Number(basics.height);
     if (!(height >= 50 && height <= 260)) missing.push('height');
@@ -29,7 +29,8 @@ export function missingFields(
     return answered ? [] : ['conditions'];
   }
   if (step === 3) {
-    return (['sleep', 'stress', 'diet', 'smoking', 'alcohol', 'exercise', 'occupation', 'activity_level'] as const).filter(
+    // Sleep is chosen on a dial that always shows an hour (the default one until it is moved), so it is never empty.
+    return (['stress', 'diet', 'smoking', 'alcohol', 'exercise', 'occupation', 'activity_level'] as const).filter(
       (field) => lifestyle[field] === null,
     );
   }

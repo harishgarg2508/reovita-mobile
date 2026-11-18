@@ -25,10 +25,12 @@ interface NumberWheelProps {
   minValue: number;
   maxValue: number;
   onChange: (year: number) => void;
+  // Text after each number, for example ' h' for hours.
+  suffix?: string;
 }
 
 // Scrolling number picker with guaranteed auto-centering on scroll stop across all platforms.
-export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheelProps) {
+export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '' }: NumberWheelProps) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const years = useMemo(() => {
@@ -228,11 +230,12 @@ export function NumberWheel({ value, minValue, maxValue, onChange }: NumberWheel
             <Pressable
               key={year}
               accessibilityRole="button"
-              accessibilityLabel={`Select year ${year}`}
+              accessibilityLabel={`Select ${year}${suffix}`}
               onPress={() => animateToCenter(index)}
               style={styles.item}>
               <Text style={[styles.year, selected && styles.yearSelected]}>
                 {year}
+                {suffix}
               </Text>
             </Pressable>
           );

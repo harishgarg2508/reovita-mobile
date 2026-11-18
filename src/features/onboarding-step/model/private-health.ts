@@ -10,12 +10,16 @@ export type SexualActivity = 'yes' | 'no' | 'prefer_not_to_say';
 export type Protection = 'always' | 'sometimes' | 'never' | 'not_applicable' | 'prefer_not_to_say';
 export type Partners = 'none' | 'one' | 'two_or_more' | 'prefer_not_to_say';
 export type StiHistory = 'yes' | 'no' | 'prefer_not_to_say';
+export type Orientation = 'heterosexual' | 'gay_or_lesbian' | 'bisexual' | 'other' | 'prefer_not_to_say';
+export type DrugUse = 'never' | 'three_or_fewer' | 'more_than_three' | 'prefer_not_to_say';
 
 export interface PrivateItems {
   sexual_activity?: SexualActivity;
   protection?: Protection;
   partners?: Partners;
   sti_history?: StiHistory;
+  orientation?: Orientation;
+  drug_use?: DrugUse;
 }
 
 export interface PrivateStatus {
@@ -32,6 +36,8 @@ interface Option<T extends string> {
 export interface PrivateQuestion<K extends keyof PrivateItems = keyof PrivateItems> {
   key: K;
   title: string;
+  // Short help shown behind an info button next to the question.
+  info?: string;
   options: Option<NonNullable<PrivateItems[K]>>[];
 }
 
@@ -72,9 +78,32 @@ export const PRIVATE_QUESTIONS: PrivateQuestion[] = [
   {
     key: 'sti_history',
     title: 'Have you ever had a sexually transmitted infection (STI)?',
+    info: 'Testing is quick and confidential. A blood or urine sample is usually enough. You can ask your family doctor, or go to a government hospital or a trusted lab and ask for a sexual health screening. Tell them if you are unsure which tests you need, and they will suggest them.',
     options: [
       { value: 'yes', label: 'Yes' },
       { value: 'no', label: 'No' },
+      PREFER,
+    ],
+  },
+  {
+    key: 'orientation',
+    title: 'How do you describe your sexual orientation?',
+    options: [
+      { value: 'heterosexual', label: 'Straight' },
+      { value: 'gay_or_lesbian', label: 'Gay or lesbian' },
+      { value: 'bisexual', label: 'Bisexual' },
+      { value: 'other', label: 'Other' },
+      PREFER,
+    ],
+  },
+  {
+    key: 'drug_use',
+    title: 'Have you used recreational drugs, or drugs a doctor did not give you?',
+    info: 'This does not include medicines a doctor gave you. Your answer stays locked and is never shared.',
+    options: [
+      { value: 'never', label: 'Never' },
+      { value: 'three_or_fewer', label: '3 times or fewer' },
+      { value: 'more_than_three', label: 'More than 3 times' },
       PREFER,
     ],
   },

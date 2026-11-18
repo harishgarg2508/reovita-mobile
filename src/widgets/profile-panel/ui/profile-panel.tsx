@@ -12,6 +12,7 @@ import { useDeactivateAccount } from '@features/account-deactivate';
 import { ProfileDetailsCard } from '@features/profile-details';
 import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
+import { ProfileSwitcher, type SwitcherProfile } from '@shared/ui/profile-switcher';
 import { usePalette, type Palette } from '@shared/ui/theme';
 import { Skeleton } from '@shared/ui/skeleton';
 
@@ -111,6 +112,12 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
   }, [copied]);
 
   const codename = subject.data?.codename;
+  // Design only: the first profile is the signed-in subject, the second is a sample. Switching is not connected yet.
+  const [activeProfile, setActiveProfile] = useState('me');
+  const switcherProfiles: SwitcherProfile[] = [
+    { id: 'me', label: codename ?? 'My profile', hint: 'You' },
+    { id: 'sample', label: 'VT-1830-KM', hint: 'Sample profile' },
+  ];
 
   async function copyCode() {
     if (!codename) return;
@@ -146,6 +153,8 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
         </View>
       </View>
 
+      <ProfileSwitcher profiles={switcherProfiles} activeId={activeProfile} onSelect={setActiveProfile} onAdd={() => undefined} />
+
       {/* Code card: QR on the left, code and actions on the right, log out below. */}
       <View style={styles.card}>
         {subject.isLoading ? (
@@ -178,22 +187,6 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
         </View>
         )}
         {subject.isError ? <Text style={styles.error}>Could not load your code. Reopen this tab to try again.</Text> : null}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ busy: signingOut, disabled: signingOut }}
-          disabled={signingOut}
-          onPress={onSignOut}
-          style={[styles.logout, signingOut && { opacity: 0.6 }]}>
-          {signingOut ? (
-            <ActivityIndicator size="small" color={p.red} />
-          ) : (
-            <>
-              <Ionicons name="log-out-outline" size={18} color={p.red} />
-              <Text style={styles.logoutText}>Log out</Text>
-            </>
-          )}
-        </Pressable>
       </View>
 
       {/* My details: the basics, history and lifestyle saved in onboarding, each with an Edit action. */}
@@ -252,6 +245,22 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
           <Text style={styles.dangerBtnText}>{deactivate.isPending ? 'Deactivating...' : 'Deactivate account'}</Text>
         </Pressable>
         {deactivate.isError ? <Text style={styles.error}>Could not deactivate the account. Try again.</Text> : null}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ busy: signingOut, disabled: signingOut }}
+          disabled={signingOut}
+          onPress={onSignOut}
+          style={[styles.logout, styles.logoutBelow, signingOut && { opacity: 0.6 }]}>
+          {signingOut ? (
+            <ActivityIndicator size="small" color={p.red} />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={18} color={p.red} />
+              <Text style={styles.logoutText}>Log out</Text>
+            </>
+          )}
+        </Pressable>
       </View>
       <ConfirmDialog
         visible={dialog !== null}
@@ -335,6 +344,7 @@ function makeStyles(p: Palette) {
       borderRadius: 24,
       backgroundColor: p.redSoft,
     },
+    logoutBelow: { marginTop: 4 },
     logoutText: { fontSize: 15, fontWeight: '700', color: p.red },
     permHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     lockBubble: {

@@ -122,15 +122,21 @@ export function OnboardingStepper({ step }: { step: number }) {
       scrollToField(missing[0]);
       return;
     }
-    if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
-    if (step === 2 && history) {
-      const result = await save.mutateAsync({ step: 2, body: history });
-      // The save queues an interaction check when the medicines changed. It is followed at the app root,
-      // so it carries on after this screen is left.
-      const jobId = (result as { interaction_job_id?: unknown } | undefined)?.interaction_job_id;
-      if (typeof jobId === 'string') dispatch(interactionJobQueued(jobId));
+    // A failed save is shown under the button (save.error). It must not escape as an uncaught error, which would take down the screen.
+    try {
+      if (step === 1 && basics) await save.mutateAsync({ step: 1, body: basics });
+      if (step === 2 && history) {
+        const result = await save.mutateAsync({ step: 2, body: history });
+        // The save queues an interaction check when the medicines changed. It is followed at the app root,
+        // so it carries on after this screen is left.
+        const jobId = (result as { interaction_job_id?: unknown } | undefined)?.interaction_job_id;
+        if (typeof jobId === 'string') dispatch(interactionJobQueued(jobId));
+      }
+      if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
+    } catch {
+      // The reason is shown under the button (save.error).
+      return;
     }
-    if (step === 3 && lifestyle) await save.mutateAsync({ step: 3, body: lifestyle });
     if (editing) {
       router.back();
       return;

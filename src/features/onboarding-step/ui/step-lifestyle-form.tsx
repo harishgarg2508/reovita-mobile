@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@shared/ui/chip';
+import { NumberWheel } from '@shared/ui/number-wheel';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 import { useLifestyleDraft } from '../model/use-onboarding-drafts';
@@ -11,7 +12,10 @@ import type { LifestyleInput } from '../model/onboarding.types';
 
 type Choice<T> = { value: T; label: string };
 
-const SLEEP: Choice<number>[] = [5, 6, 7, 8, 9].map((h) => ({ value: h, label: `${h} h` }));
+// Sleep is picked on a dial from 1 to 24 hours. It shows 7 until the user moves it.
+const SLEEP_MIN = 1;
+const SLEEP_MAX = 24;
+const DEFAULT_SLEEP = 7;
 const STRESS: Choice<number>[] = [1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }));
 const DIET: Choice<LifestyleInput['diet']>[] = [
   { value: 'mixed', label: 'Mixed' },
@@ -77,13 +81,19 @@ function Section({ icon, title, subtitle, onLayout, children }: { icon: IconName
 }
 
 // One question inside a section. A question left unanswered is outlined after the first Next press.
-function Field({ label, hint, name, missing, onLayout, children }: { label: string; hint?: string; name: string; missing: boolean; onLayout: (name: string, y: number) => void; children: ReactNode }) {
+function Field({ label, hint, name, missing, onLayout, children, isPrivate = false }: { label: string; hint?: string; isPrivate?: boolean; name: string; missing: boolean; onLayout: (name: string, y: number) => void; children: ReactNode }) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={[styles.field, missing && styles.fieldError]} onLayout={(e) => onLayout(name, e.nativeEvent.layout.y)}>
       <View style={styles.fieldHead}>
         <Text style={styles.label}>{label}</Text>
+        {isPrivate ? (
+          <View style={styles.privateTag}>
+            <Ionicons name="lock-closed" size={11} color={colors.accent} />
+            <Text style={styles.privateTagText}>Private</Text>
+          </View>
+        ) : null}
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
       {children}
@@ -156,8 +166,10 @@ export function StepLifestyleForm({
 
   // Report the step as complete only when every choice has been made.
   useEffect(() => {
-    const complete = Object.values(draft).every((v) => v !== null);
-    onChange(complete ? (draft as LifestyleInput) : null);
+    // An untouched sleep dial counts as its default hour.
+    const effective = { ...draft, sleep: draft.sleep ?? DEFAULT_SLEEP };
+    const complete = Object.values(effective).every((v) => v !== null);
+    onChange(complete ? (effective as LifestyleInput) : null);
   }, [draft, onChange]);
 
   const report = (name: string, y: number) => onFieldLayout?.(name, sectionY.current + y);
@@ -169,7 +181,7 @@ export function StepLifestyleForm({
     <View style={styles.form}>
       <Section icon="moon-outline" title="Rest" subtitle="How you sleep and how stressed you feel" onLayout={mark}>
         <Field label="Average sleep" name="sleep" missing={missing.includes('sleep')} onLayout={report}>
-          <ChoiceRow choices={SLEEP} value={draft.sleep} onPick={(v) => set('sleep', v)} />
+          <NumberWheel value={draft.sleep ?? DEFAULT_SLEEP} minValue={SLEEP_MIN} maxValue={SLEEP_MAX} suffix=" h" onChange={(hours) => set('sleep', hours)} />
         </Field>
         <Field label="Stress" hint="1 is low, 5 is high" name="stress" missing={missing.includes('stress')} onLayout={report}>
           <StressScale value={draft.stress} onPick={(v) => set('stress', v)} />
@@ -180,10 +192,10 @@ export function StepLifestyleForm({
         <Field label="Diet" name="diet" missing={missing.includes('diet')} onLayout={report}>
           <ChoiceRow choices={DIET} value={draft.diet} onPick={(v) => set('diet', v)} />
         </Field>
-        <Field label="Smoking" name="smoking" missing={missing.includes('smoking')} onLayout={report}>
+        <Field label="Smoking" isPrivate hint="Only you can see this" name="smoking" missing={missing.includes('smoking')} onLayout={report}>
           <ChoiceRow choices={SMOKING} value={draft.smoking} onPick={(v) => set('smoking', v)} />
         </Field>
-        <Field label="Alcohol" name="alcohol" missing={missing.includes('alcohol')} onLayout={report}>
+        <Field label="Alcohol" isPrivate hint="Only you can see this" name="alcohol" missing={missing.includes('alcohol')} onLayout={report}>
           <ChoiceRow choices={ALCOHOL} value={draft.alcohol} onPick={(v) => set('alcohol', v)} />
         </Field>
       </Section>
@@ -212,6 +224,8 @@ export function StepLifestyleForm({
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
     form: { gap: 14 },
+    privateTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.accentSoft },
+    privateTagText: { fontFamily: 'Poppins_600SemiBold', fontSize: 10.5, color: colors.accent },
     section: { gap: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 20, backgroundColor: colors.card, padding: 16 },
     sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     sectionIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },

@@ -148,7 +148,7 @@ function AnimatedTabItem({
 
   const scheme = useResolvedScheme();
   const dark = scheme === 'dark';
-  const color = isFocused ? (dark ? '#6FD08C' : '#1F6F3F') : dark ? '#9A96B0' : '#8E8B99';
+  const color = isFocused ? (dark ? '#8AA9FF' : '#2447B5') : dark ? '#9A96B0' : '#8E8B99';
 
   return (
     <Pressable
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     width: INDICATOR_WIDTH,
     height: 2.5,
     borderRadius: 2,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#2447B5',
     zIndex: 5,
   },
   uploadItem: { alignItems: 'center', justifyContent: 'center', gap: 3, flex: 1, height: '100%' },
@@ -504,10 +504,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#2447B5',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F6F3F',
+    shadowColor: '#2447B5',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 10,

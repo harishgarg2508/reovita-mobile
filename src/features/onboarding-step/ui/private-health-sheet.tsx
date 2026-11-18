@@ -46,6 +46,8 @@ export function PrivateHealthSheet({ visible, onClose, status }: { visible: bool
   const [answer, setAnswer] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
+  // The question whose info text is open.
+  const [infoKey, setInfoKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [eraseOpen, setEraseOpen] = useState(false);
@@ -128,7 +130,15 @@ export function PrivateHealthSheet({ visible, onClose, status }: { visible: bool
         <Text style={styles.title}>A few private questions</Text>
         {PRIVATE_QUESTIONS.map((question) => (
           <View key={question.key} style={styles.group}>
-            <Text style={styles.question}>{question.title}</Text>
+            <View style={styles.questionRow}>
+              <Text style={[styles.question, styles.questionText]}>{question.title}</Text>
+              {question.info ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="More information" hitSlop={8} onPress={() => setInfoKey(infoKey === question.key ? null : question.key)}>
+                  <Ionicons name="information-circle-outline" size={20} color={colors.accent} />
+                </Pressable>
+              ) : null}
+            </View>
+            {question.info && infoKey === question.key ? <Text style={styles.infoBox}>{question.info}</Text> : null}
             <View style={styles.chips}>
               {question.options.map((option) => (
                 <Chip key={option.value} label={option.label} selected={items[question.key] === option.value} onPress={() => pick(question.key, option.value)} />
@@ -318,6 +328,9 @@ const createStyles = (colors: FormColors) =>
     pointText: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 19, color: colors.text },
     group: { gap: 8 },
     question: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.text },
+    questionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    questionText: { flex: 1 },
+    infoBox: { fontFamily: 'Poppins_400Regular', fontSize: 12.5, lineHeight: 18, color: colors.muted, backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     radio: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.card },
     radioOn: { borderColor: colors.accent, backgroundColor: colors.accentSoft },

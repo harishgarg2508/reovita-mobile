@@ -60,10 +60,15 @@ export function mapApiError(error: AxiosError): ApiError {
   const status = error.response?.status ?? 0;
   const body = error.response?.data as Partial<ApiErrorBody & ApiCodedErrorBody> | undefined;
 
-  const message = Array.isArray(body?.message) ? body.message.join('; ') : (body?.message ?? error.message);
+  // Step saves answer with { errors: [{ code, message }] }. The first entry is the reason shown to the user.
+  const first = (error.response?.data as { errors?: { code?: unknown; message?: unknown }[] } | undefined)?.errors?.[0];
+  const firstCode = typeof first?.code === 'string' ? first.code : undefined;
+  const firstMessage = typeof first?.message === 'string' ? first.message : undefined;
+
+  const message = firstMessage ?? (Array.isArray(body?.message) ? body.message.join('; ') : (body?.message ?? error.message));
 
   // Prefer an explicit code in `error`, then in `message`.
-  const explicit = [body?.error, typeof body?.message === 'string' ? body.message : undefined].find(
+  const explicit = [firstCode, body?.error, typeof body?.message === 'string' ? body.message : undefined].find(
     (value): value is string => typeof value === 'string' && SNAKE_CODE.test(value),
   );
 

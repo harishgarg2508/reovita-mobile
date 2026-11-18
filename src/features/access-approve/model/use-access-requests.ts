@@ -29,6 +29,9 @@ export function useIncomingAccess() {
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    // The stream is the fast path; a held-back stream would leave the request unseen until it runs out, so the list is also checked
+    // every 4 seconds while the app is open. It is a small request.
+    refetchInterval: 4000,
     // A request that has already run out of time cannot be answered, so it is never offered.
     select: (list) => list.filter((request) => new Date(request.expires_at).getTime() > Date.now()),
   });

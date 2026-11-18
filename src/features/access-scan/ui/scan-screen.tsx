@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -93,16 +93,21 @@ export function ScanScreen() {
     if (phase.kind !== 'waiting') return;
     const id = phase.id;
     let cancelled = false;
-    fetchAccessStatus(id)
-      .then(({ status }) => {
-        if (!cancelled && status !== 'pending') void applyStatus(id, status);
-      })
-      .catch(() => undefined);
+    // The stream is the fast path. Some networks and proxies hold stream data back, so the status is also asked for every 2 seconds.
+    const check = () =>
+      fetchAccessStatus(id)
+        .then(({ status }) => {
+          if (!cancelled && status !== 'pending') void applyStatus(id, status);
+        })
+        .catch(() => undefined);
+    void check();
+    const poll = setInterval(() => void check(), 2000);
     const expiry = setTimeout(() => {
       if (!cancelled) void applyStatus(id, 'expired');
     }, DECISION_WAIT_MS);
     return () => {
       cancelled = true;
+      clearInterval(poll);
       clearTimeout(expiry);
     };
   }, [phase]);
@@ -301,7 +306,6 @@ export function ScanScreen() {
         <View style={styles.twoCol}>
           <View style={styles.box}>
             <Text style={styles.boxTitle}>Lifestyle</Text>
-            <LifestyleRow label="Smoking" value={capitalize(sum.lifestyle?.smoking)} styles={styles} />
             <LifestyleRow label="Exercise" value={capitalize(sum.lifestyle?.exercise)} styles={styles} />
             <LifestyleRow label="Stress" value={sum.lifestyle?.stress != null ? `${sum.lifestyle.stress} / 5` : '-'} styles={styles} />
             <LifestyleRow label="Sleep" value={sum.lifestyle?.sleep != null ? `${sum.lifestyle.sleep} hours` : '-'} styles={styles} />
@@ -468,7 +472,7 @@ export function ScanScreen() {
         <View style={styles.permCard}>
           <View style={styles.permIconRing}>
             <View style={styles.permIcon}>
-              <MaterialCommunityIcons name="qrcode-scan" size={44} color={p.accent} />
+              <Ionicons name="qr-code-outline" size={44} color={p.accent} />
             </View>
             <View style={styles.permBadge}>
               <Ionicons name="camera" size={15} color="#FFFFFF" />
