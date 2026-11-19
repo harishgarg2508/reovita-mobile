@@ -31,6 +31,7 @@ export default function OnboardingEntry() {
   }
 
   const next = status.data.next_step;
-  if (!next) return <Redirect href="/(app)/(tabs)/dashboard" />;
+  // The report upload is not part of setup: after step 3 the dashboard opens, and a report can be added from there.
+  if (!next || next === 'reports') return <Redirect href="/(app)/(tabs)/dashboard" />;
   return <Redirect href={stepHref(STEP_OF[next])} />;
 }

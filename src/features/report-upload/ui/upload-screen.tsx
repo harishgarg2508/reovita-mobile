@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
-import { useReportList } from '@entities/report';
+import { isDocumentReport, useReportList, type ReportType } from '@entities/report';
 import { isApiError } from '@shared/api';
 import { ReportDropZone } from '@shared/ui/report-drop-zone';
 import { usePalette } from '@shared/ui/theme';
@@ -15,6 +15,7 @@ import { StepHeaderBadge } from '@shared/ui/step-header-badge';
 import { useUploadReport } from '../model/use-upload-report';
 import { Skeleton } from '@shared/ui/skeleton';
 import { ReportList } from './report-list';
+import { ReportTypeSheet } from './report-type-sheet';
 import { UploadWaiting } from './upload-waiting';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
@@ -25,6 +26,8 @@ const ERROR_TEXT: Record<string, string> = {
 };
 
 type UploadFile = { uri: string; name: string; type: string };
+// What the person said they are uploading, kept with the files while the consent sheet or the upload is in progress.
+type UploadKind = { reportType: ReportType; typeLabel: string };
 
 // Upload screen with the same layout as onboarding Step 4 ("Your First Report").
 export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
@@ -36,11 +39,10 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   const p = usePalette();
   const [infoOpen, setInfoOpen] = useState(false);
 
-  // Opens the file picker straight away when the screen is reached from "Choose file".
-  useEffect(() => {
-    if (autoPick) void onPick();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Asks what is being uploaded. The file picker opens only once a type is chosen.
+  // Open from the start when the screen is reached from "Choose file".
+  const [typeSheetOpen, setTypeSheetOpen] = useState(autoPick);
+  const [kind, setKind] = useState<UploadKind>({ reportType: 'blood_report', typeLabel: '' });
   const grantLlm = useGrantLlmConsent();
   const reports = useReportList();
   const reportItems = reports.data?.pages.flatMap((page) => page.items) ?? [];
@@ -54,7 +56,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
   // made on this visit, so it is cleared each time the screen gains focus.
   useFocusEffect(useCallback(() => setReportId(null), []));
 
-  async function onPick() {
+  async function onPick(chosen: UploadKind) {
+    setKind(chosen);
     const picked = await DocumentPicker.getDocumentAsync({
       type: ['application/pdf', 'image/jpeg', 'image/png'],
       multiple: true,
@@ -68,12 +71,12 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
       type: a.mimeType ?? 'application/octet-stream',
     }));
 
-    startUpload(files);
+    startUpload(files, chosen);
   }
 
-  function startUpload(files: UploadFile[]) {
+  function startUpload(files: UploadFile[], chosen: UploadKind) {
     upload.mutate(
-      { files },
+      { files, reportType: chosen.reportType, typeLabel: chosen.typeLabel },
       {
         onSuccess: (result) => {
           // Same file uploaded before: the existing report is returned, so show its interpretation directly.
@@ -101,7 +104,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
       return; // The sheet stays open so the user can try again.
     }
     setLlmSheetOpen(false);
-    startUpload(pendingFiles);
+    startUpload(pendingFiles, kind);
   }
 
   const error = upload.error;
@@ -115,7 +118,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         : null;
 
   if (reportId) {
-    return <UploadWaiting reportId={reportId} onLater={() => router.replace('/(app)/(tabs)/dashboard')} />;
+    return <UploadWaiting reportId={reportId} readsAsDocument={isDocumentReport({ report_type: kind.reportType })} onLater={() => router.replace('/(app)/(tabs)/dashboard')} />;
   }
 
   return (
@@ -159,7 +162,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
       </View>
 
       <View style={[styles.body, styles.bodyFill]}>
-        <ReportDropZone onChoose={onPick} disabled={upload.isPending} />
+        <ReportDropZone onChoose={() => setTypeSheetOpen(true)} disabled={upload.isPending} />
         {reports.isPending ? (
           <View style={[styles.listWrap, { gap: 10 }]}>
             <Skeleton height={56} />
@@ -194,6 +197,14 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
           </View>
         ) : null}
       </View>
+      <ReportTypeSheet
+        visible={typeSheetOpen}
+        onClose={() => setTypeSheetOpen(false)}
+        onChoose={(reportType, typeLabel) => {
+          setTypeSheetOpen(false);
+          void onPick({ reportType, typeLabel });
+        }}
+      />
       <LlmConsentSheet
         visible={llmSheetOpen}
         pending={grantLlm.isPending}

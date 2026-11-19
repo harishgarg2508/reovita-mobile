@@ -10,17 +10,23 @@ import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Shown right after an upload. The report is read in the background; the app learns about each
 // status change over the server's event stream, and opens the report once the observations are ready.
-export function UploadWaiting({ reportId, onLater }: { reportId: string; onLater: () => void }) {
+// readsAsDocument is true for a prescription, a scan or another document: it has no review step, so it opens on its summary when done.
+export function UploadWaiting({ reportId, onLater, readsAsDocument = false }: { reportId: string; onLater: () => void; readsAsDocument?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const status = useReportStatus(reportId);
 
   useEffect(() => {
+    if (readsAsDocument) {
+      if (status === 'DONE') router.replace({ pathname: '/(app)/reports/interpretation/[id]', params: { id: reportId } });
+      else if (status === 'FAILED') router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
+      return;
+    }
     // Ready, or needing action (a retake or a failure): the report screen shows the right panel for each.
     if (isReportReady(status) || status === 'NEEDS_RETAKE' || status === 'FAILED') {
       router.replace({ pathname: '/(app)/reports/[id]', params: { id: reportId } });
     }
-  }, [status, reportId, router]);
+  }, [status, reportId, router, readsAsDocument]);
 
   return <ReportProcessingPanel onLater={onLater} />;
 }

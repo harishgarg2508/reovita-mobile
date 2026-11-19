@@ -1,8 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { usePalette, type Palette } from "../theme";
+import { usePalette, type Palette } from '../theme';
 
 export interface SwitcherProfile {
   id: string;
@@ -28,6 +28,8 @@ export function ProfileSwitcher({
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const [open, setOpen] = useState(false);
+  // With one profile and nothing to add there is nothing to choose, so the button only shows who is active.
+  const expandable = profiles.length > 1 || Boolean(onAdd);
   const active =
     profiles.find((profile) => profile.id === activeId) ?? profiles[0];
   if (!active) return null;
@@ -39,6 +41,7 @@ export function ProfileSwitcher({
         accessibilityState={{ expanded: open }}
         accessibilityLabel="Switch profile"
         onPress={() => setOpen((v) => !v)}
+        disabled={!expandable}
         style={styles.trigger}
       >
         <Avatar profile={active} styles={styles} />
@@ -48,14 +51,16 @@ export function ProfileSwitcher({
           </Text>
           {active.hint ? <Text style={styles.hint}>{active.hint}</Text> : null}
         </View>
-        <Ionicons
-          name={open ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={p.muted}
-        />
+        {expandable ? (
+          <Ionicons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={p.muted}
+          />
+        ) : null}
       </Pressable>
 
-      {open ? (
+      {open && expandable ? (
         <>
           {/* A tap anywhere outside the list closes it. The layer is larger than the screen, so it covers everything around. */}
           <Pressable
@@ -131,7 +136,7 @@ function Avatar({
 }) {
   // The first letters of the codename's last part, for example "AQ" from VT-4762-AQ.
   const initials =
-    profile.label.split("-").pop()?.slice(0, 2).toUpperCase() ?? "?";
+    profile.label.split('-').pop()?.slice(0, 2).toUpperCase() ?? '?';
   return (
     <View style={styles.avatar}>
       <Text style={styles.avatarText}>{initials}</Text>
@@ -142,17 +147,17 @@ function Avatar({
 function makeStyles(p: Palette) {
   return StyleSheet.create({
     // The list floats over the page below the button (a popover), so opening it does not move anything else.
-    wrap: { position: "relative", zIndex: 50, elevation: 50 },
+    wrap: { position: 'relative', zIndex: 50, elevation: 50 },
     backdrop: {
-      position: "absolute",
+      position: 'absolute',
       top: -3000,
       bottom: -3000,
       left: -1000,
       right: -1000,
     },
     trigger: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 10,
       padding: 10,
       borderRadius: 16,
@@ -161,26 +166,26 @@ function makeStyles(p: Palette) {
       backgroundColor: p.card,
     },
     triggerText: { flex: 1, gap: 1 },
-    label: { fontSize: 14.5, fontWeight: "700", color: p.textStrong },
+    label: { fontSize: 14.5, fontWeight: '700', color: p.textStrong },
     hint: { fontSize: 12, color: p.muted },
     avatar: {
       width: 38,
       height: 38,
       borderRadius: 19,
       backgroundColor: p.accentSoft,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    avatarText: { fontSize: 13, fontWeight: "800", color: p.accent },
+    avatarText: { fontSize: 13, fontWeight: '800', color: p.accent },
     menu: {
-      position: "absolute",
-      top: "100%",
+      position: 'absolute',
+      top: '100%',
       left: 0,
       right: 0,
       marginTop: 6,
       zIndex: 60,
       elevation: 12,
-      shadowColor: "#000",
+      shadowColor: '#000',
       shadowOpacity: 0.18,
       shadowRadius: 18,
       shadowOffset: { width: 0, height: 8 },
@@ -188,11 +193,11 @@ function makeStyles(p: Palette) {
       borderWidth: 1,
       borderColor: p.border,
       backgroundColor: p.card,
-      overflow: "hidden",
+      overflow: 'hidden',
     },
     row: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 10,
       paddingHorizontal: 10,
       paddingVertical: 10,
@@ -203,10 +208,10 @@ function makeStyles(p: Palette) {
       borderTopColor: p.border,
     },
     addAvatar: {
-      backgroundColor: "transparent",
+      backgroundColor: 'transparent',
       borderWidth: 1.5,
       borderColor: p.accent,
-      borderStyle: "dashed",
+      borderStyle: 'dashed',
     },
   });
 }

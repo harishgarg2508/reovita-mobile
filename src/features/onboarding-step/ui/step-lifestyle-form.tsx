@@ -87,13 +87,15 @@ function Field({ label, hint, name, missing, onLayout, children, isPrivate = fal
   return (
     <View style={[styles.field, missing && styles.fieldError]} onLayout={(e) => onLayout(name, e.nativeEvent.layout.y)}>
       <View style={styles.fieldHead}>
-        <Text style={styles.label}>{label}</Text>
-        {isPrivate ? (
-          <View style={styles.privateTag}>
-            <Ionicons name="lock-closed" size={11} color={colors.accent} />
-            <Text style={styles.privateTagText}>Private</Text>
-          </View>
-        ) : null}
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>{label}</Text>
+          {/* Only a lock: the answer is private, and the icon says so without extra words. */}
+          {isPrivate ? (
+            <View style={styles.privateTag} accessible accessibilityLabel="Private. Only you can see this.">
+              <Ionicons name="lock-closed" size={12} color={colors.accent} />
+            </View>
+          ) : null}
+        </View>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
       {children}
@@ -192,10 +194,10 @@ export function StepLifestyleForm({
         <Field label="Diet" name="diet" missing={missing.includes('diet')} onLayout={report}>
           <ChoiceRow choices={DIET} value={draft.diet} onPick={(v) => set('diet', v)} />
         </Field>
-        <Field label="Smoking" isPrivate hint="Only you can see this" name="smoking" missing={missing.includes('smoking')} onLayout={report}>
+        <Field label="Smoking" isPrivate name="smoking" missing={missing.includes('smoking')} onLayout={report}>
           <ChoiceRow choices={SMOKING} value={draft.smoking} onPick={(v) => set('smoking', v)} />
         </Field>
-        <Field label="Alcohol" isPrivate hint="Only you can see this" name="alcohol" missing={missing.includes('alcohol')} onLayout={report}>
+        <Field label="Alcohol" isPrivate name="alcohol" missing={missing.includes('alcohol')} onLayout={report}>
           <ChoiceRow choices={ALCOHOL} value={draft.alcohol} onPick={(v) => set('alcohol', v)} />
         </Field>
       </Section>
@@ -224,8 +226,8 @@ export function StepLifestyleForm({
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
     form: { gap: 14 },
-    privateTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.accentSoft },
-    privateTagText: { fontFamily: 'Poppins_600SemiBold', fontSize: 10.5, color: colors.accent },
+    labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    privateTag: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentSoft },
     section: { gap: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 20, backgroundColor: colors.card, padding: 16 },
     sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     sectionIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },

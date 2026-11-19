@@ -6,6 +6,7 @@ import { goBackOr } from '@shared/ui';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Pressable,
@@ -266,13 +267,15 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
             return;
           }
           // Any other failure: show the server's message so the user knows what to fix.
-          setConfirmError(isApiError(err) ? err.message : 'Could not confirm the report. Try again.');
+          // No answer from the server (a timeout or no connection) has no status: say so in plain words.
+          setConfirmError(isApiError(err) && err.status > 0 ? err.message : 'The server took too long to answer. Please try again.');
         },
       }
     );
   }
 
   function onConfirmValues() {
+    if (confirm.isPending) return;
     tapConfirm();
     runConfirm();
   }
@@ -349,7 +352,8 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   // =========================================================================
   // SCREEN 2: LLM processing
   // =========================================================================
-  if (confirm.isPending || simulatedAnalyzing || interpreting) {
+  // The Confirm button shows its own loading state until the server answers 200. This view starts only once it has.
+  if (interpreting) {
     const spinInterpolate = spinAnim.interpolate({
       inputRange: [0, 1],
       outputRange: ['0deg', '360deg'],
@@ -648,8 +652,10 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
             onPressIn={() => onPressIn(btnScale2)}
             onPressOut={() => onPressOut(btnScale2)}
             onPress={onConfirmValues}
-            style={styles.confirmBtn}>
-            <Text style={styles.confirmBtnText}>Confirm</Text>
+            disabled={confirm.isPending}
+            accessibilityState={{ busy: confirm.isPending, disabled: confirm.isPending }}
+            style={[styles.confirmBtn, confirm.isPending && { opacity: 0.85 }]}>
+            {confirm.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Confirm</Text>}
           </Pressable>
         </Animated.View>
       </View>

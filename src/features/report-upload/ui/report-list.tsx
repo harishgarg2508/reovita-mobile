@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useRouter } from 'expo-router';
 
-import { useDeleteReport, type ReportListItem } from '@entities/report';
+import { isDocumentReport, reportTypeLabel, useDeleteReport, type ReportListItem } from '@entities/report';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette } from '@shared/ui/theme';
@@ -52,8 +52,15 @@ export function ReportList({
       }
       renderItem={({ item }) => (
         <View style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Pressable accessibilityRole="button" onPress={() => onOpen(item.id)} style={styles.rowOpen}>
-            <Text style={[styles.label, { color: p.text }]}>Report</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              // A prescription, scan or other document has no review step: it opens on its summary.
+              if (isDocumentReport(item)) router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id: item.id } });
+              else onOpen(item.id);
+            }}
+            style={styles.rowOpen}>
+            <Text style={[styles.label, { color: p.text }]}>{reportTypeLabel(item)}</Text>
             <Text style={[styles.date, { color: p.muted }]}>{formatDate(item.created_at)}</Text>
           </Pressable>
           <Pressable

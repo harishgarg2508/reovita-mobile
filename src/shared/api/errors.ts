@@ -35,6 +35,13 @@ export const API_ERROR_CODES = [
   'sensitive_locked',
   'sensitive_not_found',
   'question_required',
+  'reauth_required',
+  'reauth_account_mismatch',
+  'feature_disabled',
+  'subject_limit_reached',
+  'profile_not_found',
+  'owner_profile',
+  'sign_in_again',
   'unauthorized',
   'unknown',
 ] as const;

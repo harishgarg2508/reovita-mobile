@@ -12,14 +12,21 @@ export interface UploadReportResult {
 export interface UploadReportInput {
   /** One PDF (max 15 pages), or up to 5 JPEG/PNG images. */
   files: { uri: string; name: string; type: string }[];
+  /** What is uploaded. Each type is stored in its own folder. Default blood_report. */
+  reportType?: 'blood_report' | 'prescription' | 'scan' | 'other';
+  /** A short name for the document when reportType is other. */
+  typeLabel?: string;
 }
 
 export function useUploadReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ files }: UploadReportInput): Promise<UploadReportResult> => {
+    mutationFn: async ({ files, reportType = 'blood_report', typeLabel }: UploadReportInput): Promise<UploadReportResult> => {
       const form = new FormData();
+      // The type goes before the files, so the server reads it first.
+      form.append('report_type', reportType);
+      if (reportType === 'other' && typeLabel?.trim()) form.append('type_label', typeLabel.trim().slice(0, 60));
       for (const file of files) {
         if (Platform.OS === 'web') {
           // Browsers need a real Blob in FormData; the native { uri, name, type } object is ignored.

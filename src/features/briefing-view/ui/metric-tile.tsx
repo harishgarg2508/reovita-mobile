@@ -1,11 +1,11 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ABOUT, place, SCALES, type ScaleName, type Tone } from '../model/reading-labels';
 import type { BriefingColors } from './briefing-theme';
 
-export type TileIcon = keyof typeof MaterialCommunityIcons.glyphMap;
+export type TileIcon = keyof typeof Ionicons.glyphMap;
 
 export function getStatusChipColors(label: string, tone: Tone, colors: BriefingColors) {
   if (colors.dark) {
@@ -47,7 +47,7 @@ const SCALE_VISUALS: Record<ScaleName, MetricVisual> = {
   uv: {
     bg: (d) => (d ? '#2E2211' : '#FEF6E9'),
     color: () => '#D98A2C',
-    iconName: 'weather-sunny',
+    iconName: 'sunny',
   },
   temperature: {
     bg: (d) => (d ? '#162E20' : '#EBF6EE'),
@@ -57,7 +57,7 @@ const SCALE_VISUALS: Record<ScaleName, MetricVisual> = {
   feelsLike: {
     bg: (d) => (d ? '#132B27' : '#E8F5F2'),
     color: () => '#329B85',
-    iconName: 'weather-windy',
+    iconName: 'speedometer-outline',
   },
   humidity: {
     bg: (d) => (d ? '#162E20' : '#E8F6EE'),
@@ -67,17 +67,17 @@ const SCALE_VISUALS: Record<ScaleName, MetricVisual> = {
   pm25: {
     bg: (d) => (d ? '#162F21' : '#EAF5EB'),
     color: () => '#2E9E5B',
-    iconName: 'grain',
+    iconName: 'ellipsis-horizontal',
   },
   pm10: {
     bg: (d) => (d ? '#162F21' : '#EAF5EB'),
     color: () => '#2E9E5B',
-    iconName: 'grain',
+    iconName: 'ellipsis-horizontal',
   },
   aqi: {
     bg: (d) => (d ? '#162F21' : '#EAF5EB'),
     color: () => '#2E9E5B',
-    iconName: 'air-filter',
+    iconName: 'funnel-outline',
   },
 };
 
@@ -144,7 +144,7 @@ export function MetricTile({ label, icon, value, scale, raw, colors, wide, note,
       {wide ? (
         <View style={styles.wideRow}>
           <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
-            <MaterialCommunityIcons name={iconName} size={20} color={iconColor} />
+            <Ionicons name={iconName} size={20} color={iconColor} />
           </View>
           <View style={styles.wideBody}>
             <Text style={[styles.label, { color: colors.muted }]} numberOfLines={1}>
@@ -162,7 +162,7 @@ export function MetricTile({ label, icon, value, scale, raw, colors, wide, note,
       ) : (
         <View style={styles.gridRow}>
           <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
-            <MaterialCommunityIcons name={iconName} size={19} color={iconColor} />
+            <Ionicons name={iconName} size={19} color={iconColor} />
           </View>
           <View style={styles.gridBody}>
             <Text style={[styles.label, { color: colors.muted }]} numberOfLines={1}>

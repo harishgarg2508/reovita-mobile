@@ -4,27 +4,23 @@ import {
   DrawerItemList,
   type DrawerContentComponentProps,
 } from 'expo-router/drawer';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useSignOut } from '@app-root/bootstrap/use-sign-out';
-import { ProfileSwitcher, type SwitcherProfile } from '@shared/ui/profile-switcher';
-
-// Sample profiles for the dropdown design. Not real data: switching is not connected to anything yet.
-const SAMPLE_PROFILES: SwitcherProfile[] = [
-  { id: 'me', label: 'VT-4762-AQ', hint: 'You' },
-  { id: 'p2', label: 'VT-1830-KM', hint: 'Sample profile' },
-];
+import { useCurrentSubject } from '@entities/subject';
+import { ProfileSwitcher } from '@shared/ui/profile-switcher';
 
 // Side menu for every signed-in screen. Sign out lives here so it is one tap away everywhere.
 export function AppDrawerContent(props: DrawerContentComponentProps) {
   const signOut = useSignOut();
-  const [activeId, setActiveId] = useState('me');
+  // The profiles of this account. Until family profiles exist on the server, the list is the person's own profile only.
+  const subject = useCurrentSubject();
+  const codename = subject.data?.codename;
 
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.switcher}>
-        <ProfileSwitcher profiles={SAMPLE_PROFILES} activeId={activeId} onSelect={setActiveId} onAdd={() => undefined} />
+        {codename ? <ProfileSwitcher profiles={[{ id: 'me', label: codename, hint: 'You' }]} activeId="me" onSelect={() => undefined} /> : null}
       </View>
       <DrawerItemList {...props} />
       <View style={styles.divider} />

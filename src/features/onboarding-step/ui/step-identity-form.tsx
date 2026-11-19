@@ -30,6 +30,12 @@ function bmiCategory(bmi: number): 'Under' | 'Healthy' | 'Over' | 'Obese' {
   return 'Obese';
 }
 
+// Keeps digits only (the web keyboard does not filter) and drops a typed digit that would take the value above the limit.
+function digitsWithin(text: string, max: number): string {
+  const digits = text.replace(/\D/g, '').slice(0, String(max).length);
+  return digits !== '' && Number(digits) > max ? digits.slice(0, -1) : digits;
+}
+
 const CATEGORY_ORDER: ('Under' | 'Healthy' | 'Over' | 'Obese')[] = ['Under', 'Healthy', 'Over', 'Obese'];
 
 // Step 1: birth year, sex, height and weight. BMI is worked out from height and weight.
@@ -120,9 +126,11 @@ export function StepIdentityForm({
           <View style={[styles.numeric, heightMissing && styles.fieldError]}>
             <TextInput
               style={styles.numericValue}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
+              inputMode="numeric"
+              maxLength={3}
               value={draft.height}
-              onChangeText={(v) => update({ height: v })}
+              onChangeText={(v) => update({ height: digitsWithin(v, 260) })}
               placeholder="170"
               placeholderTextColor={colors.placeholder}
             />
@@ -139,9 +147,11 @@ export function StepIdentityForm({
           <View style={[styles.numeric, weightMissing && styles.fieldError]}>
             <TextInput
               style={styles.numericValue}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
+              inputMode="numeric"
+              maxLength={3}
               value={draft.weight}
-              onChangeText={(v) => update({ weight: v })}
+              onChangeText={(v) => update({ weight: digitsWithin(v, 400) })}
               placeholder="65"
               placeholderTextColor={colors.placeholder}
             />

@@ -2,6 +2,8 @@
 export interface HomeReportSummary {
   id: string;
   created_at: string;
+  report_type?: 'blood_report' | 'prescription' | 'scan' | 'other';
+  type_label?: string | null;
 }
 
 export interface HomeSummary {

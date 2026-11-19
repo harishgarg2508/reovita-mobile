@@ -99,7 +99,8 @@ export function OnboardingStepper({ step }: { step: number }) {
   const current = STEP_DATA[Math.min(step - 1, STEP_DATA.length - 1)];
 
   function next() {
-    if (step < 4) {
+    // Step 3 is the last step of setup. The report upload (step 4) is skipped, a report can be added from the dashboard.
+    if (step < 3) {
       router.replace(stepHref((step + 1) as OnboardingStepNumber));
     } else {
       router.replace('/(app)/(tabs)/dashboard');
@@ -175,10 +176,10 @@ export function OnboardingStepper({ step }: { step: number }) {
             {editing ? null : (
             <View style={styles.stepRow}>
               <View style={styles.stepPill}>
-                <Text style={styles.stepBadge}>Step {step} of 4</Text>
+                <Text style={styles.stepBadge}>Step {step} of 3</Text>
               </View>
               <View style={styles.stepTrack}>
-                <View style={[styles.stepFill, { width: `${(step / 4) * 100}%` }]} />
+                <View style={[styles.stepFill, { width: `${(step / 3) * 100}%` }]} />
               </View>
             </View>
             )}
@@ -248,7 +249,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             ) : editing ? null : (
             <View style={styles.nextGroupItem}>
               <Button
-                label={step === 4 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
+                label={step >= 3 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
                 disabled={save.isPending}
                 onPress={onSave}
               />

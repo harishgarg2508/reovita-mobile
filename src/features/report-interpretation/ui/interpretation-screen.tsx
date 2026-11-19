@@ -81,6 +81,8 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
   const [infoOpen, setInfoOpen] = useState<string | null>(null);
 
   const output = interpretation.data?.output_json;
+  // A prescription, scan or other document is shown as what was read, with no results table and no preventive measures.
+  const document = output?.document;
   const explanations = (output?.explanations ?? []) as { text: string; status?: string; biomarker_code?: string }[];
 
   const errorText = analysing || (interpretation.isFetching && !interpretation.data) ? null : interpretation.isError
@@ -104,7 +106,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         <Pressable accessibilityRole="button" onPress={() => goBackOr(router, '/(app)/(tabs)/dashboard')} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Interpretation</Text>
+        <Text style={styles.headerTitle}>{document ? 'Document summary' : 'Interpretation'}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -126,7 +128,31 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         </View>
       ) : null}
 
-      {explanations.length > 0 ? (
+      {document && document.items.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What is written</Text>
+          {document.items.map((item, index) => (
+            <View key={`${index}-${item.title}`} style={styles.card}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              {item.detail ? <Text style={styles.body}>{item.detail}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {document && document.unclear.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Hard to read</Text>
+          <Text style={styles.note}>These parts could not be read with confidence. Please check them with the person who wrote the document.</Text>
+          {document.unclear.map((line, index) => (
+            <View key={`${index}-${line}`} style={styles.card}>
+              <Text style={styles.body}>{line}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {!document && explanations.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Results</Text>
           {explanations.map((item, index) => (
@@ -159,7 +185,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
         </View>
       ) : null}
 
-      {output?.action_points && output.action_points.length > 0 ? (
+      {!document && output?.action_points && output.action_points.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preventive measures</Text>
           <Text style={styles.note}>General habits that support your health. They are not medical advice, and a doctor can guide you on your own results.</Text>

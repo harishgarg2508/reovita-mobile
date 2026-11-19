@@ -9,10 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConsentGrants, useGrantConsentType, useRevokeConsent, type ConsentType } from '@entities/consent';
 import { useCurrentSubject } from '@entities/subject';
 import { useDeactivateAccount } from '@features/account-deactivate';
-import { ProfileDetailsCard } from '@features/profile-details';
+import { ProfileDetailsCard, ProfileIdentityCard } from '@features/profile-details';
+import { AddProfileSheet, ProfileMenu, useAccountProfiles } from '@features/profile-switch';
 import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
-import { ProfileSwitcher, type SwitcherProfile } from '@shared/ui/profile-switcher';
 import { usePalette, type Palette } from '@shared/ui/theme';
 import { Skeleton } from '@shared/ui/skeleton';
 
@@ -112,12 +112,13 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
   }, [copied]);
 
   const codename = subject.data?.codename;
-  // Design only: the first profile is the signed-in subject, the second is a sample. Switching is not connected yet.
-  const [activeProfile, setActiveProfile] = useState('me');
-  const switcherProfiles: SwitcherProfile[] = [
-    { id: 'me', label: codename ?? 'My profile', hint: 'You' },
-    { id: 'sample', label: 'VT-1830-KM', hint: 'Sample profile' },
-  ];
+  // The profile list that opens from the profile card, and the sheet for adding a profile.
+  const [profilesOpen, setProfilesOpen] = useState(false);
+  const [addingProfile, setAddingProfile] = useState(false);
+  const accountProfiles = useAccountProfiles();
+  const activeProfile = accountProfiles.data?.find((item) => item.is_active);
+  // "You" on the account's own profile, the nickname on a family profile.
+  const profileTag = activeProfile?.role === 'member' ? (activeProfile.nickname ?? 'Family') : 'You';
 
   async function copyCode() {
     if (!codename) return;
@@ -153,10 +154,17 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
         </View>
       </View>
 
-      <ProfileSwitcher profiles={switcherProfiles} activeId={activeProfile} onSelect={setActiveProfile} onAdd={() => undefined} />
+      {/* Who this profile is. The button opens the list of profiles, with a row to add one. */}
+      <ProfileIdentityCard
+        tag={profileTag}
+        open={profilesOpen}
+        onToggle={() => setProfilesOpen((v) => !v)}
+        menu={<ProfileMenu onClose={() => setProfilesOpen(false)} onAdd={() => setAddingProfile(true)} />}
+      />
+      <AddProfileSheet visible={addingProfile} onClose={() => setAddingProfile(false)} />
 
       {/* Code card: QR on the left, code and actions on the right, log out below. */}
-      <View style={styles.card}>
+      <View style={[styles.card, styles.codeCard]}>
         {subject.isLoading ? (
           <Skeleton height={150} />
         ) : (
@@ -230,6 +238,23 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
         {consents.isError ? <Text style={styles.error}>Could not load your permissions.</Text> : null}
       </View>
 
+      {/* Log out sits outside the danger zone, above it. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ busy: signingOut, disabled: signingOut }}
+        disabled={signingOut}
+        onPress={onSignOut}
+        style={[styles.logout, signingOut && { opacity: 0.6 }]}>
+        {signingOut ? (
+          <ActivityIndicator size="small" color={p.red} />
+        ) : (
+          <>
+            <Ionicons name="log-out-outline" size={18} color={p.red} />
+            <Text style={styles.logoutText}>Log out</Text>
+          </>
+        )}
+      </Pressable>
+
       {/* Danger zone: deactivating hides the account. It is recoverable, so nothing is deleted. */}
       <View style={styles.dangerCard}>
         <Text style={styles.dangerTitle}>Danger zone</Text>
@@ -245,22 +270,6 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
           <Text style={styles.dangerBtnText}>{deactivate.isPending ? 'Deactivating...' : 'Deactivate account'}</Text>
         </Pressable>
         {deactivate.isError ? <Text style={styles.error}>Could not deactivate the account. Try again.</Text> : null}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ busy: signingOut, disabled: signingOut }}
-          disabled={signingOut}
-          onPress={onSignOut}
-          style={[styles.logout, styles.logoutBelow, signingOut && { opacity: 0.6 }]}>
-          {signingOut ? (
-            <ActivityIndicator size="small" color={p.red} />
-          ) : (
-            <>
-              <Ionicons name="log-out-outline" size={18} color={p.red} />
-              <Text style={styles.logoutText}>Log out</Text>
-            </>
-          )}
-        </Pressable>
       </View>
       <ConfirmDialog
         visible={dialog !== null}
@@ -294,6 +303,8 @@ function makeStyles(p: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // The code card has a straight, full-width green top edge: square top corners, a 5 px green border across the whole top.
+    codeCard: { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTopWidth: 5, borderTopColor: p.accent },
     card: {
       backgroundColor: p.card,
       borderRadius: 24,

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
 import { useHome } from '@entities/home';
-import { useReportList } from '@entities/report';
+import { isDocumentReport, reportTypeLabel, useReportList } from '@entities/report';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileBmiCard } from '@features/profile-details';
@@ -358,21 +358,32 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
       <Card p={p}>
         <View style={styles.rowTop}>
           <IconBox p={p} name="flask-outline" color={p.lime} />
-          <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Recent reports</Text>
+          <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Recent uploads</Text>
         </View>
         {recentItems.length === 0 ? (
-          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')}>
-            <Text style={[styles.cardText, { color: p.muted }]}>Upload a lab report to see its flags here.</Text>
-          </Pressable>
+          <View style={styles.recentList}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(app)/reports/upload')}
+              style={[styles.recentRow, { borderColor: p.border }]}>
+              <Text style={[styles.recentLabel, { color: p.purple }]}>Upload a report</Text>
+              <Ionicons name="chevron-forward" size={18} color={p.purple} />
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.recentList}>
             {recentItems.slice(0, 2).map((item) => (
               <Pressable
                 key={item.id}
                 accessibilityRole="button"
-                onPress={() => router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })}
+                onPress={() =>
+                  // A prescription, scan or other document has no review step: it opens on its summary.
+                  isDocumentReport(item)
+                    ? router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id: item.id } })
+                    : router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })
+                }
                 style={[styles.recentRow, { borderColor: p.border }]}>
-                <Text style={[styles.recentLabel, { color: p.text }]}>Report</Text>
+                <Text style={[styles.recentLabel, { color: p.text }]}>{reportTypeLabel(item)}</Text>
                 <Text style={[styles.cardText, { color: p.muted, marginTop: 0 }]}>{formatReportDate(item.created_at)}</Text>
               </Pressable>
             ))}

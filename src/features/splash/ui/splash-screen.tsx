@@ -16,7 +16,6 @@ const LETTER_FADE_MS = 380;
  * - Clean white background
  * - Botanical translucent green corner leaves in top-right and bottom-right
  * - Centered vertical Reovita Leaf Logo emblem + "Reovita" wordmark + "Your Health, Our DNA"
- * - Left-aligned inspirational copy: "Monitor Wellness. Build Habits. Live Healthier Every Day 🌿"
  * - Purple progress bar at the bottom with smooth timing animation
  * - Tap anywhere to advance immediately
  */
@@ -105,10 +104,6 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 
         {/* Lower Section: Left-aligned Headline and Progress Bar */}
         <View style={styles.lowerSection}>
-          <Text style={styles.headline}>
-            {'Monitor Wellness.\nBuild Habits. Live\nHealthier Every Day 🌿'}
-          </Text>
-
           {/* Bottom Purple Progress Bar */}
           <View style={styles.progressRow}>
             <View

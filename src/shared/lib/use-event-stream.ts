@@ -13,58 +13,82 @@ interface NativeStreamLike {
   close(): void;
 }
 
-// What the screen and the reader share, so the screen can stop the reader without aborting the request. Aborting a fetch makes
-// the browser raise an AbortError that it reports as an uncaught error; closing the reader does not.
+// What the screen and the reader share, so the screen can stop the stream. Stopping it closes the request quietly: an XMLHttpRequest
+// reports a failed or stopped request as an event, never as a rejected promise, so nothing reaches the screen as an uncaught error.
 interface WebStreamState {
   closed: boolean;
-  reader: ReadableStreamDefaultReader<Uint8Array> | null;
+  stop: (() => void) | null;
 }
 
-// Reads a text/event-stream body and calls onMessage for each event named eventName. Resolves when the server closes the stream
-// or the screen has closed it, rejects when the response is not OK. It uses fetch, so the Bearer token goes in the Authorization
-// header (EventSource cannot set headers).
-async function readWebStream(
+// Reads a text/event-stream response and calls onMessage for each event named eventName. Resolves when the server closes the stream,
+// the screen has closed it, or the request fails: the caller then tries again later. It never rejects. It uses XMLHttpRequest, so the
+// Bearer token goes in the Authorization header (EventSource cannot set headers), the session cookie is sent too, and a network failure
+// (the server restarting, a dropped connection, a blocked request) arrives as an ordinary event instead of a rejected fetch, which the
+// web build would show as an uncaught error on screen.
+function readWebStream(
   url: string,
   token: string | null,
   eventName: string,
   onMessage: (data: string) => void,
   state: WebStreamState,
 ): Promise<void> {
-  const res = await fetch(url, {
-    headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    // Same session as every other API call: after a page reload the web build has no token in memory and is signed in
-    // by the HttpOnly cookie set at login, so the cookie must be sent here too.
-    credentials: 'include',
-  });
-  // The screen was closed while the request was on its way: drop the response without reading it.
-  if (state.closed) {
-    await res.body?.cancel().catch(() => undefined);
-    return;
-  }
-  if (!res.ok || !res.body) throw new Error(`stream responded ${res.status}`);
-
-  const reader = res.body.getReader();
-  state.reader = reader;
-  const decoder = new TextDecoder();
-  let buffer = '';
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done || state.closed) return;
-    buffer += decoder.decode(value, { stream: true });
-    let end = buffer.indexOf('\n\n');
-    while (end !== -1) {
-      const block = buffer.slice(0, end);
-      buffer = buffer.slice(end + 2);
-      let name = 'message';
-      const data: string[] = [];
-      for (const line of block.split('\n')) {
-        if (line.startsWith('event:')) name = line.slice(6).trim();
-        else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
-      }
-      if (name === eventName && data.length > 0) onMessage(data.join('\n'));
-      end = buffer.indexOf('\n\n');
+  return new Promise((resolve) => {
+    if (state.closed) {
+      resolve();
+      return;
     }
-  }
+    const xhr = new XMLHttpRequest();
+    // After a page reload the web build has no token in memory and is signed in by the HttpOnly cookie set at login.
+    xhr.withCredentials = true;
+    let consumed = 0;
+    let buffer = '';
+
+    const take = () => {
+      // Only the part that arrived since the last call is read.
+      const chunk = xhr.responseText.slice(consumed);
+      consumed = xhr.responseText.length;
+      buffer += chunk;
+      let end = buffer.indexOf('\n\n');
+      while (end !== -1) {
+        const block = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        let name = 'message';
+        const data: string[] = [];
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event:')) name = line.slice(6).trim();
+          else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+        }
+        if (name === eventName && data.length > 0) {
+          try {
+            onMessage(data.join('\n'));
+          } catch {
+            // A message the handler could not use must not end the stream.
+          }
+        }
+        end = buffer.indexOf('\n\n');
+      }
+    };
+
+    state.stop = () => {
+      try {
+        xhr.abort();
+      } catch {
+        // already finished
+      }
+    };
+    xhr.onprogress = () => {
+      if (!state.closed && xhr.status >= 200 && xhr.status < 300) take();
+    };
+    // Whatever ends the request (closed by the server, a failure, a stop) ends the read.
+    xhr.onloadend = () => {
+      state.stop = null;
+      resolve();
+    };
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Accept', 'text/event-stream');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send();
+  });
 }
 
 // Generic server-sent events. Opens one stream to `url` while mounted, and calls onEvent for every message
@@ -82,7 +106,7 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
     let closed = false;
     let delay = BACKOFF_START_MS;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const web: WebStreamState = { closed: false, reader: null };
+    const web: WebStreamState = { closed: false, stop: null };
     let nativeSource: NativeStreamLike | null = null;
 
     const onMessage = (data: string) => {
@@ -138,9 +162,9 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
     return () => {
       closed = true;
       if (timer) clearTimeout(timer);
-      // Closing the reader ends the read and the connection, without the AbortError that aborting the request would raise.
+      // Stopping the request ends the read and the connection quietly.
       web.closed = true;
-      web.reader?.cancel().catch(() => undefined);
+      web.stop?.();
       try {
         nativeSource?.close();
       } catch {

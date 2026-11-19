@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, type PropsWithChildren } from 'react';
 
-import { persistor, useAppDispatch } from '@app-root/store';
+import { persistor, store, useAppDispatch } from '@app-root/store';
 import { consentFlowReset } from '@entities/consent';
 import { onboardingDraftsReset } from '@entities/onboarding';
 import { sessionCleared, sessionReady } from '@entities/session';
@@ -21,6 +21,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
   // The logout endpoint is not called here, since it could answer 401 too.
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // Only a session that was signed in is sent back to the landing page. At start-up (or when already signed out) the landing page
+      // is already opening login, and sending it there again would show the splash and login a second time.
+      const wasReady = store.getState().session.status === 'ready';
       dispatch(sessionCleared());
       dispatch(consentFlowReset());
       dispatch(onboardingDraftsReset());
@@ -29,7 +32,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       void getFirebaseAuth()?.signOut().catch(() => undefined);
       void persistor.purge();
       queryClient.clear();
-      router.replace('/');
+      if (wasReady) router.replace('/');
     });
   }, [dispatch, queryClient]);
 

@@ -20,6 +20,8 @@ export interface InterpretationOutput {
   summary?: string;
   explanations?: unknown[];
   action_points?: string[];
+  /** Set for a prescription, a scan report or another document: what was read, and the parts that were hard to read. */
+  document?: { items: { title: string; detail: string }[]; unclear: string[] };
 }
 
 export interface Interpretation {

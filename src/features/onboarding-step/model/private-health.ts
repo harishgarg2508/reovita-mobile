@@ -11,6 +11,7 @@ export type Protection = 'always' | 'sometimes' | 'never' | 'not_applicable' | '
 export type Partners = 'none' | 'one' | 'two_or_more' | 'prefer_not_to_say';
 export type StiHistory = 'yes' | 'no' | 'prefer_not_to_say';
 export type Orientation = 'heterosexual' | 'gay_or_lesbian' | 'bisexual' | 'other' | 'prefer_not_to_say';
+export type SelfSexuality = 'never' | 'less_than_weekly' | 'one_to_three_weekly' | 'four_or_more_weekly' | 'prefer_not_to_say';
 export type DrugUse = 'never' | 'three_or_fewer' | 'more_than_three' | 'prefer_not_to_say';
 
 export interface PrivateItems {
@@ -19,6 +20,7 @@ export interface PrivateItems {
   partners?: Partners;
   sti_history?: StiHistory;
   orientation?: Orientation;
+  self_sexuality?: SelfSexuality;
   drug_use?: DrugUse;
 }
 
@@ -93,6 +95,18 @@ export const PRIVATE_QUESTIONS: PrivateQuestion[] = [
       { value: 'gay_or_lesbian', label: 'Gay or lesbian' },
       { value: 'bisexual', label: 'Bisexual' },
       { value: 'other', label: 'Other' },
+      PREFER,
+    ],
+  },
+  {
+    key: 'self_sexuality',
+    title: 'How often do you masturbate?',
+    info: 'This is a normal part of sexual health for many people. Your answer stays locked with your security answer and is never shared.',
+    options: [
+      { value: 'never', label: 'Never' },
+      { value: 'less_than_weekly', label: 'Less than once a week' },
+      { value: 'one_to_three_weekly', label: '1–3 times a week' },
+      { value: 'four_or_more_weekly', label: '4 or more times a week' },
       PREFER,
     ],
   },

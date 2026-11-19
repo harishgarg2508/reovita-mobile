@@ -1,16 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { ConfirmDialog } from '@shared/ui';
-import { useActiveConsent, useGrantConsentType } from '@entities/consent';
-
 import { useBriefingLive } from '../model/use-briefing-live';
 import { formatCoords, useCurrentPlace } from '../model/current-place';
-import { shareLocationForBriefing } from '../model/share-location';
+import { askLocationPermission, getLocationPermission, type LocationPermission } from '../model/location-permission';
+import { LOCATION_FAILURE_TEXT, shareLocationForBriefing, type LocationFailure } from '../model/share-location';
 import type { BriefingCard } from '../model/briefing-api';
 import { feelsLikeNote, fmt, place, SCALES } from '../model/reading-labels';
 import { AqiGauge } from './aqi-gauge';
@@ -37,44 +35,69 @@ export function BriefingPage() {
   const { today, refresh } = useBriefingLive();
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-  const [consentOpen, setConsentOpen] = useState(false);
+  // Why the location could not be shared. "blocked" adds a button to the phone's settings.
+  const [failure, setFailure] = useState<LocationFailure | null>(null);
   // The one popover that is open: a reading's key, or 'aqi' for the air quality guide. Opening another closes it.
   const [openTile, setOpenTile] = useState<string | null>(null);
   const toggleTile = (key: string) => setOpenTile((current) => (current === key ? null : key));
   const closeTiles = () => setOpenTile(null);
   // Morning guidance by day, night guidance in the evening and night.
-  const locationConsent = useActiveConsent('location');
-  const grantConsent = useGrantConsentType();
   // The place name is read from the phone once the location is shared.
   const place_ = useCurrentPlace(today.isSuccess && !today.data?.needsLocation);
 
-  // Location is stored only after the user agrees to the location consent (DPDP).
-  function onShareLocation() {
-    setShareError(null);
-    if (locationConsent.granted) {
-      void saveLocation();
+  // Whether the device location is allowed. It is checked each time the screen comes into view, because the person may have changed it
+  // in the phone's settings. On a phone that will still show its own popup, opening the briefing asks again, once per visit.
+  const [permission, setPermission] = useState<LocationPermission | null>(null);
+  const askedThisVisit = useRef(false);
+  const autoSaved = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      askedThisVisit.current = false;
+      autoSaved.current = false;
+      let active = true;
+      void (async () => {
+        let current = await getLocationPermission();
+        // Each time the briefing is opened without the permission, the system's own popup is shown (the phone's native popup, or the
+        // browser's prompt), once per visit. Neither shows when the system has blocked it: the phone's settings are the way then.
+        if (active && current.status !== 'granted' && current.status !== 'unknown' && current.canAskAgain && !askedThisVisit.current) {
+          askedThisVisit.current = true;
+          current = await askLocationPermission();
+        }
+        if (active) setPermission(current);
+      })();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+  // The warning's button: the phone's popup again if it will show one, the phone's settings if not, the browser's prompt on the web.
+  async function allowLocation() {
+    if (Platform.OS !== 'web' && permission?.status === 'denied' && !permission.canAskAgain) {
+      void Linking.openSettings();
       return;
     }
-    setConsentOpen(true);
+    // The phone's popup, or the browser's prompt.
+    const after = await askLocationPermission();
+    setPermission(after);
+    if (after.status !== 'granted') return;
+    // Allowed on the device: the area is saved.
+    await saveLocation();
   }
 
-  async function agreeAndShare() {
-    setConsentOpen(false);
-    try {
-      await grantConsent.mutateAsync('location');
-    } catch {
-      setShareError('Could not record your consent. Try again.');
-      return;
-    }
-    await saveLocation();
+  // The device's own permission (the phone's popup or the browser's prompt) is the permission to use the location.
+  function onShareLocation() {
+    setShareError(null);
+    setFailure(null);
+    void saveLocation();
   }
 
   async function saveLocation() {
     setSharing(true);
     try {
       const shared = await shareLocationForBriefing();
-      if (!shared) {
-        setShareError('Location is off. Allow it to get your daily briefing.');
+      if (!shared.ok) {
+        setFailure(shared.reason);
+        setShareError(LOCATION_FAILURE_TEXT[shared.reason]);
         return;
       }
       refresh();
@@ -82,8 +105,19 @@ export function BriefingPage() {
       setShareError('Could not save your location. Try again.');
     } finally {
       setSharing(false);
+      // Whatever the person answered, the warning now follows it.
+      setPermission(await getLocationPermission());
     }
   }
+
+  // Location is already allowed on the device but no area is saved yet: save it now, with no button press, and the briefing loads.
+  // Tried once per visit, so a failure does not repeat in a loop (the button stays for a retry).
+  useEffect(() => {
+    if (permission?.status !== 'granted' || !today.data?.needsLocation || sharing || autoSaved.current) return;
+    autoSaved.current = true;
+    void saveLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission?.status, today.data?.needsLocation, sharing]);
 
   const morning = today.data?.morning ?? null;
   const night = today.data?.night ?? null;
@@ -143,29 +177,67 @@ export function BriefingPage() {
           <AreaBanner name={place_.data?.name ?? 'Your area'} coords={formatCoords(today.data.location.lat, today.data.location.lng)} colors={colors} />
         ) : null}
 
-        <ConfirmDialog
-          visible={consentOpen}
-          title="Use your location?"
-          message="Reovita uses your location to make your daily air quality, UV and heat briefing. We store it rounded to about 1 km, and you can withdraw this consent at any time in your profile."
-          confirmLabel="Agree and share"
-          destructive={false}
-          busy={grantConsent.isPending}
-          onConfirm={() => void agreeAndShare()}
-          onCancel={() => setConsentOpen(false)}
-        />
+        {/* The warning is for a phone only. A browser shows its own prompt, and when it has blocked the site no message of ours can change that. */}
+        {Platform.OS !== 'web' && permission && (permission.status === 'denied' || (permission.status === 'undetermined' && today.data?.needsLocation)) ? (
+          <View style={styles.permissionBox} accessibilityLiveRegion="polite">
+            <Ionicons name="location-outline" size={22} color="#B26A00" />
+            <View style={styles.permissionText}>
+              <Text style={styles.permissionTitle}>Location access is off</Text>
+              <Text style={styles.permissionBody}>
+                {permission.status === 'denied' && !permission.canAskAgain
+                  ? 'Reovita cannot ask for your location again. Turn it on in your phone settings.'
+                  : today.data?.location
+                    ? 'You are seeing your last saved area. Allow location to update it to where you are.'
+                    : 'Allow location to get the air quality, UV and weather for where you are.'}
+              </Text>
+              <Pressable accessibilityRole="button" onPress={() => void allowLocation()} style={styles.permissionBtn}>
+                <Text style={styles.permissionBtnText}>{permission.status === 'denied' && !permission.canAskAgain ? 'Open settings' : 'Allow location'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
 
         {today.isPending ? (
           <View style={styles.centerBox}>
             <ActivityIndicator color={colors.accent} size="large" />
           </View>
         ) : today.data?.needsLocation ? (
-          <View style={styles.card}>
-            <Ionicons name="location-outline" size={28} color={colors.accent} />
-            <Text style={styles.body}>Share your location to get the briefing for where you are.</Text>
+          <View style={styles.locationCard}>
+            <View style={styles.locationTop}>
+              <View style={styles.locationIcon}>
+                <Ionicons name="location" size={22} color={colors.accent} />
+              </View>
+            </View>
+            <Text style={styles.locationTitle}>Personalize your forecast</Text>
+            <Text style={styles.locationBody}>
+              Share your location to get real-time air quality, UV and weather conditions tailored to where you are.
+            </Text>
             <Pressable accessibilityRole="button" onPress={onShareLocation} disabled={sharing} style={styles.primaryBtn}>
-              {sharing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>Share my location</Text>}
+              {sharing ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <View style={styles.primaryInner}>
+                  <Ionicons name="navigate" size={16} color="#FFFFFF" />
+                  <Text style={styles.primaryText}>Share my location</Text>
+                </View>
+              )}
             </Pressable>
-            {shareError ? <Text style={styles.error}>{shareError}</Text> : null}
+            {shareError ? (
+              <View style={styles.errorBox} accessibilityLiveRegion="polite">
+                <Ionicons name="alert-circle" size={18} color="#C22F43" />
+                <Text style={styles.errorBoxText}>{shareError}</Text>
+              </View>
+            ) : null}
+            {failure === 'blocked' ? (
+              <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.settingsBtn}>
+                <Text style={styles.settingsText}>Open settings</Text>
+              </Pressable>
+            ) : null}
+            <View style={styles.privacyRow}>
+              <Ionicons name="shield-checkmark-outline" size={14} color={colors.muted} />
+              <Text style={styles.privacyText}>Your location is stored rounded to about 1 km, and used only for local weather and air readings.</Text>
+            </View>
           </View>
         ) : today.isError ? (
           <View style={styles.card}>
@@ -323,6 +395,29 @@ function makeStyles(c: BriefingColors) {
       paddingHorizontal: 16,
       gap: 13,
     },
+    locationCard: {
+      backgroundColor: c.card,
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: 20,
+      gap: 14,
+      marginTop: 18,
+      shadowColor: '#173620',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      elevation: 2,
+    },
+    locationTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    locationIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' },
+    hyperTag: { paddingHorizontal: 10, height: 24, borderRadius: 999, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' },
+    hyperTagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: c.accent },
+    locationTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: c.text },
+    locationBody: { fontSize: 13.5, lineHeight: 20, color: c.muted },
+    primaryInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    privacyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 2 },
+    privacyText: { flex: 1, fontSize: 11.5, lineHeight: 16, color: c.muted },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -511,8 +606,8 @@ function makeStyles(c: BriefingColors) {
       color: c.careCard.body,
     },
     primaryBtn: {
-      height: 46,
-      borderRadius: 16,
+      height: 52,
+      borderRadius: 18,
       backgroundColor: c.accent,
       alignItems: 'center',
       justifyContent: 'center',
@@ -522,6 +617,16 @@ function makeStyles(c: BriefingColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
+    permissionBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18, backgroundColor: '#FFF4DD', borderWidth: 1, borderColor: '#F3D9A4' },
+    permissionText: { flex: 1, gap: 6 },
+    permissionTitle: { fontSize: 14.5, fontWeight: '800', color: '#7A4A00' },
+    permissionBody: { fontSize: 13, lineHeight: 18, color: '#7A4A00' },
+    permissionBtn: { alignSelf: 'flex-start', height: 38, paddingHorizontal: 16, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: '#B26A00' },
+    permissionBtnText: { fontSize: 13.5, fontWeight: '700', color: '#FFFFFF' },
+    errorBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, alignSelf: 'stretch', padding: 12, borderRadius: 14, backgroundColor: '#FDEEF0', borderWidth: 1, borderColor: '#F9CBD2' },
+    errorBoxText: { flex: 1, fontSize: 13, lineHeight: 18, color: '#C22F43' },
+    settingsBtn: { alignSelf: 'stretch', height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.accent },
+    settingsText: { fontSize: 14, fontWeight: '700', color: c.accent },
     error: {
       fontSize: 13,
       color: c.tone.severe,
