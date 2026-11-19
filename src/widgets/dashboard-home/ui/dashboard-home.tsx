@@ -22,32 +22,32 @@ import { ThemeToggle, useResolvedScheme } from '@shared/ui/theme';
 
 // Colours for the two themes, taken from the dashboard designs.
 const DARK = {
-  bg: '#0A0F1F',
-  card: '#121A36',
-  border: '#25305A',
+  bg: '#0B0A12',
+  card: '#16142A',
+  border: '#2B2846',
   text: '#FFFFFF',
-  muted: '#A3AFD0',
-  iconBg: '#1B2748',
-  purple: '#8AA9FF',
-  lime: '#FF8CC0',
+  muted: '#A9A3C8',
+  iconBg: '#22203A',
+  purple: '#1F6F3F',
+  lime: '#D4FF3F',
   red: '#E34255',
   redSoft: '#2E1624',
   redBorder: '#5A2440',
-  track: '#25305A',
+  track: '#2B2846',
 };
 const LIGHT = {
-  bg: '#F5F8FF',
+  bg: '#F7F6FD',
   card: '#FFFFFF',
-  border: '#E2E8F7',
-  text: '#0B1B3F',
-  muted: '#5F6B85',
-  iconBg: '#E8EEFC',
-  purple: '#2447B5',
-  lime: '#E8559A',
+  border: '#ECEAF5',
+  text: '#14121C',
+  muted: '#6E6A82',
+  iconBg: '#E6F2EA',
+  purple: '#1F6F3F',
+  lime: '#B8F000',
   red: '#E34255',
   redSoft: '#FDEEF0',
   redBorder: '#F9CBD2',
-  track: '#E6ECF9',
+  track: '#EEECF6',
 };
 type Palette = typeof DARK;
 

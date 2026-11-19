@@ -111,7 +111,7 @@ export const Type = {
 } as const;
 
 export const Brand = {
-  primary: '#2447B5',
+  primary: '#1F6F3F',
   accent: '#D4FF3F',
   ink: '#171717',
   muted: '#60646C',
