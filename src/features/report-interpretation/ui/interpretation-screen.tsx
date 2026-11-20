@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReportDraft, useReportInterpretation, useReportStatus } from '@entities/report';
+import { useRefreshNotificationsWhen } from '@entities/notification';
 import { isApiError } from '@shared/api';
 import { DISCLAIMER_V1 } from '@shared/config/constants';
 import { Chip } from '@shared/ui/chip';
@@ -76,6 +77,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
 
   // The values of this report, so a result outside its range can say which test it is and how far out it is.
   const draft = useReportDraft(reportId, { enabled: confirmed });
+  useRefreshNotificationsWhen(interpretation.isSuccess || draft.isSuccess);
   const observations = draft.data ?? [];
   // The result whose info box is open.
   const [infoOpen, setInfoOpen] = useState<string | null>(null);

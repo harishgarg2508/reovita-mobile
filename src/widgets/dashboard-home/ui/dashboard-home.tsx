@@ -11,6 +11,7 @@ import { isDocumentReport, reportTypeLabel, useReportList } from '@entities/repo
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileBmiCard } from '@features/profile-details';
+import { SOCIAL_HOME } from '@features/social';
 import { SCORE_ZONES } from '@entities/score';
 import { ScoreGauge } from './score-gauge';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
@@ -336,6 +337,19 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
             <View style={styles.flex}>
               <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
               <Text style={[styles.cardText, { color: p.muted }]}>Air quality, UV and heat for today.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => router.push(SOCIAL_HOME)}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="people-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Social</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Share your progress and cheer others on.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>

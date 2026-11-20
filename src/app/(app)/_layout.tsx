@@ -84,6 +84,8 @@ export default function AppLayout() {
       <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />
       <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
       <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
+      {/* The social draws its own headers per screen (see social/_layout). */}
+      <Drawer.Screen name="social" options={{ drawerLabel: 'Social', headerShown: false }} />
 
       {/* Reports draw their own headers per screen (see reports/_layout). */}
       <Drawer.Screen name="reports" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />

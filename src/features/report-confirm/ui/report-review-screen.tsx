@@ -27,6 +27,7 @@ import {
   useReportState,
   useReportStatus,
 } from '@entities/report';
+import { useRefreshNotificationsWhen } from '@entities/notification';
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
 import { isApiError, queryKeys } from '@shared/api';
 import { ReportProcessingPanel } from '@shared/ui/processing-panel';
@@ -121,6 +122,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   const [showFinalReport, setShowFinalReport] = useState(false);
   // The interpretation is requested once the server reports DONE (see WatchInterpretation).
   const interpretationQuery = useReportInterpretation(reportId, { enabled: showFinalReport });
+  useRefreshNotificationsWhen(draft.isSuccess || interpretationQuery.isSuccess);
   const interpretation = interpretationQuery.data?.output_json;
   // After the observations load, ask whether an interpretation already exists. If it does, the button below
   // becomes View analysis; if the request finds nothing, the Confirm button stays.

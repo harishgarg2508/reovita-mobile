@@ -249,7 +249,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             ) : editing ? null : (
             <View style={styles.nextGroupItem}>
               <Button
-                label={step >= 3 ? 'Complete setup' : step === 1 ? 'Continue →' : 'Next →'}
+                label={step >= 3 ? 'Submit' : step === 1 ? 'Continue →' : 'Next →'}
                 disabled={save.isPending}
                 onPress={onSave}
               />

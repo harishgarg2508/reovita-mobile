@@ -88,20 +88,25 @@ function getTabCenterX(index: number, dockWidth: number): number {
   return paddingLeft + tabWidth * 2 + centerGap + tabWidth * 1.5;
 }
 
+// One item of a dock.
+export interface DockItem {
+  key: string;
+  label: string;
+  accessibilityLabel?: string;
+  renderIcon: (color: string, focused: boolean) => React.ReactNode;
+  focused: boolean;
+  onPress: () => void;
+  // A number shown in a small red heart badge above the icon (new kudos, for example). Nothing when it is 0 or missing.
+  badge?: number;
+  // A plain action and not a tab: drawn in the quiet purple of the QR item, with no lift and no focus colour.
+  plain?: boolean;
+}
+
 /**
  * Animated individual tab item with subtle lift & spring scale pop on select.
  */
-function AnimatedTabItem({
-  route,
-  isFocused,
-  meta,
-  onPress,
-}: {
-  route: TabRoute;
-  isFocused: boolean;
-  meta: TabMeta;
-  onPress: () => void;
-}) {
+function AnimatedTabItem({ item }: { item: DockItem }) {
+  const isFocused = item.focused;
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [liftAnim] = useState(() => new Animated.Value(isFocused ? -2.5 : 0));
 
@@ -150,13 +155,21 @@ function AnimatedTabItem({
   const dark = scheme === 'dark';
   const color = isFocused ? (dark ? '#6FD08C' : '#1F6F3F') : dark ? '#9A96B0' : '#8E8B99';
 
+  if (item.plain) {
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel={item.accessibilityLabel ?? item.label} onPress={item.onPress} style={styles.uploadItem}>
+        {item.renderIcon('#9185AA', false)}
+        <Text style={styles.uploadLabel}>{item.label}</Text>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
-      key={route.key}
       accessibilityRole="button"
       accessibilityState={{ selected: isFocused }}
-      accessibilityLabel={meta.label}
-      onPress={onPress}
+      accessibilityLabel={item.accessibilityLabel ?? item.label}
+      onPress={item.onPress}
       style={styles.tabBtn}>
       <Animated.View
         style={[
@@ -165,7 +178,13 @@ function AnimatedTabItem({
             transform: [{ translateY: liftAnim }, { scale: scaleAnim }],
           },
         ]}>
-        {meta.renderIcon(color, isFocused)}
+        {item.renderIcon(color, isFocused)}
+        {item.badge && item.badge > 0 ? (
+          <View accessibilityLabel={`${item.badge} new`} style={styles.badge}>
+            <Ionicons name="heart" size={10} color="#FFFFFF" />
+            <Text style={styles.badgeText}>{item.badge > 9 ? '9+' : item.badge}</Text>
+          </View>
+        ) : null}
       </Animated.View>
       <Text
         style={[
@@ -173,7 +192,7 @@ function AnimatedTabItem({
           { color },
           isFocused ? styles.tabLabelActive : null,
         ]}>
-        {meta.label}
+        {item.label}
       </Text>
       <View style={styles.indicatorSpacer} />
     </Pressable>
@@ -181,39 +200,40 @@ function AnimatedTabItem({
 }
 
 /**
- * Reovita Floating Bottom Dock Navigation Bar.
- * Exact recreation of the Figma design with smooth shifting animations:
- * - Fluid sliding & stretching active underline indicator that shifts horizontally across tabs
+ * Reovita Floating Bottom Dock, drawn from a list of items. The main tab bar and the social dock both use it, so they share one look and
+ * one set of animations:
+ * - Fluid sliding & stretching active underline indicator that shifts horizontally across the four slots
  * - Active tab icon spring lift and bounce
- * - Center FAB: royal purple circle with white Reovita dual-leaf sprout emblem and spring press response
- * - Tabs: Home, Insights, [Center Sprout FAB], Records, Profile
+ * - Center FAB: green circle with a white icon and spring press response, on the crest that swells above the dock
+ * - Two items on each side of the centre button. `activeIndex` is the slot of the active item (0 and 1 left, 2 and 3 right), or -1 for none.
  */
-export function BottomDock({
-  state,
-  descriptors,
-  emitter,
-  navigateToTab,
-  insets,
-}: BottomTabBarProps) {
+export function AnimatedDock({
+  left,
+  right,
+  activeIndex,
+  centerLabel,
+  centerIcon,
+  onCenterPress,
+  bottomInset = 0,
+}: {
+  left: DockItem[];
+  right: DockItem[];
+  activeIndex: number;
+  centerLabel: string;
+  centerIcon: React.ReactNode;
+  onCenterPress: () => void;
+  bottomInset?: number;
+}) {
   const dockScheme = useResolvedScheme();
   const dockDark = dockScheme === 'dark';
-  const router = useRouter();
-  // Lift the dock above the phone's bottom bar or gesture area. Take the larger of the navigator's inset and the live one.
+  // Lift the dock above the phone's bottom bar or gesture area. Take the larger of the given inset and the live one.
   const liveInsets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom, liveInsets.bottom);
+  const bottom = Math.max(bottomInset, liveInsets.bottom);
   const [dockWidth, setDockWidth] = useState(INITIAL_DOCK_WIDTH);
-
-  // Determine active logical tab index (0: Home, 1: Insights, 2: Records, 3: Profile)
-  const activeRouteName = state.routes[state.index]?.name ?? 'dashboard';
-  const activeLogicalIndex = TAB_INDEX_MAP[activeRouteName] ?? 0;
+  const slot = Math.max(activeIndex, 0);
 
   // Sliding active indicator values held in state per React 19 guidelines
-  const [indicatorX] = useState(
-    () =>
-      new Animated.Value(
-        getTabCenterX(activeLogicalIndex, INITIAL_DOCK_WIDTH) - INDICATOR_WIDTH / 2
-      )
-  );
+  const [indicatorX] = useState(() => new Animated.Value(getTabCenterX(slot, INITIAL_DOCK_WIDTH) - INDICATOR_WIDTH / 2));
   const [indicatorScaleX] = useState(() => new Animated.Value(1));
   const isInitialMountRef = useRef(true);
 
@@ -222,7 +242,7 @@ export function BottomDock({
 
   // Fluid sliding animation whenever active tab or dock width changes
   useEffect(() => {
-    const targetX = getTabCenterX(activeLogicalIndex, dockWidth) - INDICATOR_WIDTH / 2;
+    const targetX = getTabCenterX(slot, dockWidth) - INDICATOR_WIDTH / 2;
 
     if (!isInitialMountRef.current) {
       Animated.parallel([
@@ -250,7 +270,7 @@ export function BottomDock({
       isInitialMountRef.current = false;
       indicatorX.setValue(targetX);
     }
-  }, [activeLogicalIndex, dockWidth, indicatorX, indicatorScaleX]);
+  }, [slot, dockWidth, indicatorX, indicatorScaleX]);
 
   const handleFabPressIn = () => {
     Animated.spring(fabScale, {
@@ -270,58 +290,13 @@ export function BottomDock({
     }).start();
   };
 
-  // The centre button uploads a report. The QR scan sits in the Upload slot to its left.
-  const handleFabPress = () => {
-    tapConfirm();
-    router.push('/(app)/reports/upload');
-  };
-
-  // Find routes by name to ensure stable placement regardless of route order
-  const homeRoute = state.routes.find((r: TabRoute) => r.name === 'dashboard');
-  const recordsRoute = state.routes.find((r: TabRoute) => r.name === 'records');
-  const profileRoute = state.routes.find((r: TabRoute) => r.name === 'settings');
-
-  const leftRoutes = [homeRoute].filter((r): r is TabRoute => Boolean(r));
-  const rightRoutes = [recordsRoute, profileRoute].filter((r): r is TabRoute => Boolean(r));
-
-  const renderTab = (route: TabRoute) => {
-    const isFocused = state.routes[state.index]?.key === route.key;
-    const meta = TAB_META[route.name] ?? {
-      label: route.name,
-      renderIcon: (color: string) => <Ionicons name="ellipse" size={18} color={color} />,
-    };
-
-    const onPress = () => {
-      const event = emitter.emit({
-        type: 'tabPress',
-        target: route.key,
-        canPreventDefault: true,
-      });
-
-      if (!isFocused && !event.defaultPrevented) {
-        tapSelection();
-        navigateToTab(route.key);
-      }
-    };
-
-    return (
-      <AnimatedTabItem
-        key={route.key}
-        route={route}
-        isFocused={isFocused}
-        meta={meta}
-        onPress={onPress}
-      />
-    );
-  };
-
   return (
     <View
       pointerEvents="box-none"
       style={[
         styles.dockWrap,
         {
-          bottom: Math.max(bottomInset, 12) + 4,
+          bottom: Math.max(bottom, 12) + 4,
         },
       ]}>
       {/* Floating White Dock Surface */}
@@ -343,6 +318,7 @@ export function BottomDock({
           style={[
             styles.slidingIndicator,
             {
+              opacity: activeIndex < 0 ? 0 : 1,
               transform: [
                 { translateX: indicatorX },
                 { scaleX: indicatorScaleX },
@@ -351,32 +327,25 @@ export function BottomDock({
           ]}
         />
 
-        {/* Left: Home, QR (QR scan pushes the scan screen, it is not a tab) */}
+        {/* Left side */}
         <View style={styles.halfTabs}>
-          {leftRoutes.map((route: TabRoute) => renderTab(route))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Scan a QR code"
-            onPress={() => {
-              tapConfirm();
-              router.push('/(app)/scan');
-            }}
-            style={styles.uploadItem}>
-            <Ionicons name="qr-code-outline" size={21} color="#9185AA" />
-            <Text style={styles.uploadLabel}>QR</Text>
-          </Pressable>
+          {left.map((item) => (
+            <AnimatedTabItem key={item.key} item={item} />
+          ))}
         </View>
 
         {/* Center spacing for the floating action button */}
         <View style={styles.centerSpace} />
 
-        {/* Right Tabs: Records, Profile */}
+        {/* Right side */}
         <View style={styles.halfTabs}>
-          {rightRoutes.map((route: TabRoute) => renderTab(route))}
+          {right.map((item) => (
+            <AnimatedTabItem key={item.key} item={item} />
+          ))}
         </View>
       </View>
 
-      {/* Center Floating Action Button with White Dual-Leaf Sprout */}
+      {/* Center Floating Action Button */}
       <Animated.View
         style={[
           styles.fabWrap,
@@ -386,15 +355,84 @@ export function BottomDock({
         ]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Upload a report"
+          accessibilityLabel={centerLabel}
           onPressIn={handleFabPressIn}
           onPressOut={handleFabPressOut}
-          onPress={handleFabPress}
+          onPress={onCenterPress}
           style={styles.fabBtn}>
-          <Ionicons name="cloud-upload-outline" size={30} color="#FFFFFF" />
+          {centerIcon}
         </Pressable>
       </Animated.View>
     </View>
+  );
+}
+
+/**
+ * The main tab bar: Home, QR, [centre upload button], Records, Profile.
+ */
+export function BottomDock({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
+  const router = useRouter();
+  // Determine active logical tab index (0: Home, 1: QR slot, 2: Records, 3: Profile)
+  const activeRouteName = state.routes[state.index]?.name ?? 'dashboard';
+  const activeLogicalIndex = TAB_INDEX_MAP[activeRouteName] ?? 0;
+
+  // Find routes by name to ensure stable placement regardless of route order
+  const entryFor = (name: string): DockItem | null => {
+    const route = state.routes.find((r: TabRoute) => r.name === name);
+    if (!route) return null;
+    const isFocused = state.routes[state.index]?.key === route.key;
+    const meta = TAB_META[route.name] ?? {
+      label: route.name,
+      renderIcon: (color: string) => <Ionicons name="ellipse" size={18} color={color} />,
+    };
+    return {
+      key: route.key,
+      label: meta.label,
+      renderIcon: meta.renderIcon,
+      focused: isFocused,
+      onPress: () => {
+        const event = emitter.emit({
+          type: 'tabPress',
+          target: route.key,
+          canPreventDefault: true,
+        });
+
+        if (!isFocused && !event.defaultPrevented) {
+          tapSelection();
+          navigateToTab(route.key);
+        }
+      },
+    };
+  };
+
+  // The QR scan pushes the scan screen: it is not a tab.
+  const qr: DockItem = {
+    key: 'qr',
+    label: 'QR',
+    accessibilityLabel: 'Scan a QR code',
+    renderIcon: () => <Ionicons name="qr-code-outline" size={21} color="#9185AA" />,
+    focused: false,
+    plain: true,
+    onPress: () => {
+      tapConfirm();
+      router.push('/(app)/scan');
+    },
+  };
+
+  return (
+    <AnimatedDock
+      left={[entryFor('dashboard'), qr].filter((i): i is DockItem => Boolean(i))}
+      right={[entryFor('records'), entryFor('settings')].filter((i): i is DockItem => Boolean(i))}
+      activeIndex={activeLogicalIndex}
+      centerLabel="Upload a report"
+      centerIcon={<Ionicons name="cloud-upload-outline" size={30} color="#FFFFFF" />}
+      // The centre button uploads a report.
+      onCenterPress={() => {
+        tapConfirm();
+        router.push('/(app)/reports/upload');
+      }}
+      bottomInset={insets.bottom}
+    />
   );
 }
 
@@ -453,6 +491,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F6F3F',
     zIndex: 5,
   },
+  // The red badge above an icon, like a new-likes badge: a small heart and the number.
+  badge: { position: 'absolute', top: -20, left: -4, minWidth: 34, height: 22, borderRadius: 8, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: '#FF3040' },
+  badgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   uploadItem: { alignItems: 'center', justifyContent: 'center', gap: 3, flex: 1, height: '100%' },
   uploadLabel: { fontSize: 11, color: '#9185AA', fontWeight: '500' },
   halfTabs: {

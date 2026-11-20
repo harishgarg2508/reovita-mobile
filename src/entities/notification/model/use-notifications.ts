@@ -13,6 +13,17 @@ import {
   type NotificationItem,
 } from './notification.api';
 
+// Loads the notification list and unread count again once, when `ready` turns true. Opening a report marks the notifications about it
+// as read on the server, so a screen that has just shown a report calls this to bring the list and the unread count up to date.
+export function useRefreshNotificationsWhen(ready: boolean): void {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!ready) return;
+    void queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.list });
+    void queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.unread });
+  }, [ready, queryClient]);
+}
+
 export const NOTIFICATION_KEYS = {
   list: ['notifications', 'list'] as const,
   unread: ['notifications', 'unread'] as const,

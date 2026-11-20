@@ -20,8 +20,8 @@ export function useBriefingLive() {
     void queryClient.invalidateQueries({ queryKey: ['briefings'] });
   }, [queryClient]);
 
-  useEventStream(`${API_URL}/v1/briefings/stream`, 'briefing', refresh);
-  useEventStream(`${API_URL}/v1/briefings/stream`, 'briefing_status', refresh);
+  // One connection for both events.
+  useEventStream(`${API_URL}/v1/briefings/stream`, ['briefing', 'briefing_status'], refresh);
 
   return { today, refresh };
 }

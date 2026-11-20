@@ -13,10 +13,13 @@ export function BottomSheet({
   visible,
   onClose,
   children,
+  dragHandleOnly = false,
 }: {
   visible: boolean;
   onClose: () => void;
   children: ReactNode;
+  // true: only the handle at the top drags the sheet closed, so a scrolling list inside it can be scrolled freely.
+  dragHandleOnly?: boolean;
 }) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -52,8 +55,10 @@ export function BottomSheet({
       }}>
       <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
-          <View style={styles.handle} />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]} {...(dragHandleOnly ? {} : panResponder.panHandlers)}>
+          <View style={styles.handleArea} {...(dragHandleOnly ? panResponder.panHandlers : {})}>
+            <View style={styles.handle} />
+          </View>
           {children}
         </Animated.View>
       </View>
@@ -76,6 +81,11 @@ const createStyles = (colors: FormColors) =>
     paddingTop: 12,
     paddingBottom: 32,
     gap: 16,
+  },
+  handleArea: {
+    alignSelf: 'stretch',
+    paddingVertical: 6,
+    alignItems: 'center',
   },
   handle: {
     alignSelf: 'center',

@@ -69,11 +69,11 @@ export function useIncomingAccess() {
     [queryClient],
   );
 
-  useEventStream<Partial<IncomingRequest> & { request_id?: string }>(`${API_URL}/v1/access-requests/stream`, 'request', addIncoming);
-  // The server says "ready" each time the stream connects, including after a drop. A request made while the stream was down was never
-  // pushed, so the pending list is loaded again then, and nothing is missed.
-  useEventStream(`${API_URL}/v1/access-requests/stream`, 'ready', () => {
-    void queryClient.invalidateQueries({ queryKey: KEY });
+  // One connection carries both events. "request" is a new request. The server says "ready" each time the stream connects, including after a
+  // drop: a request made while the stream was down was never pushed, so the pending list is loaded again then, and nothing is missed.
+  useEventStream<Partial<IncomingRequest> & { request_id?: string }>(`${API_URL}/v1/access-requests/stream`, ['request', 'ready'], (data, name) => {
+    if (name === 'ready') void queryClient.invalidateQueries({ queryKey: KEY });
+    else addIncoming(data);
   });
 
   const decide = useMutation({

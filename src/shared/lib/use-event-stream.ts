@@ -20,7 +20,7 @@ interface WebStreamState {
   stop: (() => void) | null;
 }
 
-// Reads a text/event-stream response and calls onMessage for each event named eventName. Resolves when the server closes the stream,
+// Reads a text/event-stream response and calls onMessage for each event whose name is in eventNames. Resolves when the server closes the stream,
 // the screen has closed it, or the request fails: the caller then tries again later. It never rejects. It uses XMLHttpRequest, so the
 // Bearer token goes in the Authorization header (EventSource cannot set headers), the session cookie is sent too, and a network failure
 // (the server restarting, a dropped connection, a blocked request) arrives as an ordinary event instead of a rejected fetch, which the
@@ -28,8 +28,8 @@ interface WebStreamState {
 function readWebStream(
   url: string,
   token: string | null,
-  eventName: string,
-  onMessage: (data: string) => void,
+  eventNames: string[],
+  onMessage: (name: string, data: string) => void,
   state: WebStreamState,
 ): Promise<void> {
   return new Promise((resolve) => {
@@ -58,9 +58,9 @@ function readWebStream(
           if (line.startsWith('event:')) name = line.slice(6).trim();
           else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
         }
-        if (name === eventName && data.length > 0) {
+        if (eventNames.includes(name) && data.length > 0) {
           try {
-            onMessage(data.join('\n'));
+            onMessage(name, data.join('\n'));
           } catch {
             // A message the handler could not use must not end the stream.
           }
@@ -95,7 +95,13 @@ function readWebStream(
 // named `eventName`. Pass a null url to keep it closed. The stream closes on unmount or when the url changes.
 // When the stream fails (for example the access token has expired and the server answers 401), it refreshes the session
 // and tries again, waiting longer after each failure (3 s, 6 s, ... up to 60 s) so a rejected stream does not flood the server.
-export function useEventStream<T>(url: string | null, eventName: string, onEvent: (data: T) => void): void {
+//
+// One stream is one open connection, and a browser allows only a handful of connections to one server at a time (six over HTTP/1.1), so a
+// stream that carries several events takes ONE connection: pass the names as a list and read the name from the second argument of onEvent.
+// Opening one connection per event name would use up the connections and leave ordinary requests waiting as "pending".
+export function useEventStream<T>(url: string | null, eventName: string | string[], onEvent: (data: T, eventName: string) => void): void {
+  const names = Array.isArray(eventName) ? eventName : [eventName];
+  const namesKey = names.join(',');
   const handler = useRef(onEvent);
   useEffect(() => {
     handler.current = onEvent;
@@ -109,9 +115,10 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
     const web: WebStreamState = { closed: false, stop: null };
     let nativeSource: NativeStreamLike | null = null;
 
-    const onMessage = (data: string) => {
+    const eventNames = namesKey.split(',');
+    const onMessage = (name: string, data: string) => {
       delay = BACKOFF_START_MS;
-      handler.current(JSON.parse(data) as T);
+      handler.current(JSON.parse(data) as T, name);
     };
 
     const retryLater = () => {
@@ -138,7 +145,7 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
 
       if (Platform.OS === 'web') {
         // A stream that ends because the screen was closed is not an error and does not retry (retryLater checks closed).
-        readWebStream(url, token, eventName, onMessage, web)
+        readWebStream(url, token, eventNames, onMessage, web)
           .then(retryLater, retryLater)
           .catch(() => undefined);
         return;
@@ -148,9 +155,11 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         withCredentials: true,
       }) as unknown as NativeStreamLike;
-      nativeSource.addEventListener(eventName, (event) => {
-        if (event.data) onMessage(event.data);
-      });
+      for (const name of eventNames) {
+        nativeSource.addEventListener(name, (event) => {
+          if (event.data) onMessage(name, event.data);
+        });
+      }
       nativeSource.addEventListener('error', () => {
         nativeSource?.close();
         nativeSource = null;
@@ -171,5 +180,5 @@ export function useEventStream<T>(url: string | null, eventName: string, onEvent
         // already closed
       }
     };
-  }, [url, eventName]);
+  }, [url, namesKey]);
 }
