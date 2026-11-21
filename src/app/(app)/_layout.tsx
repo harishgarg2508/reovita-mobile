@@ -97,6 +97,7 @@ export default function AppLayout() {
       {/* Food: each screen draws its own header with a back button, and none is a menu item (the dashboard has the cards). */}
       <Drawer.Screen name="meal-scan" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="fridge-scan" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      <Drawer.Screen name="meal-history" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="fridge-history" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="food-scan/[id]" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="dietary-guidance" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />

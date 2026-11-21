@@ -219,8 +219,8 @@ export function ScanScreen({ kind }: { kind: FoodScanKind }) {
 
         <View style={styles.sectionRow}>
           <Text style={[styles.section, { color: p.text, marginTop: 0 }]}>Recent scans</Text>
-          {kind === 'fridge' && (history.data?.length ?? 0) > 0 ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="See all fridge scans" hitSlop={8} onPress={() => router.push('/(app)/fridge-history' as Href)}>
+          {(history.data?.length ?? 0) > 0 ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={kind === 'fridge' ? 'See all fridge scans' : 'See all meal scans'} hitSlop={8} onPress={() => router.push((kind === 'fridge' ? '/(app)/fridge-history' : '/(app)/meal-history') as Href)}>
               <Text style={[styles.seeAll, { color: p.accent }]}>See all</Text>
             </Pressable>
           ) : null}

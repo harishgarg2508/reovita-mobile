@@ -95,7 +95,15 @@ export function ScanHistoryScreen({ kind }: { kind: FoodScanKind }) {
 
         {groups.map((group) => (
           <View key={group.label} style={styles.group}>
-            <Text style={[styles.groupLabel, { color: p.muted }]}>{group.label}</Text>
+            <View style={styles.groupHead}>
+              <Text style={[styles.groupLabel, { color: p.muted }]}>{group.label}</Text>
+              {kind === 'meal' ? (
+                <Text style={[styles.groupTotal, { color: p.text }]}>
+                  {group.items.reduce((sum, item) => sum + (item.result as MealScanResult).total.calories, 0)} kcal
+                  {group.items.length > 1 ? ` · ${group.items.length} meals` : ''}
+                </Text>
+              ) : null}
+            </View>
             {group.items.map((item) => (
               // The open area and the delete button are side by side: a button cannot hold a button on the web.
               <View key={item.id} style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
@@ -178,6 +186,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '800' },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   group: { gap: 8 },
+  groupHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  groupTotal: { fontSize: 12.5, fontWeight: '800' },
   groupLabel: { fontSize: 12.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, padding: 12 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
