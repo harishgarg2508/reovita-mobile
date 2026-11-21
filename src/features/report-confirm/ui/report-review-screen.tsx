@@ -1,9 +1,9 @@
-import { svgDataUri } from '@shared/lib';
+import { svgDataUri, useScrollToTopOnFocus } from '@shared/lib';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef, type ComponentRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ActivityIndicator,
@@ -94,6 +94,9 @@ function WatchInterpretation({ reportId, onDone }: { reportId: string; onDone: (
 }
 
 export function ReportReviewScreen({ reportId }: { reportId: string }) {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const colors = useFormColors();
   const loadingStyles = useMemo(() => createLoadingStyles(colors), [colors]);
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -319,7 +322,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
   if (!confirmed.data && !draft.data) {
     const failed = draft.isError;
     return (
-      <ScrollView
+      <ScrollView ref={scrollRef}
         contentContainerStyle={[
           loadingStyles.container,
           {

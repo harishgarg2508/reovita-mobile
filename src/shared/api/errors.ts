@@ -53,11 +53,22 @@ export const API_ERROR_CODES = [
   'photo_too_large',
   'unsupported_file',
   'cannot_friend_self',
+  'terms_required',
+  'terms_changed',
+  'terms_not_accepted',
+  'age_not_supported',
+  'basics_missing',
   'cannot_block_self',
   'own_post',
   'invalid_reason',
   'unauthorized',
   'unknown',
+  'chart_not_found',
+  'food_image_consent_required',
+  'no_food_found',
+  'scan_not_found',
+  'goal_not_suitable',
+  'photo_required',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

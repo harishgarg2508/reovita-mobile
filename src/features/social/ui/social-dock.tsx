@@ -30,7 +30,8 @@ export function SocialDock({ active }: { active?: SocialDockItem }) {
   const me = useMyHandle();
   // The unread counts for the Kudos badge. They are kept live by the social stream (see SocialStream), which the Social layout opens once.
   const unread = useSocialUnread(me.joined);
-  if (!me.joined) return null;
+  // No dock until the person has agreed to the terms (no account yet, or the terms changed and must be agreed to again).
+  if (!me.joined || me.needsJoin) return null;
   const handle = me.data?.handle ?? '';
 
   const go = (item: SocialDockItem) => {

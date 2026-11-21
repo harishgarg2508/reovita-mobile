@@ -4,9 +4,10 @@ import { useCallback, useRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useReceivedKudos, type SocialReceivedKudos } from '@entities/social';
+import { useMyHandle, useReceivedKudos, type SocialReceivedKudos, SocialAvatar } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
@@ -27,6 +28,8 @@ function timeAgo(iso: string): string {
 // time with infinite scroll; pull down to load it again. The loading spinner shows only in the list, never over the whole screen.
 export function KudosScreen() {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
@@ -74,7 +77,7 @@ export function KudosScreen() {
         <View style={styles.spacer} />
       </View>
 
-      {me.notJoined ? (
+      {me.needsJoin ? (
         <View style={styles.gutter}>
           <JoinPanel />
         </View>
@@ -83,6 +86,7 @@ export function KudosScreen() {
           <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
           <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
           <FlatList
+        ref={scrollRef}
             {...pullRefresh.listProps}
             {...pullRefresh.touch}
             data={items}
@@ -125,9 +129,7 @@ function KudosRow({ item, busy, onOpen, onFriend }: { item: SocialReceivedKudos;
   return (
     <View style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
-        <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: p.accent }]}>{item.handle.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        <SocialAvatar handle={item.handle} hasAvatar={item.has_avatar} size={42} />
         <View style={styles.text}>
           <Text style={[styles.line, { color: p.text }]}>
             <Text style={styles.strong}>{name}</Text> gave kudos
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   titleBox: { flex: 1, alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '800' },
   sub: { fontSize: 12 },
-  gutter: { paddingHorizontal: 16, paddingTop: 12 },
+  gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   list: { paddingHorizontal: 16, flexGrow: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 18, padding: 12 },
   who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },

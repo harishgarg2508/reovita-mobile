@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMeasurements, type Measurement, type MeasurementType } from '@entities/measurement';
 import { isApiError } from '@shared/api';
-import { tapConfirm, USE_NATIVE_DRIVER } from '@shared/lib';
+import { tapConfirm, USE_NATIVE_DRIVER, useScrollToTopOnFocus } from '@shared/lib';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { useCreateMeasurement } from '../model/use-create-measurement';
@@ -25,6 +25,9 @@ function inRange(value: string, range: { min: number; max: number }): boolean {
 
 // Blood pressure and weight entry (spec section 5). Readings go to the server, which checks ranges and consent.
 export function MeasurementEntryScreen() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -111,7 +114,7 @@ export function MeasurementEntryScreen() {
           transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
         },
       ]}>
-    <ScrollView
+    <ScrollView ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.header}>

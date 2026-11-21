@@ -1,9 +1,11 @@
+import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { usePalette } from '@shared/ui/theme';
 import { useMyHandle, useSocialNotifications, useSocialUnread, type SocialNotification } from '@entities/social';
@@ -24,6 +26,8 @@ function timeAgo(iso: string): string {
 // page at a time. Opening one marks it read and goes to the person (an accepted request) or to your own page (kudos on your post).
 export function ActivityScreen() {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
@@ -38,7 +42,11 @@ export function ActivityScreen() {
 
   function open(item: SocialNotification) {
     if (!item.read) markRead.mutate(item.id);
-    router.push(socialProfileHref(item.type === 'kudos' && me.data ? me.data.handle : item.handle));
+    if (item.type === 'pod_invite') {
+      router.push(socialRoute('/social/pods'));
+      return;
+    }
+    router.push(socialProfileHref((item.type === 'kudos' || item.type === 'comment' || item.type === 'reply') && me.data ? me.data.handle : item.handle));
   }
 
   return (
@@ -56,6 +64,7 @@ export function ActivityScreen() {
       <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
       <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
       <FlatList
+        ref={scrollRef}
         {...pullRefresh.listProps}
         {...pullRefresh.touch}
         data={items}
@@ -76,18 +85,26 @@ export function ActivityScreen() {
               onPress={() => open(item)}
               style={[styles.row, { backgroundColor: item.read ? p.card : p.accentSoft, borderColor: p.border }]}>
               <View style={[styles.badge, { backgroundColor: item.read ? p.accentSoft : p.card }]}>
-                <Ionicons name={item.type === 'kudos' ? 'heart' : 'person-add'} size={18} color={p.accent} />
+                <Ionicons name={item.type === 'kudos' ? 'heart' : item.type === 'comment' ? 'chatbubble' : item.type === 'reply' ? 'arrow-undo' : item.type === 'nudge' ? 'hand-left-outline' : item.type === 'pod_invite' ? 'people-circle-outline' : 'person-add'} size={18} color={p.accent} />
               </View>
               <View style={styles.text}>
                 <Text style={[styles.line, { color: p.text }]}>
                   <Text style={styles.strong}>{name}</Text>
                   {item.type === 'kudos'
                     ? ' gave kudos to your post'
+                    : item.type === 'comment'
+                      ? ' commented on your post'
+                      : item.type === 'reply'
+                        ? ' replied to your comment'
+                        : item.type === 'nudge'
+                          ? ' sent you a check-in nudge'
+                          : item.type === 'pod_invite'
+                            ? ' invited you to a pod'
                     : item.type === 'request_accepted'
                       ? ' accepted your friend request'
                       : ' sent you a friend request'}
                 </Text>
-                {item.type === 'kudos' && item.post_preview ? (
+                {(item.type === 'kudos' || item.type === 'comment' || item.type === 'reply') && item.post_preview ? (
                   <Text numberOfLines={1} style={[styles.preview, { color: p.muted }]}>{item.post_preview}</Text>
                 ) : null}
                 <Text style={[styles.when, { color: p.muted }]}>@{item.handle} · {timeAgo(item.created_at)}</Text>

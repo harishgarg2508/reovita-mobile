@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { goBackOr } from '@shared/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, type ComponentRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { DISCLAIMER_V1 } from '@shared/config/constants';
 import { Chip } from '@shared/ui/chip';
 import { Skeleton } from '@shared/ui/skeleton';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 const STATUS_COLOR: Record<string, string> = {
   Normal: '#3D5500',
@@ -45,6 +46,9 @@ function OutsideRangeInfo({ observation, status, styles }: { observation: { name
 
 // Interpretation of one report, read directly from GET /v1/health/reports/{id}/interpretation.
 export function InterpretationScreen({ reportId }: { reportId: string }) {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -96,7 +100,7 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
     : null;
 
   return (
-    <ScrollView
+    <ScrollView ref={scrollRef}
       contentContainerStyle={[
         styles.container,
         {

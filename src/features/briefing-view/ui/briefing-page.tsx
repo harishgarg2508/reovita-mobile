@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -15,6 +15,7 @@ import { AqiGauge } from './aqi-gauge';
 import { AreaBanner } from './area-banner';
 import { useBriefingColors, type BriefingColors } from './briefing-theme';
 import { MetricTile } from './metric-tile';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 // The six US AQI bands, for the "Learn more" list.
 const AQI_GUIDE: { range: string; label: string; color: string }[] = [
@@ -28,6 +29,9 @@ const AQI_GUIDE: { range: string; label: string; color: string }[] = [
 
 // The environmental briefing: where you are, the air quality dial, weather readings, and today's guidance.
 export function BriefingPage() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const colors = useBriefingColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -155,7 +159,7 @@ export function BriefingPage() {
         </Svg>
       </View>
 
-      <ScrollView
+      <ScrollView ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.container,

@@ -2,7 +2,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette } from '@shared/ui/theme';
-import { useSocialKudos, type SocialKudosPerson, type SocialPost } from '@entities/social';
+import { useSocialKudos, type SocialKudosPerson, type SocialPost, SocialAvatar } from '@entities/social';
 
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
 import { useFriendHandle } from '../model/use-social-actions';
@@ -45,9 +45,7 @@ export function KudosSheet({ post, onClose, onOpenProfile }: { post: SocialPost 
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Pressable accessibilityRole="button" onPress={() => open(item)} style={styles.who}>
-              <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-                <Text style={[styles.avatarText, { color: p.accent }]}>{item.handle.slice(0, 1).toUpperCase()}</Text>
-              </View>
+              <SocialAvatar handle={item.handle} hasAvatar={item.has_avatar} size={42} />
               <View style={styles.names}>
                 <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{item.display_name || `@${item.handle}`}</Text>
                 <Text numberOfLines={1} style={[styles.sub, { color: p.muted }]}>@{item.handle} · {timeAgo(item.given_at)}</Text>

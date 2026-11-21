@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useFriendRequests, useMyHandle, type SocialFriendRequest } from '@entities/social';
+import { useFriendRequests, useMyHandle, type SocialFriendRequest, SocialAvatar } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { useAnswerFriendRequest, useFriendHandle } from '../model/use-social-actions';
@@ -28,6 +29,8 @@ type Tab = 'incoming' | 'outgoing';
 // back. A page at a time with infinite scroll; pull down to load again. The spinner shows only in the list.
 export function RequestsScreen() {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
@@ -66,7 +69,7 @@ export function RequestsScreen() {
         <View style={styles.spacer} />
       </View>
 
-      {me.notJoined ? (
+      {me.needsJoin ? (
         <View style={styles.gutter}>
           <JoinPanel />
         </View>
@@ -88,6 +91,7 @@ export function RequestsScreen() {
           <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
           <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
           <FlatList
+        ref={scrollRef}
             {...pullRefresh.listProps}
             {...pullRefresh.touch}
             data={items}
@@ -152,9 +156,7 @@ function RequestRow({
   return (
     <View style={[styles.row, { backgroundColor: p.card, borderColor: p.border }]}>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
-        <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: p.accent }]}>{item.handle.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        <SocialAvatar handle={item.handle} hasAvatar={item.has_avatar} size={44} />
         <View style={styles.names}>
           <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{item.display_name || `@${item.handle}`}</Text>
           <Text numberOfLines={1} style={[styles.sub, { color: p.muted }]}>@{item.handle} · {timeAgo(item.created_at)}</Text>
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
-  gutter: { paddingHorizontal: 16, paddingTop: 12 },
+  gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   tabs: { flexDirection: 'row', gap: 22, borderBottomWidth: 1, marginHorizontal: 16, marginBottom: 12 },
   tab: { paddingVertical: 10, borderBottomWidth: 2.5, borderBottomColor: 'transparent', marginBottom: -1 },
   tabText: { fontSize: 14.5, fontWeight: '600' },

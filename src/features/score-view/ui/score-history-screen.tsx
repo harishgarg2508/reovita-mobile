@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef, type ComponentRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { goBackOr } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { ScoreHistoryChart } from './score-history-chart';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 const PARTS = [
   { key: 'lifestyle', label: 'Lifestyle' },
@@ -18,6 +19,9 @@ const PARTS = [
 
 // Health score history: the latest score, a graph of the score over time, and each saved score with its trend.
 export function ScoreHistoryScreen() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -34,7 +38,7 @@ export function ScoreHistoryScreen() {
   };
 
   return (
-    <ScrollView
+    <ScrollView ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16) + 8, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}
       onScroll={({ nativeEvent }) => {

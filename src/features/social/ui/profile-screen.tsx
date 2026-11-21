@@ -2,66 +2,108 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Modal,
+  Image,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { queryKeys } from '@shared/api';
-import { ConfirmDialog } from '@shared/ui';
+import { tapConfirm, tapSelection } from '@shared/lib';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useSocialPostsOf, useSocialProfile, useSocialUnread, type SocialProfile } from '@entities/social';
+import {
+  formatSocialCount,
+  useMyHandle,
+  useSocialPicture,
+  useSocialPostsOf,
+  useSocialProfile,
+  type SocialProfile,
+} from '@entities/social';
 
 import { SOCIAL_HOME, socialFriendsHref, socialRoute } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
-import { useAnswerFriendRequest, useBlockHandle, useFriendHandle, useLeaveSocial, useUpdateSocialProfile } from '../model/use-social-actions';
+import {
+  useAnswerFriendRequest,
+  useBlockHandle,
+  useFriendHandle,
+  useNudgeFriend,
+  useSetPicture,
+  useUpdateSocialProfile,
+} from '../model/use-social-actions';
+import { pickPicture } from '../model/pick-picture';
+import { ConsistencyCard } from './consistency-card';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
 import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 
-// One person's page: who they are, how many friends they have, the friend button and block, and their posts. On my own page I can edit my name and bio,
-// or delete my account (which deletes my handle, posts and photos).
+// A bio longer than this shows two lines with "...more" (about two lines of the card's width).
+const BIO_PREVIEW_CHARS = 70;
+
 export function ProfileScreen({ handle }: { handle: string }) {
   const p = usePalette();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
-  const unread = useSocialUnread(me.joined);
-  // Someone with no handle yet is asked to create one before any profile is shown.
   const profile = useSocialProfile(handle, me.joined);
-  // Two tabs under the profile: posts with a photo (a grid of squares) and posts with words alone (cards).
   const queryClient = useQueryClient();
   const [postsTab, setPostsTab] = useState<'photos' | 'text'>('photos');
   const posts = useSocialPostsOf(handle, profile.isSuccess, postsTab);
+  const cover = useSocialPicture(handle, 'cover', profile.data?.has_cover === true);
+  const setCover = useSetPicture('cover');
+  // Tapping the cover asks what to do: see it, or change it (my own). The viewer shows the whole picture.
+  const [coverMenuOpen, setCoverMenuOpen] = useState(false);
+  const [coverViewerOpen, setCoverViewerOpen] = useState(false);
+  const hasCover = profile.data?.has_cover === true;
+  const canTapCover = hasCover || profile.data?.is_me === true;
+  const [coverError, setCoverError] = useState<string | null>(null);
+
+  async function changeCover() {
+    setCoverError(null);
+    try {
+      const picked = await pickPicture();
+      if (picked) setCover.set.mutate({ handle, photo: picked });
+    } catch (err) {
+      setCoverError((err as Error).message);
+    }
+  }
+
+  const handleBack = () => {
+    if (profile.data?.is_me) {
+      router.replace(SOCIAL_HOME);
+    } else {
+      goBackOr(router, SOCIAL_HOME);
+    }
+  };
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
-      <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => (profile.data?.is_me ? router.replace(SOCIAL_HOME) : goBackOr(router, SOCIAL_HOME))} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
-        </Pressable>
-        <Text numberOfLines={1} style={[styles.title, { color: p.text }]}>@{handle}</Text>
-        {me.joined ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Social activity" hitSlop={8} onPress={() => router.push(socialRoute('/social/activity'))} style={[styles.round, styles.bell, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="notifications-outline" size={19} color={p.text} />
-            {(unread.data?.unread ?? 0) + (unread.data?.requests ?? 0) > 0 ? <View style={[styles.dot, { backgroundColor: p.red, borderColor: p.card }]} /> : null}
-          </Pressable>
-        ) : (
-          <View style={styles.round} />
-        )}
-      </View>
-
+    <View style={[styles.screen, { backgroundColor: p.bg }]}>
       {me.isPending ? (
-        <ActivityIndicator color={p.accent} style={{ marginTop: 60 }} />
-      ) : me.notJoined ? (
-        <View style={styles.joinGutter}>
+        <View style={styles.centerLoading}>
+          <ActivityIndicator color={p.accent} size="large" />
+        </View>
+      ) : me.needsJoin ? (
+        <View style={[styles.joinGutter, { paddingTop: insets.top + 16 }]}>
           <JoinPanel />
         </View>
       ) : profile.isPending ? (
-        <ActivityIndicator color={p.accent} style={{ marginTop: 60 }} />
+        <View style={styles.centerLoading}>
+          <ActivityIndicator color={p.accent} size="large" />
+        </View>
       ) : profile.isError ? (
-        <View style={styles.missing}>
+        <View style={[styles.missing, { paddingTop: insets.top + 60 }]}>
           <Text style={[styles.missingTitle, { color: p.text }]}>Nobody found</Text>
-          <Text style={[styles.missingBody, { color: p.muted }]}>There is no one with the handle @{handle}. Check the spelling and try again.</Text>
+          <Text style={[styles.missingBody, { color: p.muted }]}>
+            There is no one with the handle @{handle}. Check the spelling and try again.
+          </Text>
         </View>
       ) : (
         <PostFeed
@@ -70,195 +112,684 @@ export function ProfileScreen({ handle }: { handle: string }) {
           edgeToEdge
           header={
             <View>
-              <View style={styles.headerPad}>
-                <ProfileHeader profile={profile.data} onLeft={() => goBackOr(router, SOCIAL_HOME)} />
+              {/* Cover Banner with Floating Navigation */}
+              <View style={styles.bannerContainer}>
+                {/* Atmospheric Dark Cover Art */}
+                <Svg width="100%" height={190} viewBox="0 0 400 190" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
+                  <Defs>
+                    <LinearGradient id="coverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <Stop offset="0%" stopColor="#13101E" />
+                      <Stop offset="40%" stopColor="#221A36" />
+                      <Stop offset="75%" stopColor="#1B2433" />
+                      <Stop offset="100%" stopColor="#0F141B" />
+                    </LinearGradient>
+                    <RadialGradient id="coverGlow" cx="45%" cy="35%" r="65%">
+                      <Stop offset="0%" stopColor="#7C3AED" stopOpacity="0.45" />
+                      <Stop offset="60%" stopColor="#3B82F6" stopOpacity="0.15" />
+                      <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                    </RadialGradient>
+                  </Defs>
+                  <Rect width="100%" height="100%" fill="url(#coverGrad)" />
+                  <Circle cx="180" cy="50" r="140" fill="url(#coverGlow)" />
+                </Svg>
+
+                {cover.data && profile.data?.has_cover ? <Image source={{ uri: cover.data }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Cover" /> : null}
+
+                {canTapCover ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Cover picture" onPress={() => (profile.data?.is_me ? setCoverMenuOpen(true) : setCoverViewerOpen(true))} style={StyleSheet.absoluteFill} />
+                ) : null}
+
+                {/* The person's own cover can be changed with this button, on the cover itself. */}
+                {profile.data?.is_me ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Change cover" disabled={setCover.set.isPending} onPress={() => setCoverMenuOpen(true)} hitSlop={8} style={styles.coverEdit}>
+                    {setCover.set.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
+                  </Pressable>
+                ) : null}
+
+                {/* Floating Top Bar on Banner */}
+                <View style={[styles.floatingBar, { top: Math.max(insets.top, 16) + 4 }]}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} hitSlop={8} style={styles.circleNavBtn}>
+                    <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+                  </Pressable>
+
+                  {/* Right menu action: my settings (saved, activity, notifications, blocked, delete account) */}
+                  <View style={styles.floatingBarRight}>
+                    {profile.data?.is_me ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Settings"
+                        hitSlop={8}
+                        onPress={() => router.push(socialRoute('/social/settings'))}
+                        style={styles.circleNavBtn}>
+                        <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
               </View>
-              <View style={[styles.postTabs, { borderBottomColor: p.border }]}>
+
+              {coverError ? <Text style={styles.pictureError}>{coverError}</Text> : null}
+
+              {/* Overlapping Profile Card */}
+              <ProfileHeader
+                profile={profile.data}
+              />
+
+              {/* Streaks, the 14-week grid and the badges of this person */}
+              <ConsistencyCard handle={profile.data.handle} canShare={profile.data.is_me} />
+
+              {/* Posts Tabs (Photos Grid vs Text Cards) */}
+              <View style={[styles.postTabs, { borderBottomColor: p.border, backgroundColor: p.card }]}>
                 {(
                   [
-                    ['photos', 'images-outline', 'images', 'Posts with photos'],
-                    ['text', 'document-text-outline', 'document-text', 'Posts with words only'],
+                    ['photos', 'images-outline', 'images', 'Photos'],
+                    ['text', 'document-text-outline', 'document-text', 'Words'],
                   ] as const
-                ).map(([key, icon, filled, label]) => (
-                  <Pressable key={key} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: postsTab === key }} onPress={() => {
-                      // A tab always loads from the server: its list is emptied first, so its loader shows and no old posts are seen.
-                      if (key !== postsTab) void queryClient.resetQueries({ queryKey: queryKeys.social.postsOf(handle, key) });
-                      setPostsTab(key);
-                    }} style={[styles.postTab, postsTab === key && { borderBottomColor: p.text }]}>
-                    <Ionicons name={postsTab === key ? filled : icon} size={24} color={postsTab === key ? p.text : p.muted} />
-                  </Pressable>
-                ))}
+                ).map(([key, icon, filled, label]) => {
+                  const active = postsTab === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      accessibilityRole="tab"
+                      accessibilityLabel={label}
+                      accessibilityState={{ selected: active }}
+                      onPress={() => {
+                        tapSelection();
+                        if (key !== postsTab) {
+                          void queryClient.resetQueries({ queryKey: queryKeys.social.postsOf(handle, key) });
+                        }
+                        setPostsTab(key);
+                      }}
+                      style={[
+                        styles.postTab,
+                        active && [styles.postTabActive, { borderBottomColor: p.text }],
+                      ]}>
+                      <Ionicons name={active ? filled : icon} size={22} color={active ? p.text : p.muted} />
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           }
           emptyTitle={postsTab === 'photos' ? 'No photos yet' : 'No words-only posts yet'}
-          emptyBody={profile.data.is_me ? (postsTab === 'photos' ? 'Posts with a photo will show here.' : 'Posts with words alone will show here.') : 'They have not shared any yet.'}
+          emptyBody={
+            profile.data.is_me
+              ? postsTab === 'photos'
+                ? 'Photos you share in posts will show here in a grid.'
+                : 'Posts with words alone will show here.'
+              : 'They have not shared any yet.'
+          }
           bottomPadding={insets.bottom + SOCIAL_DOCK_SPACE + 16}
         />
       )}
+
+      <BottomSheet visible={coverMenuOpen} onClose={() => setCoverMenuOpen(false)}>
+        <View style={styles.coverMenu}>
+          {hasCover ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setCoverMenuOpen(false);
+                setCoverViewerOpen(true);
+              }}
+              style={styles.coverMenuRow}>
+              <Ionicons name="eye-outline" size={20} color={p.text} />
+              <Text style={[styles.coverMenuText, { color: p.text }]}>See cover picture</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setCoverMenuOpen(false);
+              void changeCover();
+            }}
+            style={styles.coverMenuRow}>
+            <Ionicons name="image-outline" size={20} color={p.text} />
+            <Text style={[styles.coverMenuText, { color: p.text }]}>{hasCover ? 'Change cover picture' : 'Add a cover picture'}</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
+
+      <Modal visible={coverViewerOpen && !!cover.data} animationType="fade" transparent onRequestClose={() => setCoverViewerOpen(false)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setCoverViewerOpen(false)} style={styles.viewer}>
+          {cover.data ? <Image source={{ uri: cover.data }} style={styles.viewerImage} resizeMode="contain" accessibilityLabel="Cover picture" /> : null}
+        </Pressable>
+      </Modal>
 
       <SocialDock active={profile.data?.is_me ? 'profile' : undefined} />
     </View>
   );
 }
 
-function ProfileHeader({ profile, onLeft }: { profile: SocialProfile; onLeft: () => void }) {
+function ProfileHeader({ profile }: { profile: SocialProfile }) {
   const p = usePalette();
   const router = useRouter();
   const friend = useFriendHandle();
   const answer = useAnswerFriendRequest();
   const block = useBlockHandle();
-  const leave = useLeaveSocial();
+  const nudge = useNudgeFriend();
   const update = useUpdateSocialProfile();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.display_name ?? '');
   const [bio, setBio] = useState(profile.bio ?? '');
-  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [bioOpen, setBioOpen] = useState(false);
+  const avatarPicture = useSocialPicture(profile.handle, 'avatar', profile.has_avatar);
+  const setAvatar = useSetPicture('avatar');
+  const removeCover = useSetPicture('cover').remove;
+  const [pictureError, setPictureError] = useState<string | null>(null);
+  // Tapping the round photo asks what to do: see it, or change it (my own). The viewer shows the whole picture.
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [avatarViewerOpen, setAvatarViewerOpen] = useState(false);
+  const hasAvatarPhoto = profile.has_avatar && !!avatarPicture.data;
+  const canTapAvatar = hasAvatarPhoto || profile.is_me;
+
+  async function changeAvatar() {
+    setPictureError(null);
+    try {
+      const picked = await pickPicture();
+      if (picked) setAvatar.set.mutate({ handle: profile.handle, photo: picked });
+    } catch (err) {
+      setPictureError((err as Error).message);
+    }
+  }
 
   return (
-    <View style={[styles.head, { backgroundColor: p.card, borderColor: p.border }]}>
-      <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-        <Text style={[styles.avatarText, { color: p.accent }]}>{profile.handle.slice(0, 1).toUpperCase()}</Text>
-      </View>
-      <Text style={[styles.name, { color: p.text }]}>{profile.display_name || `@${profile.handle}`}</Text>
-      {profile.display_name ? <Text style={[styles.sub, { color: p.muted }]}>@{profile.handle}</Text> : null}
-      {profile.bio ? <Text style={[styles.bio, { color: p.text }]}>{profile.bio}</Text> : null}
+    <View style={[styles.profileCard, { backgroundColor: p.card, borderColor: p.border }]}>
+      {/* Avatar with Left & Right Flanking Stats */}
+      <View style={styles.avatarStatsRow} pointerEvents="box-none">
+        {/* Left Stat: Posts count */}
+        <View style={styles.statColumn}>
+          <Text style={[styles.statValue, { color: p.text }]}>
+            {formatSocialCount(profile.posts_count)}
+          </Text>
+          <Text style={styles.statLabel}>Posts</Text>
+        </View>
 
-      <View style={styles.counts}>
-        <Count value={profile.posts_count} label="Posts" />
-        <Count value={profile.friends_count} label="Friends" onPress={() => router.push(socialFriendsHref(profile.handle))} />
-        {profile.is_me && typeof profile.blocked_count === 'number' ? <Count value={profile.blocked_count} label="Blocked" onPress={() => router.push(socialRoute('/social/blocked'))} /> : null}
+        {/* Center Overlapping Avatar */}
+        <View style={[styles.avatarRing, { borderColor: p.card }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile photo"
+            disabled={!canTapAvatar}
+            onPress={() => (profile.is_me ? setAvatarMenuOpen(true) : setAvatarViewerOpen(true))}
+            style={[styles.avatar, { backgroundColor: p.accentSoft, borderColor: p.accent }]}>
+            {avatarPicture.data && profile.has_avatar ? (
+              <Image source={{ uri: avatarPicture.data }} style={styles.avatarImage} resizeMode="cover" accessibilityLabel="Profile photo" />
+            ) : (
+              <Text style={[styles.avatarText, { color: p.accent }]}>
+                {profile.handle.slice(0, 1).toUpperCase()}
+              </Text>
+            )}
+          </Pressable>
+          {profile.is_me ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Change profile photo" disabled={setAvatar.set.isPending} onPress={() => setAvatarMenuOpen(true)} hitSlop={6} style={[styles.avatarEdit, { backgroundColor: p.accent, borderColor: p.card }]}>
+              {setAvatar.set.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera" size={14} color="#FFFFFF" />}
+            </Pressable>
+          ) : null}
+        </View>
+
+        {/* Right Stat: Friends count */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Friends: ${profile.friends_count}`}
+          onPress={() => router.push(socialFriendsHref(profile.handle))}
+          style={styles.statColumn}>
+          <Text style={[styles.statValue, { color: p.text }]}>
+            {formatSocialCount(profile.friends_count)}
+          </Text>
+          <Text style={[styles.statLabel, { color: p.accent }]}>Friends</Text>
+        </Pressable>
       </View>
 
+      {/* Name, Handle, Bio & Location */}
+      <View style={styles.infoSection}>
+        <Text numberOfLines={1} style={[styles.displayName, { color: p.text }]}>
+          {profile.display_name || `@${profile.handle}`}
+        </Text>
+
+        {/* A long bio wraps inside the card, even a single long word with no spaces, and shows at most four lines. */}
+        {profile.bio ? (
+          <View style={styles.bioBox}>
+            <Text numberOfLines={bioOpen ? undefined : 2} style={styles.bioText}>
+              {profile.bio}
+              {bioOpen && profile.bio.length > BIO_PREVIEW_CHARS ? (
+                <Text onPress={() => setBioOpen(false)} style={[styles.bioMore, { color: p.accent }]}>{'  '}less</Text>
+              ) : null}
+            </Text>
+            {!bioOpen && profile.bio.length > BIO_PREVIEW_CHARS ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Show the full bio" onPress={() => setBioOpen(true)} hitSlop={8}>
+                <Text style={[styles.bioMore, { color: p.accent }]}>...more</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : profile.is_me ? (
+          <Text style={[styles.bioText, styles.bioEmpty]}>Add a line about you with Edit profile.</Text>
+        ) : null}
+      </View>
+
+      {/* Action Buttons */}
       {profile.is_me ? (
         editing ? (
-          <View style={styles.edit}>
-            <TextInput value={name} onChangeText={setName} maxLength={40} placeholder="Display name" placeholderTextColor={p.muted} style={[styles.field, { color: p.text, borderColor: p.border, backgroundColor: p.input }]} accessibilityLabel="Display name" />
-            <TextInput value={bio} onChangeText={setBio} maxLength={160} multiline placeholder="A line about you" placeholderTextColor={p.muted} style={[styles.field, styles.bioField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]} accessibilityLabel="Bio" />
-            <View style={styles.row}>
-              <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={[styles.btn, { borderColor: p.border, borderWidth: 1 }]}>
-                <Text style={[styles.btnText, { color: p.text }]}>Cancel</Text>
+          <View style={styles.editSection}>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              maxLength={40}
+              placeholder="Display name"
+              placeholderTextColor={p.muted}
+              style={[styles.inputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
+              accessibilityLabel="Display name"
+            />
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              maxLength={160}
+              multiline
+              placeholder="A line about you..."
+              placeholderTextColor={p.muted}
+              style={[styles.inputField, styles.bioInputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
+              accessibilityLabel="Bio"
+            />
+            {pictureError ? <Text style={styles.pictureError}>{pictureError}</Text> : null}
+            {profile.has_avatar || profile.has_cover ? (
+              <View style={styles.removeRow}>
+                {profile.has_avatar ? (
+                  <Pressable accessibilityRole="button" disabled={setAvatar.remove.isPending} onPress={() => setAvatar.remove.mutate(profile.handle)}>
+                    <Text style={[styles.removeText, { color: p.red }]}>Remove profile photo</Text>
+                  </Pressable>
+                ) : null}
+                {profile.has_cover ? (
+                  <Pressable accessibilityRole="button" disabled={removeCover.isPending} onPress={() => removeCover.mutate(profile.handle)}>
+                    <Text style={[styles.removeText, { color: p.red }]}>Remove cover</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+            <View style={styles.actionsRow}>
+              <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={[styles.actionPillBtn, { borderColor: p.border, borderWidth: 1 }]}>
+                <Text style={[styles.actionPillText, { color: p.text }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 disabled={update.isPending}
-                onPress={() => update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) })}
-                style={[styles.btn, { backgroundColor: p.accent }]}>
-                {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.btnText, { color: '#FFFFFF' }]}>Save</Text>}
+                onPress={() => {
+                  tapConfirm();
+                  update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) });
+                }}
+                style={[styles.actionPillBtn, { backgroundColor: '#0095F6' }]}>
+                {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save</Text>}
               </Pressable>
             </View>
           </View>
         ) : (
-          <View style={styles.row}>
-            <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={[styles.btn, { borderColor: p.border, borderWidth: 1 }]}>
-              <Text style={[styles.btnText, { color: p.text }]}>Edit profile</Text>
+          <View style={styles.actionsRow}>
+            <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={[styles.actionPillBtn, styles.primaryPillBtn]}>
+              <Text style={styles.primaryPillText}>Edit profile</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setConfirmLeave(true)} style={[styles.btn, { backgroundColor: p.redSoft }]}>
-              <Text style={[styles.btnText, { color: p.red }]}>Delete account</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Activity"
+              onPress={() => router.push(socialRoute('/social/activity'))}
+              style={[styles.actionPillBtn, styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]}>
+              <Text style={[styles.actionPillText, { color: p.text }]}>Activity</Text>
             </Pressable>
           </View>
         )
       ) : profile.has_blocked ? (
-        <Pressable accessibilityRole="button" disabled={block.isPending} onPress={() => block.mutate({ handle: profile.handle, block: false })} style={[styles.btn, styles.full, { borderColor: p.border, borderWidth: 1 }]}>
-          <Text style={[styles.btnText, { color: p.text }]}>{block.isPending ? 'Please wait...' : 'Unblock'}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={block.isPending}
+          onPress={() => block.mutate({ handle: profile.handle, block: false })}
+          style={[styles.actionPillBtn, styles.primaryPillBtn]}>
+          <Text style={styles.primaryPillText}>{block.isPending ? 'Please wait...' : 'Unblock'}</Text>
         </Pressable>
       ) : (
-        <View style={styles.askBlock}>
+        <View style={styles.visitorActions}>
           {profile.incoming_request_id ? (
-            <>
-              <Text style={[styles.sub, { color: p.muted, textAlign: 'center' }]}>{profile.display_name || `@${profile.handle}`} sent you a friend request</Text>
-              <View style={styles.row}>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={answer.isPending}
-                  onPress={() => answer.mutate({ id: profile.incoming_request_id as string, accept: true })}
-                  style={[styles.btn, { backgroundColor: p.accent }]}>
-                  {answer.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.btnText, { color: '#FFFFFF' }]}>Accept</Text>}
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={answer.isPending}
-                  onPress={() => answer.mutate({ id: profile.incoming_request_id as string, accept: false })}
-                  style={[styles.btn, { borderColor: p.border, borderWidth: 1 }]}>
-                  <Text style={[styles.btnText, { color: p.text }]}>Decline</Text>
-                </Pressable>
-              </View>
-            </>
+            <View style={styles.actionsRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={answer.isPending}
+                onPress={() => {
+                  tapConfirm();
+                  answer.mutate({ id: profile.incoming_request_id as string, accept: true });
+                }}
+                style={[styles.actionPillBtn, styles.primaryPillBtn]}>
+                {answer.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryPillText}>Accept Request</Text>}
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={answer.isPending}
+                onPress={() => answer.mutate({ id: profile.incoming_request_id as string, accept: false })}
+                style={[styles.actionPillBtn, { borderColor: p.border, borderWidth: 1 }]}>
+                <Text style={[styles.actionPillText, { color: p.text }]}>Decline</Text>
+              </Pressable>
+            </View>
           ) : null}
-        <View style={styles.row}>
-          <Pressable
-            accessibilityRole="button"
-            disabled={friend.isPending}
-            onPress={() => friend.mutate(friendTap({ handle: profile.handle, is_friend: profile.is_friend, requested: profile.request_sent }))}
-            style={[styles.btn, friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent }) ? { borderColor: p.border, borderWidth: 1 } : { backgroundColor: p.accent }]}>
-            {friend.isPending ? (
-              <ActivityIndicator color={friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent }) ? p.accent : '#FFFFFF'} />
-            ) : (
-              <Text style={[styles.btnText, { color: friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent }) ? p.text : '#FFFFFF' }]}>
-                {friendLabel({ is_friend: profile.is_friend, requested: profile.request_sent })}
-              </Text>
-            )}
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => block.mutate({ handle: profile.handle, block: true })} style={[styles.btn, { backgroundColor: p.redSoft }]}>
-            <Text style={[styles.btnText, { color: p.red }]}>Block</Text>
-          </Pressable>
-        </View>
+
+          <View style={styles.actionsRow}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={friend.isPending}
+              onPress={() => {
+                tapConfirm();
+                friend.mutate(friendTap({ handle: profile.handle, is_friend: profile.is_friend, requested: profile.request_sent }));
+              }}
+              style={[
+                styles.actionPillBtn,
+                friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent })
+                  ? [styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]
+                  : styles.primaryPillBtn,
+              ]}>
+              {friend.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text
+                  style={[
+                    styles.actionPillText,
+                    {
+                      color: friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent })
+                        ? p.text
+                        : '#FFFFFF',
+                    },
+                  ]}>
+                  {friendLabel({ is_friend: profile.is_friend, requested: profile.request_sent })}
+                </Text>
+              )}
+            </Pressable>
+            {profile.is_friend ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Send a check-in nudge"
+                disabled={nudge.isPending || nudge.isSuccess}
+                onPress={() => nudge.mutate(profile.handle)}
+                style={[styles.actionPillBtn, styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]}>
+                {nudge.isPending ? <ActivityIndicator color={p.accent} /> : <Text style={[styles.actionPillText, { color: p.text }]}>{nudge.isSuccess ? 'Nudged' : 'Nudge'}</Text>}
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => block.mutate({ handle: profile.handle, block: true })}
+              style={[styles.actionPillBtn, { backgroundColor: p.redSoft }]}>
+              <Text style={[styles.actionPillText, { color: p.red }]}>Block</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
-      <ConfirmDialog
-        visible={confirmLeave}
-        title="Delete account?"
-        message="Your social account is deleted: your handle, posts, kudos, friends and photos. Your health information and your Reovita account are not affected. You can create a new social account later with a new handle."
-        confirmLabel="Delete"
-        busy={leave.isPending}
-        onConfirm={() => leave.mutate(undefined, { onSuccess: onLeft, onSettled: () => setConfirmLeave(false) })}
-        onCancel={() => setConfirmLeave(false)}
-      />
-    </View>
-  );
-}
+      <BottomSheet visible={avatarMenuOpen} onClose={() => setAvatarMenuOpen(false)}>
+        <View style={styles.coverMenu}>
+          {hasAvatarPhoto ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setAvatarMenuOpen(false);
+                setAvatarViewerOpen(true);
+              }}
+              style={styles.coverMenuRow}>
+              <Ionicons name="eye-outline" size={20} color={p.text} />
+              <Text style={[styles.coverMenuText, { color: p.text }]}>See profile picture</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setAvatarMenuOpen(false);
+              void changeAvatar();
+            }}
+            style={styles.coverMenuRow}>
+            <Ionicons name="image-outline" size={20} color={p.text} />
+            <Text style={[styles.coverMenuText, { color: p.text }]}>{hasAvatarPhoto ? 'Change profile picture' : 'Add a profile picture'}</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
 
-// A count. With onPress it opens the list behind the number (the friends).
-function Count({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
-  const p = usePalette();
-  return (
-    <Pressable accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={onPress ? `${label}: ${value}` : undefined} disabled={!onPress} onPress={onPress} hitSlop={6} style={styles.count}>
-      <Text style={[styles.countValue, { color: p.text }]}>{value}</Text>
-      <Text style={[styles.sub, { color: onPress ? p.accent : p.muted }, onPress && { fontWeight: '700' }]}>{label}</Text>
-    </Pressable>
+      <Modal visible={avatarViewerOpen && hasAvatarPhoto} animationType="fade" transparent onRequestClose={() => setAvatarViewerOpen(false)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setAvatarViewerOpen(false)} style={styles.viewer}>
+          {avatarPicture.data ? <Image source={{ uri: avatarPicture.data }} style={styles.viewerImage} resizeMode="contain" accessibilityLabel="Profile picture" /> : null}
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
-  round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 0 },
-  bell: { borderWidth: 1 },
-  dot: { position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
-  title: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '800' },
-  joinGutter: { paddingHorizontal: 16, paddingTop: 12 },
-  missing: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 28, gap: 6 },
+  centerLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+  },
+  joinGutter: { flex: 1, paddingHorizontal: 16 },
+  missing: { alignItems: 'center', paddingHorizontal: 28, gap: 8 },
   missingTitle: { fontSize: 18, fontWeight: '800' },
   missingBody: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  head: { borderWidth: 1, borderRadius: 24, padding: 18, alignItems: 'center', gap: 6, marginBottom: 14 },
-  avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 26, fontWeight: '800' },
-  name: { fontSize: 18, fontWeight: '800', marginTop: 4 },
-  sub: { fontSize: 12.5 },
-  bio: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  counts: { flexDirection: 'row', gap: 28, marginVertical: 10 },
-  count: { alignItems: 'center' },
-  countValue: { fontSize: 17, fontWeight: '800' },
-  row: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
-  btn: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  full: { alignSelf: 'stretch', flex: 0 },
-  headerPad: { paddingHorizontal: 16 },
-  postTabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 2 },
-  postTab: { flex: 1, height: 48, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  askBlock: { alignSelf: 'stretch', gap: 10 },
-  btnText: { fontSize: 14, fontWeight: '700' },
-  edit: { alignSelf: 'stretch', gap: 10 },
-  field: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, height: 46, fontSize: 15 },
-  bioField: { height: 80, paddingTop: 10, textAlignVertical: 'top' },
+  // Banner & Top Floating Controls
+  bannerContainer: {
+    width: '100%',
+    height: 190,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  floatingBar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  floatingBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  circleNavBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Overlapping Profile Card
+  profileCard: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -38,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 16,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  avatarStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginTop: -48,
+  },
+  statColumn: {
+    alignItems: 'center',
+    width: 82,
+    // A margin, not padding: padding made the column's touchable area reach up over the cover and block its camera button.
+    marginTop: 52,
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  statLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8E8BA6',
+  },
+  avatarRing: {
+    width: 102,
+    height: 102,
+    borderRadius: 51,
+    borderWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatar: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    // The photo is clipped to the circle, and the circle has a colored border.
+    overflow: 'hidden',
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarEdit: { position: 'absolute', right: 0, bottom: 2, width: 30, height: 30, borderRadius: 15, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  coverMenu: { gap: 2 },
+  coverMenuRow: { height: 52, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  coverMenuText: { fontSize: 15.5, fontWeight: '600' },
+  viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  viewerImage: { width: '100%', height: '80%' },
+  coverEdit: { position: 'absolute', right: 14, bottom: 52, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 5 },
+  pictureError: { fontSize: 12.5, color: '#E34255', textAlign: 'center', paddingVertical: 4 },
+  removeRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, paddingVertical: 4 },
+  removeText: { fontSize: 13, fontWeight: '700' },
+  bioBox: { alignItems: 'center', alignSelf: 'stretch' },
+  bioMore: { fontSize: 13.5, fontWeight: '700', marginTop: 2 },
+  avatarText: {
+    fontSize: 38,
+    fontWeight: '800',
+  },
+  infoSection: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  displayName: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  bioText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: '#8E8BA6',
+    paddingHorizontal: 16,
+    marginTop: 2,
+    maxWidth: '100%',
+    // Browsers: break a long word with no spaces instead of letting it run past the card.
+    ...({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as object),
+  },
+  bioEmpty: { fontStyle: 'italic', opacity: 0.8 },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  locationText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#8E8BA6',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignSelf: 'stretch',
+    marginTop: 16,
+  },
+  actionPillBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryPillBtn: {
+    backgroundColor: '#0095F6',
+  },
+  primaryPillText: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  secondaryPillBtn: {
+    borderWidth: 1,
+  },
+  actionPillText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  visitorActions: {
+    alignSelf: 'stretch',
+    gap: 10,
+  },
+  editSection: {
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 14,
+  },
+  inputField: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 46,
+    fontSize: 15,
+  },
+  bioInputField: {
+    height: 84,
+    paddingTop: 10,
+    textAlignVertical: 'top',
+  },
+  overflowMenu: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 8,
+    marginTop: 12,
+    gap: 4,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  menuRowText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  postTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  postTab: {
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  postTabActive: {
+    borderBottomWidth: 2,
+  },
 });

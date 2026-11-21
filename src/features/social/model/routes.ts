@@ -5,10 +5,14 @@ import type { Href } from 'expo-router';
 export const SOCIAL_HOME = '/social' as Href;
 
 // A social screen by its plain path. The typed route list does not know these paths, so they are cast once, here.
-export const socialRoute = (path: '/social/compose' | '/social/search' | '/social/activity' | '/social/kudos' | '/social/requests' | '/social/blocked'): Href => path as Href;
+export const socialRoute = (path: '/social/compose' | '/social/search' | '/social/activity' | '/social/kudos' | '/social/requests' | '/social/blocked' | '/social/saved' | '/social/quests' | '/social/pods' | '/social/settings'): Href => path as Href;
 
 export function socialFriendsHref(handle: string): Href {
   return { pathname: '/(app)/social/friends', params: { handle } } as Href;
+}
+
+export function socialPodHref(id: string): Href {
+  return { pathname: '/(app)/social/pods/[id]', params: { id } } as Href;
 }
 
 export function socialProfileHref(handle: string): Href {

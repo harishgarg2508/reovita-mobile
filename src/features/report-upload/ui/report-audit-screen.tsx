@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReportAuditLogs, type ReportAuditLog } from '@entities/report';
 import { goBackOr } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 // Human names for the stages and events the server writes. Anything not listed shows its raw name.
 const STAGE_NAME: Record<string, string> = {
@@ -105,6 +106,9 @@ function toRows(steps: TimelineStep[]): Row[] {
 
 // Shows the history of one report as a timeline: each step, when it happened, and whether it succeeded.
 export function ReportAuditScreen({ reportId }: { reportId: string }) {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -142,7 +146,7 @@ export function ReportAuditScreen({ reportId }: { reportId: string }) {
           </Pressable>
         </View>
       ) : (
-        <FlatList
+        <FlatList ref={scrollRef}
           data={rows}
           keyExtractor={(row) => row.key}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]}

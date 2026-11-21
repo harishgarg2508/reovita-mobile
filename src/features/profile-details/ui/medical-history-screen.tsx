@@ -1,14 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MedicalHistoryCalendar, MedicalHistoryList } from '@entities/medical-history';
 import { usePalette, type Palette } from '@shared/ui/theme';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 // The full medical history: the entries as a list or on a calendar. Entries load only while this screen is open.
 export function MedicalHistoryScreen() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -16,7 +20,7 @@ export function MedicalHistoryScreen() {
   const [view, setView] = useState<'list' | 'calendar'>('list');
 
   return (
-    <ScrollView
+    <ScrollView ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.header}>

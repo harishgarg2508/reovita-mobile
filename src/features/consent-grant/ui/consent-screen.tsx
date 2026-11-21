@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, type ComponentRef } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CONSENT_TYPES, useConsentGrants, type ConsentScreenId } from '@entities/consent';
 import { api, isApiError } from '@shared/api';
-import { tapConfirm } from '@shared/lib';
+import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 
 import { useConsentFlow } from '../model/use-consent-flow';
 
@@ -22,6 +22,9 @@ const SURFACE = '#fbfaff';
 // /consent?ai_consent_screen=true), then Redux drives every change. Slides for consents that are already
 // granted (GET /v1/consents, granted_at set) are left out.
 export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: ConsentScreenId }) {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const consents = useConsentGrants();
@@ -189,7 +192,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
               <Image source={require('../../../shared/assets/images/consent-storage-hero.png')} style={styles.storageImage} resizeMode="contain" />
             </View>
 
-            <ScrollView style={styles.flex} contentContainerStyle={styles.storageContent}>
+            <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.storageContent}>
               <View style={styles.introBlock}>
                 <Text style={styles.eyebrowSmall}>CONSENT 1 OF 2</Text>
                 <Text style={styles.heading}>Store my health data</Text>

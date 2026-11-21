@@ -1,18 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef, type ComponentRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useInteractions, type InteractionCheck, type InteractionFinding } from '@entities/interaction-finding';
 import { goBackOr } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 const SEVERITY_ORDER = ['Contraindicated', 'Major', 'Moderate', 'Minor'];
 
 // Medicine interaction check. Every outcome is shown with what was actually checked, so an unavailable check
 // never looks like a safe result.
 export function InteractionScreen() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -20,7 +24,7 @@ export function InteractionScreen() {
   const check = useInteractions();
 
   return (
-    <ScrollView
+    <ScrollView ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,

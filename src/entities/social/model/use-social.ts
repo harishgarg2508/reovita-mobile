@@ -4,18 +4,31 @@ import { isApiError, queryKeys } from '@shared/api';
 import { API_URL } from '@shared/config/environment';
 import { useEventStream } from '@shared/lib';
 
-import { fetchBlockedProfiles, fetchReportedProfiles, fetchFeed, fetchFriendRequests, fetchKudosOf, fetchMyHandle, fetchReceivedKudos, fetchSocialSearch, fetchPeople, fetchFriendsOf, fetchPostPhoto, fetchPostsOf, fetchProfile, fetchSocialNotifications, fetchSocialUnread } from './social.api';
-import type { SocialBlockedPage, SocialReportedPage, FeedScope, SocialFriendRequestPage, SocialKudosPage, SocialNotificationPage, SocialPersonPage, SocialPostPage, SocialReceivedKudosPage } from './social.types';
+import { fetchSocialTerms, fetchBlockedProfiles, fetchReportedProfiles, fetchFeed, fetchFriendRequests, fetchKudosOf, fetchMyHandle, fetchReceivedKudos, fetchSocialSearch, fetchPeople, fetchFriendsOf, fetchPostPhoto, fetchPicture, fetchPostsOf, fetchSavedPosts, fetchComments, fetchReplies, fetchExplore, fetchToday, fetchConsistency, fetchRecap, fetchQuests, fetchLeaderboard, fetchPods, fetchPod, fetchPodInvites, fetchProfile, fetchSocialNotifications, fetchSocialUnread } from './social.api';
+import type { SocialBlockedPage, SocialReportedPage, FeedScope, SocialFriendRequestPage, SocialKudosPage, SocialNotificationPage, SocialPersonPage, SocialReceivedKudosPage } from './social.types';
 
 // My handle. `data` is undefined and `joined` is false for a person who has not chosen one yet (the server answers 404 no_handle).
 export function useMyHandle() {
   const query = useQuery({
     queryKey: queryKeys.social.me(),
     queryFn: fetchMyHandle,
-    retry: (count, error) => !isApiError(error, 'no_handle') && count < 2,
+    retry: (count, error) => !isApiError(error, 'no_handle') && !isApiError(error, 'terms_required') && count < 2,
     ...FRESH,
+    // Every screen (and the join panel itself) reads this query. Without this, each one that mounts after a "no account" / "terms" error asks
+    // again; the query then goes back to loading, the panel unmounts, the feed mounts, the error comes back, and it loops without end.
+    retryOnMount: false,
   });
-  return { ...query, joined: !!query.data, notJoined: isApiError(query.error, 'no_handle') };
+  const notJoined = isApiError(query.error, 'no_handle');
+  // The terms changed since the person agreed (403 terms_required): the account is there, but it must be agreed to again.
+  const needsTerms = isApiError(query.error, 'terms_required');
+  // Either way, the screen shows the terms panel instead of Social.
+  // An old copy of the handle can outlive the error (React Query keeps the last data), so the terms error wins.
+  return { ...query, joined: !!query.data && !needsTerms && !notJoined, notJoined, needsTerms, needsJoin: notJoined || needsTerms };
+}
+
+// The terms to agree to, from the server, word for word.
+export function useSocialTerms() {
+  return useQuery({ queryKey: queryKeys.social.terms(), queryFn: fetchSocialTerms, ...FRESH });
 }
 
 // Nothing on Social is kept as "fresh enough": every list loads again when its screen opens or comes back, when the app returns to the
@@ -29,10 +42,10 @@ const FRESH_LIST = { ...FRESH, gcTime: 0 } as const;
 const nextCursor = (page: { next_cursor: string | null }) => page.next_cursor ?? undefined;
 
 // scope for_you: public posts from other people. scope friends: the posts of my friends. Never my own posts.
-export function useSocialFeed(enabled = true, scope: FeedScope = 'friends') {
+export function useSocialFeed(enabled = true, scope: FeedScope = 'friends', topic: string | null = null) {
   return useInfiniteQuery({
-    queryKey: queryKeys.social.feedScope(scope),
-    queryFn: ({ pageParam }) => fetchFeed(scope, pageParam ?? null),
+    queryKey: queryKeys.social.feedScope(scope, topic),
+    queryFn: ({ pageParam }) => fetchFeed(scope, pageParam ?? null, topic),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: nextCursor,
     enabled,
@@ -56,11 +69,107 @@ export function useSocialPostsOf(handle: string, enabled = true, kind?: 'photos'
   });
 }
 
+// The posts I saved, the most recently saved first.
+export function useSavedPosts(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.social.saved(),
+    queryFn: ({ pageParam }) => fetchSavedPosts(pageParam ?? null),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextCursor,
+    enabled,
+    retry: false,
+    ...FRESH_LIST,
+  });
+}
+
+// The comments on a post, newest first.
+export function useSocialComments(postId: string, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.social.comments(postId),
+    queryFn: ({ pageParam }) => fetchComments(postId, pageParam ?? null),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextCursor,
+    enabled: enabled && postId.length > 0,
+    retry: false,
+    ...FRESH_LIST,
+  });
+}
+
+// The replies in the thread of one comment, oldest first.
+export function useSocialReplies(commentId: string, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.social.replies(commentId),
+    queryFn: ({ pageParam }) => fetchReplies(commentId, pageParam ?? null),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextCursor,
+    enabled: enabled && commentId.length > 0,
+    retry: false,
+    ...FRESH_LIST,
+  });
+}
+
+// Explore: a random mix of posts from many people. The order stays the same while scrolling (the server keeps it in the cursor), and a new one is
+// made each time the screen opens (the list is thrown away when it closes).
+export function useSocialExplore(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.social.explore(),
+    queryFn: ({ pageParam }) => fetchExplore(pageParam ?? null),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextCursor,
+    enabled,
+    retry: false,
+    ...FRESH_LIST,
+  });
+}
+
+// My pods, one pod with its members, and the invitations waiting for me.
+export function useSocialPods(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.pods(), queryFn: fetchPods, enabled, retry: false, ...FRESH_LIST });
+}
+
+export function useSocialPod(id: string, enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.pod(id), queryFn: () => fetchPod(id), enabled: enabled && id.length > 0, retry: false, ...FRESH_LIST });
+}
+
+export function useSocialPodInvites(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.podInvites(), queryFn: fetchPodInvites, enabled, retry: false, ...FRESH_LIST });
+}
+
+// My recap of the last 7 days.
+export function useSocialRecap(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.recap(), queryFn: fetchRecap, enabled, retry: false, ...FRESH });
+}
+
+// The monthly quests and my progress.
+export function useSocialQuests(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.quests(), queryFn: fetchQuests, enabled, retry: false, ...FRESH_LIST });
+}
+
+// The leaderboard of me and my friends for this week or this month.
+export function useSocialLeaderboard(period: 'week' | 'month', enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.leaderboard(period), queryFn: () => fetchLeaderboard(period), enabled, retry: false, ...FRESH_LIST });
+}
+
+// My check-ins today, with my streak.
+export function useTodayCheckIns(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.today(), queryFn: fetchToday, enabled, retry: false, ...FRESH });
+}
+
+// The consistency grid, streaks and badges of a person.
+export function useSocialConsistency(handle: string, enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.consistency(handle), queryFn: () => fetchConsistency(handle), enabled: enabled && handle.length > 0, retry: false, ...FRESH });
+}
+
 export function useSocialPeople(kind: 'friends' | 'blocked') {
   return useQuery({ queryKey: queryKeys.social.people(kind), queryFn: () => fetchPeople(kind), ...FRESH_LIST });
 }
 
 // The photo of a post. A photo never changes, so it is kept for the whole visit.
+// The profile picture or the cover of a person, as an image address. Loaded again after the person changes it (the upload clears this).
+export function useSocialPicture(handle: string, kind: 'avatar' | 'cover', enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.social.picture(handle, kind), queryFn: () => fetchPicture(handle, kind), enabled: enabled && handle.length > 0, staleTime: 5 * 60 * 1000, retry: false });
+}
+
 export function usePostPhoto(postId: string, enabled: boolean) {
   return useQuery({ queryKey: queryKeys.social.photo(postId), queryFn: () => fetchPostPhoto(postId), enabled, staleTime: Infinity, gcTime: 30 * 60 * 1000 });
 }

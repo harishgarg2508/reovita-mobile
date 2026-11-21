@@ -343,6 +343,45 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         </Card>
       </Pressable>
 
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/meal-scan')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="restaurant-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my meal</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your plate: calories and protein.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/fridge-scan')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="nutrition-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my fridge</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your fridge: simple meals to cook.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/dietary-guidance')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="leaf-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Dietary guidance</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Your BMI and a one-day plan for your goal.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
       <Pressable accessibilityRole="button" onPress={() => router.push(SOCIAL_HOME)}>
         <Card p={p}>
           <View style={styles.rowTop}>

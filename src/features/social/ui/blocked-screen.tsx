@@ -1,18 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
+import { useScrollToTopOnFocus } from '@shared/lib';
+import { ConfirmDialog } from '@shared/ui';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useBlockedProfiles, useMyHandle, useReportedProfiles, type SocialBlockedProfile, type SocialReportedProfile } from '@entities/social';
+import { useBlockedProfiles, useMyHandle, useReportedProfiles, type SocialBlockedProfile, type SocialReportedProfile, SocialAvatar } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
-import { useBlockHandle } from '../model/use-social-actions';
+import { useBlockHandle, useUnreport } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
 
 function timeAgo(iso: string): string {
@@ -31,6 +33,8 @@ type Tab = 'blocked' | 'reported';
 // at a time, with a loader while it loads.
 export function BlockedScreen() {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -40,6 +44,9 @@ export function BlockedScreen() {
   const reported = useReportedProfiles(me.joined && tab === 'reported');
   const list = tab === 'blocked' ? blocked : reported;
   const unblock = useBlockHandle();
+  const unreport = useUnreport();
+  // The reported person whose report waits for "Are you sure?" before it is taken back.
+  const [unreporting, setUnreporting] = useState<string | null>(null);
   const pullRefresh = usePullToRefresh(() => list.refetch());
 
   // The two lists have different rows, so the pages are read as one shape: a row is blocked (it has blocked_at) or reported.
@@ -66,7 +73,7 @@ export function BlockedScreen() {
         <View style={styles.spacer} />
       </View>
 
-      {me.notJoined ? (
+      {me.needsJoin ? (
         <View style={styles.gutter}>
           <JoinPanel />
         </View>
@@ -91,6 +98,7 @@ export function BlockedScreen() {
           <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
           <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
           <FlatList
+        ref={scrollRef}
             {...pullRefresh.listProps}
             {...pullRefresh.touch}
             data={items}
@@ -113,9 +121,7 @@ export function BlockedScreen() {
                     disabled={isBlockedRow}
                     onPress={() => router.push(socialProfileHref(item.handle))}
                     style={styles.who}>
-                    <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-                      <Text style={[styles.avatarText, { color: p.accent }]}>{item.handle.slice(0, 1).toUpperCase()}</Text>
-                    </View>
+                    <SocialAvatar handle={item.handle} hasAvatar={item.has_avatar} size={44} />
                     <View style={styles.names}>
                       <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{item.display_name || `@${item.handle}`}</Text>
                       <Text numberOfLines={1} style={[styles.handle, { color: p.muted }]}>
@@ -133,7 +139,14 @@ export function BlockedScreen() {
                       {unblock.isPending && unblock.variables?.handle === item.handle ? <ActivityIndicator size="small" color={p.accent} /> : <Text style={[styles.actionText, { color: p.text }]}>Unblock</Text>}
                     </Pressable>
                   ) : (
-                    <Ionicons name="flag-outline" size={18} color={p.muted} />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Unreport @${item.handle}`}
+                      disabled={unreport.isPending}
+                      onPress={() => setUnreporting(item.handle)}
+                      style={[styles.action, { borderColor: p.border }]}>
+                      <Text style={[styles.actionText, { color: p.text }]}>Unreport</Text>
+                    </Pressable>
                   )}
                 </View>
               );
@@ -157,6 +170,18 @@ export function BlockedScreen() {
           />
         </>
       )}
+
+      <ConfirmDialog
+        visible={unreporting !== null}
+        title="Take back your report?"
+        message={unreporting ? `Your reports of @${unreporting} are removed, and their posts show for you again.` : ''}
+        confirmLabel="Unreport"
+        busy={unreport.isPending}
+        onConfirm={() => {
+          if (unreporting) unreport.mutate(unreporting, { onSettled: () => setUnreporting(null) });
+        }}
+        onCancel={() => setUnreporting(null)}
+      />
     </View>
   );
 }
@@ -169,7 +194,7 @@ const styles = StyleSheet.create({
   titleBox: { flex: 1, alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '800' },
   sub: { fontSize: 12 },
-  gutter: { paddingHorizontal: 16, paddingTop: 12 },
+  gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   tabs: { flexDirection: 'row', gap: 22, borderBottomWidth: 1, marginHorizontal: 16, marginBottom: 12 },
   tab: { paddingVertical: 10, borderBottomWidth: 2.5, borderBottomColor: 'transparent', marginBottom: -1 },
   tabText: { fontSize: 14.5, fontWeight: '600' },

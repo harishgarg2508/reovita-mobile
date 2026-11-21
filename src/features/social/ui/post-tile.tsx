@@ -7,7 +7,7 @@ import { usePostPhoto, type SocialPost } from '@entities/social';
 
 // One square of the grid on a profile, like a profile page of a photo app: a post with a photo shows the photo, and a post with only words shows
 // the words on a soft tile. The kudos count sits in a corner. Tapping it opens the post.
-export const PostTile = memo(function PostTile({ post, size, onPress }: { post: SocialPost; size: number; onPress: (post: SocialPost) => void }) {
+export const PostTile = memo(function PostTile({ post, size, height, onPress }: { post: SocialPost; size: number; height?: number; onPress: (post: SocialPost) => void }) {
   const p = usePalette();
   const photo = usePostPhoto(post.id, post.has_photo);
 
@@ -16,7 +16,7 @@ export const PostTile = memo(function PostTile({ post, size, onPress }: { post: 
       accessibilityRole="button"
       accessibilityLabel={post.body ? `Post: ${post.body.slice(0, 60)}` : 'Photo post'}
       onPress={() => onPress(post)}
-      style={[styles.tile, { width: size, height: size, backgroundColor: p.surface }]}>
+      style={[styles.tile, { width: size, height: height ?? size, backgroundColor: p.surface }]}>
       {post.has_photo ? (
         photo.data ? (
           <Image source={{ uri: photo.data }} style={styles.fill} resizeMode="cover" />

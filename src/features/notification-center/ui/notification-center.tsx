@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,7 @@ import {
   type NotificationItem,
 } from '@entities/notification';
 import { Skeleton } from '@shared/ui/skeleton';
+import { useScrollToTopOnFocus } from '@shared/lib';
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -23,6 +25,9 @@ function formatWhen(iso: string): string {
 // Inbox: newest first. The header stays fixed; only the list scrolls. The next page (10 items)
 // loads when the user reaches the end of the list.
 export function NotificationCenter() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const list = useNotifications();
@@ -82,7 +87,7 @@ export function NotificationCenter() {
 
       {list.isError ? <Text style={[styles.error, styles.gutter]}>We could not load your notifications.</Text> : null}
 
-      <FlatList
+      <FlatList ref={scrollRef}
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 20) + 16 }]}

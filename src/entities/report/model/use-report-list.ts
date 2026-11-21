@@ -22,11 +22,11 @@ export function reportTypeLabel(item: Pick<ReportListItem, 'report_type' | 'type
     case 'other':
       return item.type_label?.trim() || 'Other document';
     default:
-      return 'Blood report';
+      return 'Lab report';
   }
 }
 
-// Only a blood report is read as lab results and reviewed. The other types are summarised, so they open on their summary.
+// Only a lab report is read as lab results and reviewed. The other types are summarised, so they open on their summary.
 export const isDocumentReport = (item: Pick<ReportListItem, 'report_type'>): boolean =>
   item.report_type !== undefined && item.report_type !== 'blood_report';
 

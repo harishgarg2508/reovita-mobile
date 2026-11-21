@@ -1,16 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useSocialSearch, type SocialPerson } from '@entities/social';
+import { useMyHandle, useSocialSearch, type SocialPerson, SocialAvatar, useSocialExplore } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
 import { useFriendHandle } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
+import { PostFeed } from './post-feed';
 import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 
 // Suggestions start at this many letters, the same as the server.
@@ -20,6 +22,8 @@ const MIN_CHARS = 3;
 // time as the list is scrolled. Tapping one opens their page; each has an Add friend button. The loading spinner shows only in the list.
 export function SearchScreen() {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
@@ -35,6 +39,7 @@ export function SearchScreen() {
   }, [typed]);
 
   const ready = typed.length >= MIN_CHARS;
+  const explore = useSocialExplore(me.joined && !ready);
   const results = useSocialSearch(debounced, me.joined && debounced.length >= MIN_CHARS);
   const people = results.data?.pages.flatMap((page) => page.items) ?? [];
   // Letters were typed since the last search ran: the list shows its spinner, not the old people.
@@ -50,7 +55,7 @@ export function SearchScreen() {
         <View style={styles.spacer} />
       </View>
 
-      {me.notJoined ? (
+      {me.needsJoin ? (
         <View style={styles.gutter}>
           <JoinPanel />
         </View>
@@ -79,6 +84,7 @@ export function SearchScreen() {
 
           {ready ? (
             <FlatList
+        ref={scrollRef}
               data={waiting ? [] : people}
               keyExtractor={(person) => person.handle}
               keyboardShouldPersistTaps="handled"
@@ -108,10 +114,17 @@ export function SearchScreen() {
               ListFooterComponent={results.isFetchingNextPage ? <ActivityIndicator color={p.accent} style={{ marginVertical: 16 }} /> : undefined}
             />
           ) : (
-            <View style={styles.body}>
-              <Text style={[styles.hint, { color: p.muted }]}>
-                {typed.length === 0 ? `Type at least ${MIN_CHARS} letters of a name or handle and the people who match will show here.` : `Keep typing: ${MIN_CHARS - typed.length} more ${MIN_CHARS - typed.length === 1 ? 'letter' : 'letters'} to see suggestions.`}
-              </Text>
+            // Explore: nothing (or too little) typed yet, so a random mix of posts from many people shows instead, ten at a time with infinite scroll.
+            // Tapping a tile opens the post in the swipe-down drawer.
+            <View style={styles.explore}>
+              <PostFeed
+                query={explore}
+                layout="grid"
+                emptyTitle="Nothing to explore yet"
+                emptyBody="When people share posts, a mix of them shows here."
+                onOpenProfile={(handle) => router.push(socialProfileHref(handle))}
+                bottomPadding={insets.bottom + SOCIAL_DOCK_SPACE + 16}
+              />
             </View>
           )}
         </>
@@ -127,9 +140,7 @@ function SuggestionRow({ person, busy, onOpen, onToggle }: { person: SocialPerso
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
-        <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: p.accent }]}>{person.handle.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        <SocialAvatar handle={person.handle} hasAvatar={person.has_avatar} size={44} />
         <View style={styles.names}>
           <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{person.display_name || `@${person.handle}`}</Text>
           <Text numberOfLines={1} style={[styles.handle, { color: p.muted }]}>@{person.handle}</Text>
@@ -157,7 +168,8 @@ const styles = StyleSheet.create({
   // Keeps the title in the middle without drawing anything on the right.
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
-  gutter: { paddingHorizontal: 16, paddingTop: 12 },
+  explore: { flex: 1 },
+  gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, height: 48, marginHorizontal: 16, marginBottom: 12 },
   input: { flex: 1, fontSize: 15, padding: 0, height: '100%' },
   body: { paddingHorizontal: 16, gap: 14 },

@@ -1,7 +1,7 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, Modal, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Dragging the sheet down this far, or flicking it down, closes it.
@@ -54,7 +54,7 @@ export function BottomSheet({
         Animated.spring(translateY, { toValue: 0, useNativeDriver: USE_NATIVE_DRIVER, bounciness: 4 }).start();
       }}>
       <View style={styles.root}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+        <Pressable style={[StyleSheet.absoluteFill, styles.scrim]} onPress={onClose} accessibilityLabel="Close" />
         <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]} {...(dragHandleOnly ? {} : panResponder.panHandlers)}>
           <View style={styles.handleArea} {...(dragHandleOnly ? panResponder.panHandlers : {})}>
             <View style={styles.handle} />
@@ -72,6 +72,11 @@ const createStyles = (colors: FormColors) =>
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'transparent',
+  },
+  // The same dimmed (and, in browsers, blurred) backdrop as the confirm dialog: the screen behind the sheet stays visible.
+  scrim: {
+    backgroundColor: 'rgba(15, 12, 24, 0.45)',
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}),
   },
   sheet: {
     backgroundColor: colors.card,

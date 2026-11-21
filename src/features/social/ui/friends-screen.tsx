@@ -1,12 +1,14 @@
+import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useSocialFriendsOf, type SocialPerson } from '@entities/social';
+import { useSocialFriendsOf, type SocialPerson, SocialAvatar } from '@entities/social';
 
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
@@ -16,6 +18,8 @@ import { useFriendHandle } from '../model/use-social-actions';
 // friend request from here.
 export function FriendsScreen({ handle }: { handle: string }) {
   const p = usePalette();
+  const scrollRef = useRef<FlatList>(null);
+  useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const list = useSocialFriendsOf(handle);
@@ -40,6 +44,7 @@ export function FriendsScreen({ handle }: { handle: string }) {
       <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
       <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
       <FlatList
+        ref={scrollRef}
         {...pullRefresh.listProps}
         {...pullRefresh.touch}
         data={items}
@@ -82,9 +87,7 @@ function PersonRow({ person, busy, onOpen, onToggle }: { person: SocialPerson; b
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
-        <View style={[styles.avatar, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: p.accent }]}>{person.handle.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        <SocialAvatar handle={person.handle} hasAvatar={person.has_avatar} size={44} />
         <View style={styles.names}>
           <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{person.display_name || `@${person.handle}`}</Text>
           <Text numberOfLines={1} style={[styles.handle, { color: p.muted }]}>@{person.handle}{person.is_me ? ' · you' : ''}</Text>

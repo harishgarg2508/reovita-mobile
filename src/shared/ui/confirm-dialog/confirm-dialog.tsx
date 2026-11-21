@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '../theme';
 
@@ -31,8 +31,10 @@ export function ConfirmDialog({
   const confirmColor = destructive ? p.red : p.accent;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: p.bg }]}>
+    // Transparent: the screen behind stays visible, dimmed (and blurred in browsers), instead of being replaced by a plain page.
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
+      <View style={styles.backdrop}>
+        <Pressable accessibilityLabel="Close" disabled={busy} onPress={onCancel} style={[StyleSheet.absoluteFill, styles.scrim]} />
         <View style={[styles.sheet, { backgroundColor: p.card, borderColor: p.border }]}>
           <Text style={[styles.title, { color: p.textStrong }]}>{title}</Text>
           <Text style={[styles.message, { color: p.muted }]}>{message}</Text>
@@ -60,6 +62,10 @@ export function ConfirmDialog({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  scrim: {
+    backgroundColor: 'rgba(15, 12, 24, 0.45)',
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}),
+  },
   sheet: {
     width: '100%',
     maxWidth: 420,

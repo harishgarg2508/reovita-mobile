@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
 import { API_URL } from '@shared/config/environment';
-import { useEventStream } from '@shared/lib';
+import { useEventStream, useScrollToTopOnFocus } from '@shared/lib';
 
 // The subject has this long to answer (the server's decision window, plus a short margin).
 const DECISION_WAIT_MS = 62_000;
@@ -40,6 +40,9 @@ function phaseFromParams(params: ScanParams): Phase {
 }
 
 export function ScanScreen() {
+  // Back at the top each time the screen is opened again.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const insets = useSafeAreaInsets();
@@ -172,7 +175,7 @@ export function ScanScreen() {
 
   if (phase.kind === 'choose') {
     return (
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.topRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={toDashboard} style={styles.backCircle}>
             <Ionicons name="chevron-back" size={22} color={p.accent} />

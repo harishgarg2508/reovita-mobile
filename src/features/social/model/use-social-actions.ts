@@ -3,13 +3,13 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { api, queryKeys } from '@shared/api';
-import type { SocialHandle, SocialPost, SocialPostPage } from '@entities/social';
+import type { SocialPodDetail, SocialToday, SocialComment, SocialCommentPage, SocialHandle, SocialPost, SocialPostPage } from '@entities/social';
 
 type PostPages = InfiniteData<SocialPostPage, string | undefined>;
 
 // Changes one post in every feed that holds it (the main feed and each person's list), so a kudos shows at once everywhere.
 function patchPost(queryClient: QueryClient, id: string, patch: (post: SocialPost) => SocialPost | null) {
-  for (const key of [queryKeys.social.feed(), [...queryKeys.social.root, 'posts-of']]) {
+  for (const key of [queryKeys.social.feed(), [...queryKeys.social.root, 'posts-of'], queryKeys.social.saved()]) {
     queryClient.setQueriesData<PostPages>({ queryKey: key }, (old) =>
       old
         ? {
@@ -31,18 +31,53 @@ function patchPost(queryClient: QueryClient, id: string, patch: (post: SocialPos
 function refreshPosts(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.social.feed() });
   void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'posts-of'] });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.social.saved() });
+}
+
+type PictureFile = { uri: string; name: string; type: string };
+
+async function uploadPicture(kind: 'avatar' | 'cover', photo: PictureFile): Promise<void> {
+  const form = new FormData();
+  // Browsers need a real Blob in FormData; the native { uri, name, type } object is ignored.
+  if (Platform.OS === 'web') form.append('photo', await (await fetch(photo.uri)).blob(), photo.name);
+  else form.append('photo', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  await api.put(`/v1/social/me/${kind}`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
 }
 
 export function useCreateHandle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { handle: string; displayName?: string }): Promise<SocialHandle> => {
-      const { data } = await api.post<SocialHandle>('/v1/social/me', { handle: input.handle, display_name: input.displayName || undefined });
+    // The person has ticked that they agree to the terms, whose version is sent with the request: the server records it.
+    mutationFn: async (input: { handle: string; displayName?: string; termsVersion: string; avatar?: PictureFile | null; cover?: PictureFile | null }): Promise<SocialHandle> => {
+      const { data } = await api.post<SocialHandle>('/v1/social/me', {
+        handle: input.handle,
+        display_name: input.displayName || undefined,
+        accept_terms: true,
+        terms_version: input.termsVersion,
+      });
+      // The photos chosen while joining are sent once the account exists. One that fails is not an error: it can be added again from the profile.
+      if (input.avatar) await uploadPicture('avatar', input.avatar).catch(() => undefined);
+      if (input.cover) await uploadPicture('cover', input.cover).catch(() => undefined);
       return data;
     },
     onSuccess: (handle) => {
       queryClient.setQueryData(queryKeys.social.me(), handle);
       void queryClient.invalidateQueries({ queryKey: queryKeys.social.feed() });
+    },
+  });
+}
+
+// Agrees again to the terms after they changed. The handle and everything on it stay.
+export function useAcceptSocialTerms() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (termsVersion: string): Promise<SocialHandle> => {
+      const { data } = await api.post<SocialHandle>('/v1/social/me/terms', { terms_version: termsVersion });
+      return data;
+    },
+    onSuccess: (handle) => {
+      queryClient.setQueryData(queryKeys.social.me(), handle);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.root });
     },
   });
 }
@@ -66,9 +101,11 @@ export function useUpdateSocialProfile() {
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { body: string; photo?: { uri: string; name: string; type: string } }): Promise<SocialPost> => {
+    mutationFn: async (input: { body: string; topic?: string | null; stamp?: boolean; photo?: { uri: string; name: string; type: string } }): Promise<SocialPost> => {
       const form = new FormData();
       form.append('body', input.body);
+      if (input.topic) form.append('topic', input.topic);
+      if (input.topic && input.stamp) form.append('stamp', 'true');
       if (input.photo) {
         if (Platform.OS === 'web') {
           // Browsers need a real Blob in FormData; the native { uri, name, type } object is ignored.
@@ -80,7 +117,11 @@ export function useCreatePost() {
       const { data } = await api.post<SocialPost>('/v1/social/posts', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       return data;
     },
-    onSuccess: () => refreshPosts(queryClient),
+    onSuccess: () => {
+      refreshPosts(queryClient);
+      // A post with a stamp checked the person in, so their card and grid are read again.
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'check-ins'] });
+    },
   });
 }
 
@@ -145,6 +186,262 @@ export function useToggleKudos() {
   );
 }
 
+// The bookmark on a post of someone else, debounced like kudos: the icon changes at once, and only the last state is sent, 600 ms after the last
+// tap, so tapping again and again sends one request (or none, if it ends where it started). If the server refuses, the icon goes back.
+export function useToggleSaved() {
+  const queryClient = useQueryClient();
+  const pending = useRef(new Map<string, PendingKudos>());
+
+  const send = useMutation({
+    mutationFn: async (input: { id: string; on: boolean }) => {
+      if (input.on) await api.put(`/v1/social/posts/${input.id}/save`);
+      else await api.delete(`/v1/social/posts/${input.id}/save`);
+    },
+    onError: (_error, input) => patchPost(queryClient, input.id, (p) => ({ ...p, saved: !input.on })),
+  });
+
+  const flush = useCallback(
+    (id: string, entry: PendingKudos) => {
+      pending.current.delete(id);
+      if (entry.desired !== entry.base) send.mutate({ id, on: entry.desired });
+    },
+    [send],
+  );
+
+  // Leaving the screen with a tap not yet sent sends it now, so it is not lost.
+  useEffect(() => {
+    const map = pending.current;
+    return () => {
+      for (const [id, entry] of map) {
+        clearTimeout(entry.timer);
+        if (entry.desired !== entry.base) void api.request({ method: entry.desired ? 'PUT' : 'DELETE', url: `/v1/social/posts/${id}/save` }).catch(() => undefined);
+      }
+      map.clear();
+    };
+  }, []);
+
+  return useCallback(
+    (post: SocialPost) => {
+      const entry = pending.current.get(post.id);
+      if (entry) clearTimeout(entry.timer);
+      const base = entry ? entry.base : post.saved;
+      const desired = entry ? !entry.desired : !post.saved;
+      patchPost(queryClient, post.id, (p) => ({ ...p, saved: desired }));
+      const next: PendingKudos = { base, desired, timer: setTimeout(() => flush(post.id, next), KUDOS_DELAY_MS) };
+      pending.current.set(post.id, next);
+    },
+    [queryClient, flush],
+  );
+}
+
+// Sets or removes the profile picture or the cover. The profile and the picture load again afterwards.
+export function useSetPicture(kind: 'avatar' | 'cover') {
+  const queryClient = useQueryClient();
+  const done = (handle: string) => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.picture(handle, kind) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.profile(handle) });
+  };
+  const set = useMutation({
+    mutationFn: async (input: { handle: string; photo: PictureFile }) => {
+      await uploadPicture(kind, input.photo);
+      return input.handle;
+    },
+    onSuccess: done,
+  });
+  const remove = useMutation({
+    mutationFn: async (handle: string) => {
+      await api.delete(`/v1/social/me/${kind}`);
+      return handle;
+    },
+    onSuccess: done,
+  });
+  return { set, remove };
+}
+
+type CommentPages = InfiniteData<SocialCommentPage, string | undefined>;
+
+// Changes one comment in every list that holds it (the comments of its post, or the replies of its thread), so a like shows at once.
+function patchComment(queryClient: QueryClient, id: string, patch: (comment: SocialComment) => SocialComment) {
+  for (const key of [[...queryKeys.social.root, 'comments'], [...queryKeys.social.root, 'replies']]) {
+    queryClient.setQueriesData<CommentPages>({ queryKey: key }, (old) =>
+      old ? { ...old, pages: old.pages.map((page) => ({ ...page, items: page.items.map((c) => (c.id === id ? patch(c) : c)) })) } : old,
+    );
+  }
+}
+
+// Likes on comments, debounced like the kudos on posts: the heart and the count change at once, and only the last state is sent, 600 ms after the
+// last tap (nothing, if it ends where it started). If the server refuses, the heart goes back.
+export function useToggleCommentLike() {
+  const queryClient = useQueryClient();
+  const pending = useRef(new Map<string, PendingKudos>());
+
+  const send = useMutation({
+    mutationFn: async (input: { id: string; on: boolean }) => {
+      const { data } = input.on
+        ? await api.put<{ likes_count: number; liked: boolean }>(`/v1/social/comments/${input.id}/like`)
+        : await api.delete<{ likes_count: number; liked: boolean }>(`/v1/social/comments/${input.id}/like`);
+      return { id: input.id, ...data };
+    },
+    // The server's count is the true one, unless the person has tapped again since: then the newer tap decides.
+    onSuccess: (result) => {
+      if (pending.current.has(result.id)) return;
+      patchComment(queryClient, result.id, (c) => ({ ...c, liked: result.liked, likes_count: result.likes_count }));
+    },
+    onError: (_error, input) => patchComment(queryClient, input.id, (c) => ({ ...c, liked: !input.on, likes_count: Math.max(0, c.likes_count + (input.on ? -1 : 1)) })),
+  });
+
+  const flush = useCallback(
+    (id: string, entry: PendingKudos) => {
+      pending.current.delete(id);
+      if (entry.desired !== entry.base) send.mutate({ id, on: entry.desired });
+    },
+    [send],
+  );
+
+  // Leaving the screen with a tap not yet sent sends it now, so it is not lost.
+  useEffect(() => {
+    const map = pending.current;
+    return () => {
+      for (const [id, entry] of map) {
+        clearTimeout(entry.timer);
+        if (entry.desired !== entry.base) void api.request({ method: entry.desired ? 'PUT' : 'DELETE', url: `/v1/social/comments/${id}/like` }).catch(() => undefined);
+      }
+      map.clear();
+    };
+  }, []);
+
+  return useCallback(
+    (comment: SocialComment) => {
+      const entry = pending.current.get(comment.id);
+      if (entry) clearTimeout(entry.timer);
+      const base = entry ? entry.base : comment.liked;
+      const desired = entry ? !entry.desired : !comment.liked;
+      patchComment(queryClient, comment.id, (c) => ({ ...c, liked: desired, likes_count: Math.max(0, c.likes_count + (c.liked === desired ? 0 : desired ? 1 : -1)) }));
+      const next: PendingKudos = { base, desired, timer: setTimeout(() => flush(comment.id, next), KUDOS_DELAY_MS) };
+      pending.current.set(comment.id, next);
+    },
+    [queryClient, flush],
+  );
+}
+
+// Checks in to a habit today, or takes the check-in back. The card updates at once from the server's answer, and the profile grid loads again.
+export function useToggleCheckIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { habit: string; on: boolean }) => {
+      const { data } = input.on
+        ? await api.post<SocialToday>('/v1/social/check-ins', { habit: input.habit })
+        : await api.delete<SocialToday>(`/v1/social/check-ins/today/${encodeURIComponent(input.habit)}`);
+      return data;
+    },
+    onSuccess: (today) => {
+      queryClient.setQueryData(queryKeys.social.today(), today);
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'check-ins', 'consistency'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.quests() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.pods() });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'leaderboard'] });
+    },
+  });
+}
+
+// Pods. Each change reads the pods and the invitations again.
+function usePodRefresh() {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.pods() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.podInvites() });
+  };
+}
+
+export function useCreatePod() {
+  const refresh = usePodRefresh();
+  return useMutation({
+    mutationFn: async (input: { name: string; weeklyGoal: number }) => (await api.post<SocialPodDetail>('/v1/social/pods', { name: input.name, weekly_goal: input.weeklyGoal })).data,
+    onSuccess: refresh,
+  });
+}
+
+export function useInviteToPod(podId: string) {
+  const refresh = usePodRefresh();
+  return useMutation({
+    mutationFn: async (handle: string) => {
+      await api.post(`/v1/social/pods/${podId}/invites`, { handle });
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useAnswerPodInvite() {
+  const refresh = usePodRefresh();
+  return useMutation({
+    mutationFn: async (input: { id: string; accept: boolean }) => {
+      if (input.accept) await api.post(`/v1/social/pods/invites/${input.id}/accept`);
+      else await api.post(`/v1/social/pods/invites/${input.id}/decline`);
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useLeavePod(podId: string) {
+  const refresh = usePodRefresh();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete(`/v1/social/pods/${podId}/members/me`);
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useDeletePod(podId: string) {
+  const refresh = usePodRefresh();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete(`/v1/social/pods/${podId}`);
+    },
+    onSuccess: refresh,
+  });
+}
+
+// A gentle check-in nudge to a friend. The server allows one a day to the same friend (429 nudge_cooldown), and only to a friend.
+export function useNudgeFriend() {
+  return useMutation({
+    mutationFn: async (handle: string) => {
+      await api.post(`/v1/social/friends/${encodeURIComponent(handle)}/nudge`);
+    },
+  });
+}
+
+// Adds a comment to a post. The post's count goes up at once in every list, and the list of comments loads again.
+export function useAddComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    // parentId: the comment this answers (a reply). The server puts it in the thread of the comment at the top.
+    mutationFn: async (input: { body: string; parentId?: string }) => (await api.post<SocialComment>(`/v1/social/posts/${postId}/comments`, { body: input.body, parent_id: input.parentId })).data,
+    onSuccess: () => {
+      patchPost(queryClient, postId, (p) => ({ ...p, comments_count: p.comments_count + 1 }));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.comments(postId) });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'replies'] });
+    },
+  });
+}
+
+// Deletes a comment (mine, or one on my post). The post's count goes down and the list loads again.
+export function useDeleteComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    // removed: how many comments go with it (a top comment takes its replies along).
+    mutationFn: async (input: { id: string; removed: number }) => {
+      await api.delete(`/v1/social/comments/${input.id}`);
+      return input.removed;
+    },
+    onSuccess: (removed) => {
+      patchPost(queryClient, postId, (p) => ({ ...p, comments_count: Math.max(0, p.comments_count - removed) }));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.comments(postId) });
+      void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'replies'] });
+    },
+  });
+}
+
 export function useDeletePost() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -168,6 +465,17 @@ export function useReportPost() {
     },
     // A reported post is hidden for the person who reported it.
     onSuccess: (post) => patchPost(queryClient, post.id, () => null),
+  });
+}
+
+// Reports a comment. The person who reported it stops seeing it at once, so the list loads again.
+export function useReportComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; reason: string }) => {
+      await api.post(`/v1/social/comments/${input.id}/report`, { reason: input.reason });
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.social.comments(postId) }),
   });
 }
 
@@ -277,6 +585,19 @@ export function useBlockHandle() {
     mutationFn: async (input: { handle: string; block: boolean }) => {
       if (input.block) await api.put(`/v1/social/blocks/${encodeURIComponent(input.handle)}`);
       else await api.delete(`/v1/social/blocks/${encodeURIComponent(input.handle)}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.social.root });
+    },
+  });
+}
+
+// Takes back my reports of one person (unreport). Their posts show for me again, so the lists load again.
+export function useUnreport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (handle: string) => {
+      await api.delete(`/v1/social/reported/${encodeURIComponent(handle)}`);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.social.root });
