@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMeasurements, type Measurement, type MeasurementType } from '@entities/measurement';
@@ -38,11 +38,12 @@ export function MeasurementEntryScreen() {
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
   const [weight, setWeight] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [savedNote, setSavedNote] = useState<string | null>(null);
+  // The message and the card it belongs to, so it shows under that card.
+  const [error, setErrorState] = useState<{ section: 'bp' | 'weight'; message: string } | null>(null);
+  const [savedNote, setSavedNoteState] = useState<{ section: 'bp' | 'weight'; message: string } | null>(null);
+  const [section, setSection] = useState<'bp' | 'weight'>('bp');
   // Fields that failed validation after a save attempt. They turn red until the user changes them.
   const [bad, setBad] = useState<{ sys?: boolean; dia?: boolean; weight?: boolean }>({});
-  const [infoOpen, setInfoOpen] = useState(false);
 
   // Opening animation: the page fades in and slides up a little.
   const enter = useRef(new Animated.Value(0)).current;
@@ -51,19 +52,18 @@ export function MeasurementEntryScreen() {
   }, [enter]);
 
   function fail(err: unknown) {
-    setSavedNote(null);
-    setError(isApiError(err) ? err.message : 'Could not save the reading. Try again.');
+    setSavedNoteState(null);
+    setErrorState({ section, message: isApiError(err) ? err.message : 'Could not save the reading. Try again.' });
   }
 
   function saveBp() {
-    setError(null);
+    setSection('bp');
+    setErrorState(null);
     const sysOk = inRange(systolic, RANGE.sys);
     const diaOk = inRange(diastolic, RANGE.dia);
     setBad({ sys: !sysOk, dia: !diaOk });
     if (!sysOk || !diaOk) {
-      setError(`Enter a top number from ${RANGE.sys.min} to ${RANGE.sys.max} and a bottom number from ${RANGE.dia.min} to ${RANGE.dia.max}.`);
-      // Open the allowed-values info so the user sees the ranges right away.
-      setInfoOpen(true);
+      setErrorState({ section: 'bp', message: `Enter a top number from ${RANGE.sys.min} to ${RANGE.sys.max} and a bottom number from ${RANGE.dia.min} to ${RANGE.dia.max}.` });
       return;
     }
     const sys = Number(systolic);
@@ -79,7 +79,7 @@ export function MeasurementEntryScreen() {
         onSuccess: () => {
           setSystolic('');
           setDiastolic('');
-          setSavedNote('Blood pressure saved.');
+          setSavedNoteState({ section: 'bp', message: 'Blood pressure saved.' });
         },
         onError: fail,
       },
@@ -87,11 +87,12 @@ export function MeasurementEntryScreen() {
   }
 
   function saveWeight() {
-    setError(null);
+    setSection('weight');
+    setErrorState(null);
     const weightOk = inRange(weight, RANGE.weight);
     setBad({ weight: !weightOk });
     if (!weightOk) {
-      setError(`Enter your weight in kg, from ${RANGE.weight.min} to ${RANGE.weight.max}.`);
+      setErrorState({ section: 'weight', message: `Enter your weight in kg, from ${RANGE.weight.min} to ${RANGE.weight.max}.` });
       return;
     }
     const kg = Number(weight);
@@ -99,7 +100,7 @@ export function MeasurementEntryScreen() {
     save.mutate([{ type: 'weight_kg', value: kg, measured_at: new Date().toISOString() }], {
       onSuccess: () => {
         setWeight('');
-        setSavedNote('Weight saved.');
+        setSavedNoteState({ section: 'weight', message: 'Weight saved.' });
       },
       onError: fail,
     });
@@ -129,14 +130,16 @@ export function MeasurementEntryScreen() {
         <View style={styles.cardHead}>
           <Ionicons name="heart-outline" size={20} color={p.accent} />
           <Text style={styles.cardTitle}>Blood pressure</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Allowed values" onPress={() => setInfoOpen(true)} hitSlop={8} style={styles.infoBtn}>
-            <Ionicons name="information-circle-outline" size={22} color={p.muted} />
-          </Pressable>
         </View>
         <View style={styles.row}>
           <Field label="Top (mmHg)" value={systolic} onChange={(v) => { setSystolic(v); setBad((b) => ({ ...b, sys: false })); }} styles={styles} min={RANGE.sys.min} max={RANGE.sys.max} invalid={bad.sys} />
           <Field label="Bottom (mmHg)" value={diastolic} onChange={(v) => { setDiastolic(v); setBad((b) => ({ ...b, dia: false })); }} styles={styles} min={RANGE.dia.min} max={RANGE.dia.max} invalid={bad.dia} />
         </View>
+        <Text style={[styles.hint, (bad.sys || bad.dia) && styles.hintBad]}>
+          Top {RANGE.sys.min} to {RANGE.sys.max}, bottom {RANGE.dia.min} to {RANGE.dia.max} {RANGE.sys.unit}
+        </Text>
+        {error?.section === 'bp' ? <Text style={styles.error}>{error.message}</Text> : null}
+        {savedNote?.section === 'bp' && !error ? <Text style={styles.ok}>{savedNote.message}</Text> : null}
         <Pressable accessibilityRole="button" onPress={saveBp} disabled={save.isPending} style={styles.saveBtn}>
           {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save blood pressure</Text>}
         </Pressable>
@@ -147,14 +150,16 @@ export function MeasurementEntryScreen() {
           <Ionicons name="body-outline" size={20} color={p.accent} />
           <Text style={styles.cardTitle}>Weight</Text>
         </View>
-        <Field label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
+        <Field decimal label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
+        <Text style={[styles.hint, bad.weight && styles.hintBad]}>
+          {RANGE.weight.min} to {RANGE.weight.max} {RANGE.weight.unit}
+        </Text>
+        {error?.section === 'weight' ? <Text style={styles.error}>{error.message}</Text> : null}
+        {savedNote?.section === 'weight' && !error ? <Text style={styles.ok}>{savedNote.message}</Text> : null}
         <Pressable accessibilityRole="button" onPress={saveWeight} disabled={save.isPending} style={styles.saveBtn}>
           {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save weight</Text>}
         </Pressable>
       </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {savedNote && !error ? <Text style={styles.ok}>{savedNote}</Text> : null}
 
       <Text style={styles.sectionLabel}>Recent readings</Text>
       {recent.isPending ? <ActivityIndicator color={p.accent} /> : null}
@@ -174,26 +179,6 @@ export function MeasurementEntryScreen() {
         </View>
       ))}
     </ScrollView>
-      <Modal visible={infoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setInfoOpen(false)}>
-        <Pressable style={styles.infoBackdrop} onPress={() => setInfoOpen(false)}>
-          <Pressable style={styles.infoSheet} onPress={() => undefined}>
-            <Text style={styles.cardTitle}>Allowed values</Text>
-            <Text style={styles.infoRow}>
-              {RANGE.sys.label}: {RANGE.sys.min} to {RANGE.sys.max} {RANGE.sys.unit}
-            </Text>
-            <Text style={styles.infoRow}>
-              {RANGE.dia.label}: {RANGE.dia.min} to {RANGE.dia.max} {RANGE.dia.unit}
-            </Text>
-            <Text style={styles.infoRow}>
-              {RANGE.weight.label}: {RANGE.weight.min} to {RANGE.weight.max} {RANGE.weight.unit}
-            </Text>
-            <Text style={styles.infoRow}>Fields in red need a value in the range above.</Text>
-            <Pressable accessibilityRole="button" onPress={() => setInfoOpen(false)} style={styles.infoClose}>
-              <Text style={styles.saveText}>Got it</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </Animated.View>
   );
 }
@@ -204,8 +189,11 @@ function Field({
   onChange,
   styles,
   invalid = false,
+  decimal = false,
+  max = 999,
 }: {
   label: string;
+  decimal?: boolean;
   value: string;
   onChange: (v: string) => void;
   styles: Styles;
@@ -218,8 +206,11 @@ function Field({
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
-        onChangeText={onChange}
-        keyboardType="decimal-pad"
+        // Digits only (and one point for weight), so letters and symbols cannot be typed or pasted.
+        onChangeText={(text) => onChange(decimal ? text.replace(/[^0-9.]/g, '').replace(/^(\d*\.?\d{0,1}).*$/, '$1') : text.replace(/\D/g, ''))}
+        keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
+        // As many characters as the largest allowed value has digits, plus a point and one decimal for weight.
+        maxLength={String(max).length + (decimal ? 2 : 0)}
         placeholder="—"
         placeholderTextColor="#9185AA"
         style={[styles.input, invalid && styles.inputInvalid]}
@@ -331,11 +322,8 @@ function makeStyles(p: Palette) {
     field: { flex: 1, gap: 6 },
     label: { fontSize: 12.5, color: p.muted },
     inputInvalid: { borderColor: '#C22F43', borderWidth: 1.5 },
-    infoBtn: { marginLeft: 'auto', padding: 4 },
-    infoBackdrop: { flex: 1, backgroundColor: p.bg, justifyContent: 'center', padding: 20 },
-    infoSheet: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 20, gap: 10 },
-    infoRow: { fontSize: 14, lineHeight: 20, color: p.muted },
-    infoClose: { marginTop: 8, height: 46, borderRadius: 16, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
+    hint: { fontSize: 12.5, color: p.muted },
+    hintBad: { color: p.red, fontWeight: '700' },
     input: {
       height: 46,
       borderRadius: 14,

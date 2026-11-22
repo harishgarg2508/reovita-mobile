@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { api, queryKeys } from '@shared/api';
-import type { SocialPodDetail, SocialToday, SocialComment, SocialCommentPage, SocialHandle, SocialPost, SocialPostPage } from '@entities/social';
+import type { SocialJourneyDetail, SocialPodDetail, SocialToday, SocialComment, SocialCommentPage, SocialHandle, SocialPost, SocialPostPage } from '@entities/social';
 
 type PostPages = InfiniteData<SocialPostPage, string | undefined>;
 
@@ -615,5 +615,58 @@ export function useLeaveSocial() {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.social.root });
     },
+  });
+}
+
+// Journeys. Each change reads the journeys and the invitations again.
+function useJourneyRefresh() {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.challenges() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.social.challengeInvites() });
+  };
+}
+
+export function useStartJourney() {
+  const refresh = useJourneyRefresh();
+  return useMutation({
+    mutationFn: async (input: string | { title: string; totalKm: number; days: number; theme: string }) =>
+      (
+        await api.post<SocialJourneyDetail>(
+          '/v1/social/challenges',
+          typeof input === 'string' ? { map_key: input } : { map_key: 'custom', title: input.title, total_km: input.totalKm, days: input.days, theme: input.theme },
+        )
+      ).data,
+    onSuccess: refresh,
+  });
+}
+
+export function useInviteToJourney(journeyId: string) {
+  const refresh = useJourneyRefresh();
+  return useMutation({
+    mutationFn: async (handle: string) => {
+      await api.post(`/v1/social/challenges/${journeyId}/invites`, { handle });
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useAnswerJourneyInvite() {
+  const refresh = useJourneyRefresh();
+  return useMutation({
+    mutationFn: async (input: { id: string; accept: boolean }) => {
+      await api.post(`/v1/social/challenges/invites/${input.id}/${input.accept ? 'accept' : 'decline'}`);
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useLeaveJourney(journeyId: string) {
+  const refresh = useJourneyRefresh();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete(`/v1/social/challenges/${journeyId}/members/me`);
+    },
+    onSuccess: refresh,
   });
 }

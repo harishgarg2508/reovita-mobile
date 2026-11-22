@@ -1,5 +1,8 @@
 export type { InteractionCheck, InteractionFinding, InteractionStatus } from './model/interaction-finding.types';
 export { useInteractions } from './model/use-interactions';
+export { useInteractionLookup } from './model/use-interaction-lookup';
+export { startMedicineScan, fetchMedicineScan } from './model/medicine-scan.api';
+export type { MedicineScanPhoto, MedicineScanResult, ScannedMedicine } from './model/medicine-scan.api';
 export {
   interactionAlertReducer,
   interactionJobQueued,

@@ -84,7 +84,7 @@ export default function AppLayout() {
       <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score', headerShown: false }} />
       {/* The briefing draws its own header with a back button, so the drawer header is hidden here. */}
       <Drawer.Screen name="briefings" options={{ drawerLabel: 'Daily briefings', headerShown: false }} />
-      <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check' }} />
+      <Drawer.Screen name="medication-interactions" options={{ drawerLabel: 'Medication check', headerShown: false }} />
       <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
       <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
       {/* The social draws its own headers per screen (see social/_layout). */}

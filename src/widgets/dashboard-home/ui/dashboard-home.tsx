@@ -347,6 +347,19 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         </Card>
       </Pressable>
 
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medication-interactions')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="medkit-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Medication check</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>See if your medicines interact. Scan a pack or check any two.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={p.purple} />
+          </View>
+        </Card>
+      </Pressable>
+
       <Pressable accessibilityRole="button" onPress={() => router.push(SOCIAL_HOME)}>
         <Card p={p}>
           <View style={styles.rowTop}>

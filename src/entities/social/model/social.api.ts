@@ -1,6 +1,6 @@
 import { api } from '@shared/api';
 
-import type { SocialTerms, SocialBlockedPage, SocialReportedPage, FeedScope, SocialFriendRequestPage, SocialHandle, SocialKudosPage, SocialNotificationPage, SocialPersonPage, SocialPostPage, SocialProfile, SocialReceivedKudosPage, SocialCommentPage, SocialToday, SocialConsistency, SocialQuests, SocialLeaderboard, SocialPodSummary, SocialPodDetail, SocialPodInvite, SocialRecap } from './social.types';
+import type { SocialTerms, SocialBlockedPage, SocialReportedPage, FeedScope, SocialFriendRequestPage, SocialHandle, SocialKudosPage, SocialNotificationPage, SocialPersonPage, SocialPostPage, SocialProfile, SocialReceivedKudosPage, SocialCommentPage, SocialToday, SocialConsistency, SocialQuests, SocialLeaderboard, SocialPodSummary, SocialPodDetail, SocialPodInvite, SocialRecap, SocialJourneyMap, SocialJourneySummary, SocialJourneyDetail, SocialJourneyInvite } from './social.types';
 
 export async function fetchSocialTerms(): Promise<SocialTerms> {
   const { data } = await api.get<SocialTerms>('/v1/social/terms');
@@ -183,4 +183,20 @@ function toBase64(bytes: Uint8Array): string {
     out += c === undefined ? '=' : ALPHABET[c & 63];
   }
   return out;
+}
+
+export async function fetchJourneyMaps(): Promise<SocialJourneyMap[]> {
+  return (await api.get<SocialJourneyMap[]>('/v1/social/challenges/maps')).data;
+}
+
+export async function fetchJourneys(): Promise<SocialJourneySummary[]> {
+  return (await api.get<SocialJourneySummary[]>('/v1/social/challenges')).data;
+}
+
+export async function fetchJourney(id: string): Promise<SocialJourneyDetail> {
+  return (await api.get<SocialJourneyDetail>(`/v1/social/challenges/${id}`)).data;
+}
+
+export async function fetchJourneyInvites(): Promise<SocialJourneyInvite[]> {
+  return (await api.get<SocialJourneyInvite[]>('/v1/social/challenges/invites')).data;
 }

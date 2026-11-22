@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import {
   Platform,
   Pressable,
@@ -27,10 +27,34 @@ interface NumberWheelProps {
   onChange: (year: number) => void;
   // Text after each number, for example ' h' for hours.
   suffix?: string;
+  // For a narrow wheel: no arrows (scroll or tap a number), and a smaller font, so nothing covers the digits.
+  compact?: boolean;
 }
 
+interface WheelRowProps {
+  year: number;
+  index: number;
+  selected: boolean;
+  compact: boolean;
+  suffix: string;
+  styles: ReturnType<typeof createStyles>;
+  onPick: (index: number) => void;
+}
+
+// One number of the wheel. Memoised: a wheel can hold thousands of numbers, and only the row that was selected and the one that is now should redraw.
+const WheelRow = memo(function WheelRow({ year, index, selected, compact, suffix, styles, onPick }: WheelRowProps) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Select ${year}${suffix}`} onPress={() => onPick(index)} style={styles.item}>
+      <Text style={[styles.year, compact && styles.yearCompact, selected && styles.yearSelected, selected && compact && styles.yearSelectedCompact]}>
+        {year}
+        {suffix}
+      </Text>
+    </Pressable>
+  );
+});
+
 // Scrolling number picker with guaranteed auto-centering on scroll stop across all platforms.
-export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '' }: NumberWheelProps) {
+export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '', compact = false }: NumberWheelProps) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const years = useMemo(() => {
@@ -184,6 +208,7 @@ export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '' }
       <View pointerEvents="none" style={styles.band} />
 
       {/* Interactive chevrons layer on top of the band */}
+      {compact ? null : (
       <View pointerEvents="box-none" style={styles.chevronOverlay}>
         <Pressable
           accessibilityRole="button"
@@ -204,6 +229,7 @@ export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '' }
           <Ionicons name="chevron-down" size={18} color={currentYear >= maxValue ? colors.disabledIcon : colors.accent} />
         </Pressable>
       </View>
+      )}
 
       <ScrollView
         ref={scrollRef}
@@ -224,22 +250,9 @@ export function NumberWheel({ value, minValue, maxValue, onChange, suffix = '' }
         onMomentumScrollEnd={onMomentumScrollEnd}
         onScrollEndDrag={onScrollEndDrag}
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}>
-        {years.map((year, index) => {
-          const selected = index === centerIndex;
-          return (
-            <Pressable
-              key={year}
-              accessibilityRole="button"
-              accessibilityLabel={`Select ${year}${suffix}`}
-              onPress={() => animateToCenter(index)}
-              style={styles.item}>
-              <Text style={[styles.year, selected && styles.yearSelected]}>
-                {year}
-                {suffix}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {years.map((year, index) => (
+          <WheelRow key={year} year={year} index={index} selected={index === centerIndex} compact={compact} suffix={suffix} styles={styles} onPick={animateToCenter} />
+        ))}
       </ScrollView>
     </View>
   );
@@ -283,6 +296,8 @@ const createStyles = (colors: FormColors) =>
     alignItems: 'center',
     justifyContent: 'center',
   },
+  yearCompact: { fontSize: 16 },
+  yearSelectedCompact: { fontSize: 19 },
   item: {
     height: ITEM_HEIGHT,
     alignItems: 'center',

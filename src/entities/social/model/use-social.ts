@@ -4,7 +4,7 @@ import { isApiError, queryKeys } from '@shared/api';
 import { API_URL } from '@shared/config/environment';
 import { useEventStream } from '@shared/lib';
 
-import { fetchSocialTerms, fetchBlockedProfiles, fetchReportedProfiles, fetchFeed, fetchFriendRequests, fetchKudosOf, fetchMyHandle, fetchReceivedKudos, fetchSocialSearch, fetchPeople, fetchFriendsOf, fetchPostPhoto, fetchPicture, fetchPostsOf, fetchSavedPosts, fetchComments, fetchReplies, fetchExplore, fetchToday, fetchConsistency, fetchRecap, fetchQuests, fetchLeaderboard, fetchPods, fetchPod, fetchPodInvites, fetchProfile, fetchSocialNotifications, fetchSocialUnread } from './social.api';
+import { fetchSocialTerms, fetchBlockedProfiles, fetchReportedProfiles, fetchFeed, fetchFriendRequests, fetchKudosOf, fetchMyHandle, fetchReceivedKudos, fetchSocialSearch, fetchPeople, fetchFriendsOf, fetchPostPhoto, fetchPicture, fetchPostsOf, fetchSavedPosts, fetchComments, fetchReplies, fetchExplore, fetchToday, fetchConsistency, fetchRecap, fetchQuests, fetchLeaderboard, fetchPods, fetchPod, fetchPodInvites, fetchJourneyMaps, fetchJourneys, fetchJourney, fetchJourneyInvites, fetchProfile, fetchSocialNotifications, fetchSocialUnread } from './social.api';
 import type { SocialBlockedPage, SocialReportedPage, FeedScope, SocialFriendRequestPage, SocialKudosPage, SocialNotificationPage, SocialPersonPage, SocialReceivedKudosPage } from './social.types';
 
 // My handle. `data` is undefined and `joined` is false for a person who has not chosen one yet (the server answers 404 no_handle).
@@ -288,4 +288,21 @@ export function useReportedProfiles(enabled: boolean) {
     enabled,
     ...FRESH_LIST,
   });
+}
+
+// Journeys: the maps to choose from, mine, one with its members, and the invitations waiting for me.
+export function useJourneyMaps(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.challengeMaps(), queryFn: fetchJourneyMaps, enabled, retry: false, staleTime: 5 * 60_000 });
+}
+
+export function useJourneys(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.challenges(), queryFn: fetchJourneys, enabled, retry: false, ...FRESH_LIST });
+}
+
+export function useJourney(id: string, enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.challenge(id), queryFn: () => fetchJourney(id), enabled: enabled && id.length > 0, retry: false, ...FRESH_LIST });
+}
+
+export function useJourneyInvites(enabled = true) {
+  return useQuery({ queryKey: queryKeys.social.challengeInvites(), queryFn: fetchJourneyInvites, enabled, retry: false, ...FRESH_LIST });
 }

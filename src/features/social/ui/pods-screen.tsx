@@ -14,6 +14,7 @@ import { SOCIAL_HOME, socialPodHref } from '../model/routes';
 import { useAnswerPodInvite, useCreatePod } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
 import { StepsPermissionOverlay } from './steps-permission-overlay';
+import { StepsBanner } from './steps-banner';
 import { StepsCard } from './steps-card';
 
 // Accountability pods: small private groups with one weekly target for everyone and a shared streak (the weeks in a row in which every member
@@ -59,6 +60,8 @@ export function PodsScreen() {
         <Text style={[styles.title, { color: p.text }]}>Accountability Pods</Text>
         <View style={styles.spacer} />
       </View>
+
+      <StepsBanner />
 
       {me.needsJoin ? (
         <View style={styles.gutter}>

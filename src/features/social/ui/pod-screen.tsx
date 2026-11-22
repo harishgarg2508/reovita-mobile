@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@shared/ui';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
 import { SocialAvatar, useMyHandle, useSocialPeople, useSocialPod } from '@entities/social';
@@ -12,6 +13,7 @@ import { SocialAvatar, useMyHandle, useSocialPeople, useSocialPod } from '@entit
 import { socialProfileHref, socialRoute } from '../model/routes';
 import { useDeletePod, useInviteToPod, useLeavePod } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
+import { StepsBanner } from './steps-banner';
 import { StepsPermissionOverlay } from './steps-permission-overlay';
 import { tapConfirm, tapSelection, useScrollToTopOnFocus } from '@shared/lib';
 
@@ -51,6 +53,8 @@ export function PodScreen({ id }: { id: string }) {
         </View>
         <View style={styles.spacer} />
       </View>
+
+      <StepsBanner />
 
       {me.needsJoin ? (
         <View style={styles.gutter}>
@@ -184,58 +188,17 @@ export function PodScreen({ id }: { id: string }) {
             </View>
           ))}
 
-          {/* Invite Panel */}
-          {inviting ? (
-            <View style={[styles.invitePanel, { backgroundColor: p.card, borderColor: p.border }]}>
-              <View style={styles.sectionHead}>
-                <Text style={[styles.section, { color: p.text }]}>Invite a Friend</Text>
-                <Pressable accessibilityRole="button" onPress={() => setInviting(false)} hitSlop={8}>
-                  <Ionicons name="close" size={20} color={p.muted} />
-                </Pressable>
-              </View>
-
-              {full ? <Text style={[styles.note, { color: p.muted }]}>The pod is full, counting the invitations that wait.</Text> : null}
-              {!full && friends.isPending ? <ActivityIndicator color={p.accent} /> : null}
-              {!full && candidates.length === 0 && !friends.isPending ? <Text style={[styles.note, { color: p.muted }]}>All your friends are in this pod already, or you have no friends yet. Find people with Search.</Text> : null}
-              {!full
-                ? candidates.map((friend) => (
-                    <View key={friend.handle} style={styles.candidate}>
-                      <SocialAvatar handle={friend.handle} hasAvatar={friend.has_avatar} size={38} />
-                      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                        <Text numberOfLines={1} style={[styles.memberName, { color: p.text }]}>{friend.display_name || `@${friend.handle}`}</Text>
-                        <Text style={[styles.invitedSubtext, { color: p.muted }]}>@{friend.handle}</Text>
-                      </View>
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={invite.isPending}
-                        onPress={() => {
-                          tapConfirm();
-                          invite.mutate(friend.handle);
-                        }}
-                        style={[styles.inviteBtn, { backgroundColor: p.accent }]}>
-                        {invite.isPending && invite.variables === friend.handle ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
-                        ) : (
-                          <Text style={styles.inviteBtnText}>Invite</Text>
-                        )}
-                      </Pressable>
-                    </View>
-                  ))
-                : null}
-              {invite.isError ? <Text style={[styles.error, { color: p.red }]}>{(invite.error as Error).message}</Text> : null}
-            </View>
-          ) : !full ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                tapSelection();
-                setInviting(true);
-              }}
-              style={[styles.newInvite, { borderColor: p.accent, backgroundColor: p.surface }]}>
-              <Ionicons name="person-add-outline" size={17} color={p.accent} />
-              <Text style={[styles.newInviteText, { color: p.accent }]}>Invite a Friend to Squad</Text>
-            </Pressable>
-          ) : null}
+          {/* The friends to invite are chosen in a drawer. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              tapSelection();
+              setInviting(true);
+            }}
+            style={[styles.newInvite, { borderColor: p.accent, backgroundColor: p.surface }]}>
+            <Ionicons name="person-add-outline" size={17} color={p.accent} />
+            <Text style={[styles.newInviteText, { color: p.accent }]}>Invite a Friend to Squad</Text>
+          </Pressable>
 
           {/* Danger Zone Actions */}
           <View style={styles.dangerRow}>
@@ -254,6 +217,39 @@ export function PodScreen({ id }: { id: string }) {
       )}
 
       <StepsPermissionOverlay />
+
+      <BottomSheet visible={inviting} onClose={() => setInviting(false)}>
+        <View style={styles.sheetBody}>
+          <Text style={[styles.section, { color: p.text }]}>Invite a Friend</Text>
+          {full ? <Text style={[styles.note, { color: p.muted }]}>The pod is full, counting the invitations that wait.</Text> : null}
+          {!full && friends.isPending ? <ActivityIndicator color={p.accent} /> : null}
+          {!full && candidates.length === 0 && !friends.isPending ? <Text style={[styles.note, { color: p.muted }]}>All your friends are in this pod already, or you have no friends yet. Find people with Search.</Text> : null}
+          <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
+            {!full
+              ? candidates.map((friend) => (
+                  <View key={friend.handle} style={styles.candidate}>
+                    <SocialAvatar handle={friend.handle} hasAvatar={friend.has_avatar} size={38} />
+                    <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                      <Text numberOfLines={1} style={[styles.memberName, { color: p.text }]}>{friend.display_name || `@${friend.handle}`}</Text>
+                      <Text style={[styles.invitedSubtext, { color: p.muted }]}>@{friend.handle}</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={invite.isPending}
+                      onPress={() => {
+                        tapConfirm();
+                        invite.mutate(friend.handle);
+                      }}
+                      style={[styles.inviteBtn, { backgroundColor: p.accent }]}>
+                      {invite.isPending && invite.variables === friend.handle ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.inviteBtnText}>Invite</Text>}
+                    </Pressable>
+                  </View>
+                ))
+              : null}
+          </ScrollView>
+          {invite.isError ? <Text style={[styles.error, { color: p.red }]}>{(invite.error as Error).message}</Text> : null}
+        </View>
+      </BottomSheet>
 
       <ConfirmDialog
         visible={confirm !== null}
@@ -311,7 +307,8 @@ const styles = StyleSheet.create({
   statusChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   statusChipText: { fontSize: 10, fontWeight: '800' },
   invitedSubtext: { fontSize: 12, fontWeight: '500' },
-  invitePanel: { borderWidth: 1, borderRadius: 20, padding: 14, gap: 12 },
+  sheetBody: { gap: 12 },
+  sheetList: { maxHeight: 420 },
   candidate: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   inviteBtn: { minWidth: 72, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   inviteBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },

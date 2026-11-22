@@ -34,6 +34,7 @@ export function SocialSettingsScreen() {
   const blocked = profile.data?.blocked_count;
   const rows: Row[] = [
     { icon: 'people-circle-outline', label: 'Accountability pods', hint: 'Small groups with a shared weekly target', href: socialRoute('/social/pods') },
+    { icon: 'map-outline', label: 'Journeys', hint: 'Walk a route with friends on an animated map', href: socialRoute('/social/journeys') },
     { icon: 'trophy-outline', label: 'Quests and leaderboard', hint: 'Monthly goals and your friends', href: socialRoute('/social/quests') },
     { icon: 'bookmark-outline', label: 'Saved posts', hint: 'Posts you kept with the bookmark', href: socialRoute('/social/saved') },
     { icon: 'pulse-outline', label: 'Your activity', hint: 'Kudos, comments and accepted requests', badge: unread.data?.unread ?? 0, href: socialRoute('/social/activity') },
