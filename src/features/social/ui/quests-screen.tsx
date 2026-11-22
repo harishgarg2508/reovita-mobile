@@ -10,7 +10,50 @@ import { SocialAvatar, useMyHandle, useSocialLeaderboard, useSocialQuests } from
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { JoinPanel } from './join-panel';
-import { useScrollToTopOnFocus } from '@shared/lib';
+import { tapSelection, useScrollToTopOnFocus } from '@shared/lib';
+
+function getQuestIcon(key: string): keyof typeof Ionicons.glyphMap {
+  const lower = key.toLowerCase();
+  if (lower.includes('step')) return 'footsteps';
+  if (lower.includes('sleep')) return 'moon';
+  if (lower.includes('water') || lower.includes('hydrat')) return 'water';
+  if (lower.includes('strength') || lower.includes('barbell')) return 'barbell';
+  if (lower.includes('mindful') || lower.includes('zen')) return 'leaf';
+  return 'trophy';
+}
+
+function getRankBadge(rank: number, p: ReturnType<typeof usePalette>) {
+  if (rank === 1) {
+    return {
+      bg: 'rgba(245, 158, 11, 0.15)',
+      text: '#F59E0B',
+      border: 'rgba(245, 158, 11, 0.35)',
+      icon: 'trophy' as const,
+    };
+  }
+  if (rank === 2) {
+    return {
+      bg: 'rgba(148, 163, 184, 0.15)',
+      text: '#94A3B8',
+      border: 'rgba(148, 163, 184, 0.35)',
+      icon: 'medal' as const,
+    };
+  }
+  if (rank === 3) {
+    return {
+      bg: 'rgba(217, 119, 6, 0.15)',
+      text: '#D97706',
+      border: 'rgba(217, 119, 6, 0.35)',
+      icon: 'medal-outline' as const,
+    };
+  }
+  return {
+    bg: 'transparent',
+    text: p.muted,
+    border: 'transparent',
+    icon: null,
+  };
+}
 
 // Quests and the leaderboard. Quests: the goals of this month. Everyone is in all of them, progress comes from the person's own habit check-ins, and
 // reaching a goal puts a badge on their profile. Leaderboard: only the person and their friends, ranked by days with a check-in this week or this
@@ -33,7 +76,7 @@ export function QuestsScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
           <Ionicons name="chevron-back" size={20} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Quests</Text>
+        <Text style={[styles.title, { color: p.text }]}>Quests & Leaderboard</Text>
         <View style={styles.spacer} />
       </View>
 
@@ -43,69 +86,167 @@ export function QuestsScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
+          {/* Monthly Quests Section */}
           <View style={styles.sectionHead}>
-            <Text style={[styles.section, { color: p.text }]}>This month</Text>
+            <View>
+              <Text style={[styles.section, { color: p.text }]}>Monthly Quests</Text>
+              <Text style={[styles.sectionSub, { color: p.muted }]}>Build lifelong consistency</Text>
+            </View>
             {quests.data ? (
-              <Text style={[styles.sectionHint, { color: p.muted }]}>
-                {quests.data.completed_count} done · {quests.data.days_left} {quests.data.days_left === 1 ? 'day' : 'days'} left
-              </Text>
+              <View style={[styles.questMetaPill, { backgroundColor: p.surface, borderColor: p.border }]}>
+                <Ionicons name="sparkles" size={12} color={p.accent} />
+                <Text style={[styles.sectionHint, { color: p.text }]}>
+                  {quests.data.completed_count} done · {quests.data.days_left}d left
+                </Text>
+              </View>
             ) : null}
           </View>
 
           {quests.isPending ? <ActivityIndicator color={p.accent} style={{ marginVertical: 24 }} /> : null}
           {quests.isError ? <Text style={[styles.note, { color: p.muted }]}>Could not load the quests. Try again in a moment.</Text> : null}
-          {quests.data?.quests.map((quest) => (
-            <View key={quest.key} style={[styles.quest, { backgroundColor: p.card, borderColor: quest.completed ? p.accent : p.border }]}>
-              <View style={styles.questTop}>
-                <Text style={[styles.questTitle, { color: p.text }]}>{quest.title}</Text>
-                {quest.completed ? (
-                  <View style={styles.doneRow}>
-                    <Ionicons name="ribbon" size={15} color={p.accent} />
-                    <Text style={[styles.doneText, { color: p.accent }]}>Done</Text>
+          {quests.data?.quests.map((quest) => {
+            const pct = Math.min(100, Math.round((quest.progress / Math.max(quest.goal, 1)) * 100));
+            const iconName = getQuestIcon(quest.key);
+            return (
+              <View key={quest.key} style={[styles.quest, { backgroundColor: p.card, borderColor: quest.completed ? p.accent : p.border }]}>
+                <View style={styles.questTop}>
+                  <View style={[styles.questIconBox, { backgroundColor: quest.completed ? p.accentSoft : p.surface }]}>
+                    <Ionicons name={iconName} size={20} color={quest.completed ? p.accent : p.text} />
                   </View>
-                ) : (
-                  <Text style={[styles.questCount, { color: p.muted }]}>
-                    {quest.progress}/{quest.goal}
-                  </Text>
-                )}
-              </View>
-              <View style={[styles.track, { backgroundColor: p.border }]}>
-                <View style={[styles.fill, { backgroundColor: p.accent, width: `${Math.round((quest.progress / quest.goal) * 100)}%` }]} />
-              </View>
-            </View>
-          ))}
 
-          <View style={[styles.sectionHead, { marginTop: 18 }]}>
-            <Text style={[styles.section, { color: p.text }]}>Friends leaderboard</Text>
+                  <View style={styles.questDetails}>
+                    <Text style={[styles.questTitle, { color: p.text }]}>{quest.title}</Text>
+                    <Text style={[styles.questGoalText, { color: p.muted }]}>
+                      {quest.completed ? 'Goal reached this month' : `${quest.goal - quest.progress} check-ins remaining`}
+                    </Text>
+                  </View>
+
+                  {quest.completed ? (
+                    <View style={[styles.doneBadge, { backgroundColor: p.accentSoft }]}>
+                      <Ionicons name="ribbon" size={14} color={p.accent} />
+                      <Text style={[styles.doneText, { color: p.accent }]}>Completed</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.questPct, { color: p.text }]}>
+                      {pct}%
+                    </Text>
+                  )}
+                </View>
+
+                {/* Progress Bar & Subtext */}
+                <View style={styles.trackContainer}>
+                  <View style={[styles.track, { backgroundColor: p.border }]}>
+                    <View style={[styles.fill, { backgroundColor: quest.completed ? p.accent : p.accent, width: `${pct}%` }]} />
+                  </View>
+                  <View style={styles.trackMeta}>
+                    <Text style={[styles.trackRatio, { color: p.muted }]}>
+                      {quest.progress} / {quest.goal} days
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+
+          {/* Friends Leaderboard Section */}
+          <View style={[styles.sectionHead, { marginTop: 20 }]}>
+            <View>
+              <Text style={[styles.section, { color: p.text }]}>Friends Leaderboard</Text>
+              <Text style={[styles.sectionSub, { color: p.muted }]}>Ranked by active check-in days</Text>
+            </View>
             <View style={[styles.switch, { backgroundColor: p.surface, borderColor: p.border }]}>
-              {(['week', 'month'] as const).map((key) => (
-                <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: period === key }} onPress={() => setPeriod(key)} style={[styles.switchItem, period === key && { backgroundColor: p.card }]}>
-                  <Text style={[styles.switchText, { color: period === key ? p.text : p.muted }]}>{key === 'week' ? 'Week' : 'Month'}</Text>
-                </Pressable>
-              ))}
+              {(['week', 'month'] as const).map((key) => {
+                const active = period === key;
+                return (
+                  <Pressable
+                    key={key}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => {
+                      tapSelection();
+                      setPeriod(key);
+                    }}
+                    style={[styles.switchItem, active && [styles.switchItemActive, { backgroundColor: p.card }]]}>
+                    <Text style={[styles.switchText, { color: active ? p.text : p.muted }]}>
+                      {key === 'week' ? 'Week' : 'Month'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
-          <Text style={[styles.note, { color: p.muted, textAlign: 'left', marginBottom: 8 }]}>Days with a check-in. Only you and your friends.</Text>
 
           {board.isPending ? <ActivityIndicator color={p.accent} style={{ marginVertical: 24 }} /> : null}
           {board.isError ? <Text style={[styles.note, { color: p.muted }]}>Could not load the leaderboard.</Text> : null}
-          {board.data?.items.length === 1 ? <Text style={[styles.note, { color: p.muted }]}>Add friends to compete with them. Find people with Search.</Text> : null}
-          {board.data?.items.map((entry) => (
-            <Pressable
-              key={entry.handle}
-              accessibilityRole="button"
-              onPress={() => router.push(socialProfileHref(entry.handle))}
-              style={[styles.entry, { backgroundColor: entry.is_me ? p.accentSoft : p.card, borderColor: p.border }]}>
-              <Text style={[styles.rank, { color: entry.rank === 1 ? '#E8762B' : p.muted }]}>{entry.rank}</Text>
-              <SocialAvatar handle={entry.handle} hasAvatar={entry.has_avatar} size={38} />
-              <Text numberOfLines={1} style={[styles.entryName, { color: p.text }]}>
-                {entry.is_me ? 'You' : entry.display_name || `@${entry.handle}`}
+          {board.data?.items.length === 1 ? (
+            <View style={[styles.soloCard, { backgroundColor: p.card, borderColor: p.border }]}>
+              <Ionicons name="people-outline" size={24} color={p.accent} />
+              <Text style={[styles.soloTitle, { color: p.text }]}>Compete with Friends</Text>
+              <Text style={[styles.soloBody, { color: p.muted }]}>
+                Add friends to keep each other accountable and see your weekly rank here.
               </Text>
-              <Text style={[styles.entryDays, { color: p.text }]}>
-                {entry.active_days} <Text style={[styles.entryUnit, { color: p.muted }]}>{entry.active_days === 1 ? 'day' : 'days'}</Text>
-              </Text>
-            </Pressable>
-          ))}
+            </View>
+          ) : null}
+
+          {board.data?.items.map((entry) => {
+            const badge = getRankBadge(entry.rank, p);
+            return (
+              <Pressable
+                key={entry.handle}
+                accessibilityRole="button"
+                onPress={() => router.push(socialProfileHref(entry.handle))}
+                style={[
+                  styles.entry,
+                  {
+                    backgroundColor: entry.is_me ? p.accentSoft : p.card,
+                    borderColor: entry.is_me ? p.accent : p.border,
+                  },
+                ]}>
+                {/* Rank Badge */}
+                <View
+                  style={[
+                    styles.rankBadge,
+                    { backgroundColor: badge.bg, borderColor: badge.border },
+                    badge.icon ? styles.rankBadgeMedal : null,
+                  ]}>
+                  {badge.icon ? (
+                    <Ionicons name={badge.icon} size={15} color={badge.text} />
+                  ) : (
+                    <Text style={[styles.rankText, { color: badge.text }]}>{entry.rank}</Text>
+                  )}
+                </View>
+
+                <SocialAvatar handle={entry.handle} hasAvatar={entry.has_avatar} size={40} />
+
+                <View style={styles.entryInfo}>
+                  <View style={styles.entryNameRow}>
+                    <Text numberOfLines={1} style={[styles.entryName, { color: p.text }]}>
+                      {entry.is_me ? 'You' : entry.display_name || `@${entry.handle}`}
+                    </Text>
+                    {entry.is_me ? (
+                      <View style={[styles.youBadge, { backgroundColor: p.accent }]}>
+                        <Text style={styles.youBadgeText}>YOU</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.entryHandle, { color: p.muted }]}>@{entry.handle}</Text>
+                </View>
+
+                {/* Metric Display */}
+                <View style={styles.entryScore}>
+                  <View style={styles.entryDaysRow}>
+                    <Ionicons name="flame" size={15} color="#E8762B" />
+                    <Text style={[styles.entryDays, { color: p.text }]}>
+                      {entry.active_days}
+                    </Text>
+                  </View>
+                  <Text style={[styles.entryUnit, { color: p.muted }]}>
+                    {entry.active_days === 1 ? 'day' : 'days'}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       )}
     </View>
@@ -119,25 +260,46 @@ const styles = StyleSheet.create({
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  body: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
+  body: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  section: { fontSize: 16, fontWeight: '800' },
-  sectionHint: { fontSize: 12.5 },
+  section: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+  sectionSub: { fontSize: 12.5, fontWeight: '500', marginTop: 1 },
+  questMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1 },
+  sectionHint: { fontSize: 12, fontWeight: '700' },
   note: { fontSize: 13, textAlign: 'center', marginVertical: 6 },
-  quest: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
-  questTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  questTitle: { fontSize: 14.5, fontWeight: '700' },
-  questCount: { fontSize: 13, fontWeight: '700' },
-  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  doneText: { fontSize: 13, fontWeight: '800' },
+  quest: { borderWidth: 1, borderRadius: 20, padding: 14, gap: 12 },
+  questTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  questIconBox: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  questDetails: { flex: 1, minWidth: 0, gap: 2 },
+  questTitle: { fontSize: 15, fontWeight: '700' },
+  questGoalText: { fontSize: 12, fontWeight: '500' },
+  questPct: { fontSize: 15, fontWeight: '800' },
+  doneBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  doneText: { fontSize: 12, fontWeight: '800' },
+  trackContainer: { gap: 6 },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
-  switch: { flexDirection: 'row', borderWidth: 1, borderRadius: 16, padding: 2 },
-  switchItem: { paddingHorizontal: 12, height: 28, borderRadius: 14, justifyContent: 'center' },
+  trackMeta: { flexDirection: 'row', justifyContent: 'flex-end' },
+  trackRatio: { fontSize: 11.5, fontWeight: '600' },
+  switch: { flexDirection: 'row', borderWidth: 1, borderRadius: 18, padding: 3 },
+  switchItem: { paddingHorizontal: 14, height: 30, borderRadius: 15, justifyContent: 'center' },
+  switchItemActive: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 },
   switchText: { fontSize: 12.5, fontWeight: '700' },
-  entry: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  rank: { width: 22, fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  entryName: { flex: 1, fontSize: 15, fontWeight: '700' },
-  entryDays: { fontSize: 16, fontWeight: '800' },
-  entryUnit: { fontSize: 12, fontWeight: '600' },
+  soloCard: { borderWidth: 1, borderRadius: 18, padding: 20, alignItems: 'center', gap: 6, marginVertical: 6 },
+  soloTitle: { fontSize: 15, fontWeight: '800', marginTop: 4 },
+  soloBody: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
+  rankBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  rankBadgeMedal: { borderWidth: 1 },
+  rankText: { fontSize: 15, fontWeight: '800' },
+  entryInfo: { flex: 1, minWidth: 0, gap: 1 },
+  entryNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  entryName: { fontSize: 15, fontWeight: '700' },
+  youBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  youBadgeText: { fontSize: 9, fontWeight: '800', color: '#FFFFFF' },
+  entryHandle: { fontSize: 12, fontWeight: '500' },
+  entryScore: { alignItems: 'flex-end', gap: 1 },
+  entryDaysRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  entryDays: { fontSize: 17, fontWeight: '800' },
+  entryUnit: { fontSize: 11.5, fontWeight: '600' },
 });

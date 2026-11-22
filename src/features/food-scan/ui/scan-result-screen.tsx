@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useState, useRef, type ComponentRef } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@shared/ui';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { FridgeResultView, MealResultView, useDeleteFoodScan, useFoodScan, type FridgeScanResult, type MealScanResult } from '@entities/food-scan';
+import { FridgeResultView, MealResultView, useDeleteFoodScan, useFoodScan, useFoodScanPhoto, type FridgeScanResult, type MealScanResult } from '@entities/food-scan';
 import { useScrollToTopOnFocus } from '@shared/lib';
 
 // One scan: the answer of Scan My Meal or Scan My Fridge, with the disclaimer. It can be deleted from here.
@@ -43,6 +43,7 @@ export function ScanResultScreen({ id }: { id: string }) {
       {scan.isError ? <Text style={[styles.note, { color: p.muted }]}>This scan is not available. It may have been deleted.</Text> : null}
       {scan.data ? (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
+          {scan.data.has_photo ? <ScanPhoto id={id} /> : null}
           {scan.data.kind === 'fridge' ? <FridgeResultView result={scan.data.result as FridgeScanResult} /> : <MealResultView result={scan.data.result as MealScanResult} />}
         </ScrollView>
       ) : null}
@@ -60,7 +61,20 @@ export function ScanResultScreen({ id }: { id: string }) {
   );
 }
 
+// The photo that was scanned, above the answer. A grey box with a spinner holds its place while it loads.
+function ScanPhoto({ id }: { id: string }) {
+  const p = usePalette();
+  const photo = useFoodScanPhoto(id, true);
+  return (
+    <View style={[styles.photoBox, { backgroundColor: p.surface, borderColor: p.border }]}>
+      {photo.data ? <Image source={{ uri: photo.data }} style={styles.photo} resizeMode="cover" accessibilityLabel="The photo you scanned" /> : photo.isError ? null : <ActivityIndicator color={p.accent} />}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  photoBox: { width: '100%', height: 220, borderRadius: 18, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  photo: { width: '100%', height: '100%' },
   screen: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },

@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useRef, type ComponentRef } from 'react';
 import {
   Modal,
   Image,
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,14 +16,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 
-import { queryKeys } from '@shared/api';
-import { tapConfirm, tapSelection } from '@shared/lib';
+import { isApiError, queryKeys } from '@shared/api';
+import { tapConfirm, tapSelection, useScrollToTopOnFocus } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
 import {
   formatSocialCount,
   useMyHandle,
+  useSocialConsistency,
   useSocialPicture,
   useSocialPostsOf,
   useSocialProfile,
@@ -48,6 +50,8 @@ import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 // A bio longer than this shows two lines with "...more" (about two lines of the card's width).
 const BIO_PREVIEW_CHARS = 70;
 
+export type ProfileTab = 'photos' | 'text' | 'consistency';
+
 export function ProfileScreen({ handle }: { handle: string }) {
   const p = usePalette();
   const router = useRouter();
@@ -55,8 +59,8 @@ export function ProfileScreen({ handle }: { handle: string }) {
   const me = useMyHandle();
   const profile = useSocialProfile(handle, me.joined);
   const queryClient = useQueryClient();
-  const [postsTab, setPostsTab] = useState<'photos' | 'text'>('photos');
-  const posts = useSocialPostsOf(handle, profile.isSuccess, postsTab);
+  const [postsTab, setPostsTab] = useState<ProfileTab>('photos');
+  const posts = useSocialPostsOf(handle, profile.isSuccess && postsTab !== 'consistency', postsTab === 'photos' ? 'photos' : 'text');
   const cover = useSocialPicture(handle, 'cover', profile.data?.has_cover === true);
   const setCover = useSetPicture('cover');
   // Tapping the cover asks what to do: see it, or change it (my own). The viewer shows the whole picture.
@@ -65,6 +69,9 @@ export function ProfileScreen({ handle }: { handle: string }) {
   const hasCover = profile.data?.has_cover === true;
   const canTapCover = hasCover || profile.data?.is_me === true;
   const [coverError, setCoverError] = useState<string | null>(null);
+
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTopOnFocus(scrollRef);
 
   async function changeCover() {
     setCoverError(null);
@@ -83,6 +90,111 @@ export function ProfileScreen({ handle }: { handle: string }) {
       goBackOr(router, SOCIAL_HOME);
     }
   };
+
+  const postTabsConfig = [
+    ['photos', 'images-outline', 'images', 'Photos'],
+    ['text', 'document-text-outline', 'document-text', 'Words'],
+    ['consistency', 'flame-outline', 'flame', 'Activity'],
+  ] as const;
+
+  const topSection = profile.data ? (
+    <View>
+      {/* Cover Banner with Floating Navigation */}
+      <View style={styles.bannerContainer}>
+        {/* Atmospheric Dark Cover Art */}
+        <Svg width="100%" height={190} viewBox="0 0 400 190" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
+          <Defs>
+            <LinearGradient id="coverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#13101E" />
+              <Stop offset="40%" stopColor="#221A36" />
+              <Stop offset="75%" stopColor="#1B2433" />
+              <Stop offset="100%" stopColor="#0F141B" />
+            </LinearGradient>
+            <RadialGradient id="coverGlow" cx="45%" cy="35%" r="65%">
+              <Stop offset="0%" stopColor="#7C3AED" stopOpacity="0.45" />
+              <Stop offset="60%" stopColor="#3B82F6" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#coverGrad)" />
+          <Circle cx="180" cy="50" r="140" fill="url(#coverGlow)" />
+        </Svg>
+
+        {cover.data && profile.data.has_cover ? <Image source={{ uri: cover.data }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Cover" /> : null}
+
+        {canTapCover ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Cover picture" onPress={() => (profile.data?.is_me ? setCoverMenuOpen(true) : setCoverViewerOpen(true))} style={StyleSheet.absoluteFill} />
+        ) : null}
+
+        {/* The person's own cover can be changed with this button, on the cover itself. */}
+        {profile.data.is_me ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Change cover" disabled={setCover.set.isPending} onPress={() => setCoverMenuOpen(true)} hitSlop={8} style={styles.coverEdit}>
+            {setCover.set.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
+          </Pressable>
+        ) : null}
+
+        {/* Floating Top Bar on Banner */}
+        <View style={[styles.floatingBar, { top: Math.max(insets.top, 16) + 4 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} hitSlop={8} style={styles.circleNavBtn}>
+            <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+          </Pressable>
+
+          {/* Right menu action: my settings (saved, activity, notifications, blocked, delete account) */}
+          <View style={styles.floatingBarRight}>
+            {profile.data.is_me ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                hitSlop={8}
+                onPress={() => router.push(socialRoute('/social/settings'))}
+                style={styles.circleNavBtn}>
+                <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      {coverError ? <Text style={styles.pictureError}>{coverError}</Text> : null}
+
+      {/* Overlapping Profile Card */}
+      <ProfileHeader
+        profile={profile.data}
+        onSelectTab={(tab) => {
+          tapSelection();
+          setPostsTab(tab);
+        }}
+      />
+
+      {/* Post & Activity Tabs */}
+      <View style={[styles.postTabs, { borderBottomColor: p.border, backgroundColor: p.card }]}>
+        {postTabsConfig.map(([key, icon, filled, label]) => {
+          const active = postsTab === key;
+          return (
+            <Pressable
+              key={key}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: active }}
+              onPress={() => {
+                tapSelection();
+                if (key !== postsTab && key !== 'consistency') {
+                  void queryClient.resetQueries({ queryKey: queryKeys.social.postsOf(handle, key) });
+                }
+                setPostsTab(key);
+              }}
+              style={[
+                styles.postTab,
+                active && [styles.postTabActive, { borderBottomColor: p.text }],
+              ]}>
+              <Ionicons name={active ? filled : icon} size={20} color={active ? p.text : p.muted} />
+              <Text style={[styles.postTabLabel, { color: active ? p.text : p.muted }]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  ) : null;
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg }]}>
@@ -105,112 +217,22 @@ export function ProfileScreen({ handle }: { handle: string }) {
             There is no one with the handle @{handle}. Check the spelling and try again.
           </Text>
         </View>
+      ) : postsTab === 'consistency' ? (
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={{ paddingBottom: insets.bottom + SOCIAL_DOCK_SPACE + 20 }}
+          showsVerticalScrollIndicator={false}>
+          {topSection}
+          <View style={styles.consistencyWrapper}>
+            <ConsistencyCard handle={profile.data.handle} canShare={profile.data.is_me} />
+          </View>
+        </ScrollView>
       ) : (
         <PostFeed
           query={posts}
           layout={postsTab === 'photos' ? 'grid' : 'list'}
           edgeToEdge
-          header={
-            <View>
-              {/* Cover Banner with Floating Navigation */}
-              <View style={styles.bannerContainer}>
-                {/* Atmospheric Dark Cover Art */}
-                <Svg width="100%" height={190} viewBox="0 0 400 190" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
-                  <Defs>
-                    <LinearGradient id="coverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <Stop offset="0%" stopColor="#13101E" />
-                      <Stop offset="40%" stopColor="#221A36" />
-                      <Stop offset="75%" stopColor="#1B2433" />
-                      <Stop offset="100%" stopColor="#0F141B" />
-                    </LinearGradient>
-                    <RadialGradient id="coverGlow" cx="45%" cy="35%" r="65%">
-                      <Stop offset="0%" stopColor="#7C3AED" stopOpacity="0.45" />
-                      <Stop offset="60%" stopColor="#3B82F6" stopOpacity="0.15" />
-                      <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                    </RadialGradient>
-                  </Defs>
-                  <Rect width="100%" height="100%" fill="url(#coverGrad)" />
-                  <Circle cx="180" cy="50" r="140" fill="url(#coverGlow)" />
-                </Svg>
-
-                {cover.data && profile.data?.has_cover ? <Image source={{ uri: cover.data }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Cover" /> : null}
-
-                {canTapCover ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel="Cover picture" onPress={() => (profile.data?.is_me ? setCoverMenuOpen(true) : setCoverViewerOpen(true))} style={StyleSheet.absoluteFill} />
-                ) : null}
-
-                {/* The person's own cover can be changed with this button, on the cover itself. */}
-                {profile.data?.is_me ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel="Change cover" disabled={setCover.set.isPending} onPress={() => setCoverMenuOpen(true)} hitSlop={8} style={styles.coverEdit}>
-                    {setCover.set.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera-outline" size={18} color="#FFFFFF" />}
-                  </Pressable>
-                ) : null}
-
-                {/* Floating Top Bar on Banner */}
-                <View style={[styles.floatingBar, { top: Math.max(insets.top, 16) + 4 }]}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} hitSlop={8} style={styles.circleNavBtn}>
-                    <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-                  </Pressable>
-
-                  {/* Right menu action: my settings (saved, activity, notifications, blocked, delete account) */}
-                  <View style={styles.floatingBarRight}>
-                    {profile.data?.is_me ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Settings"
-                        hitSlop={8}
-                        onPress={() => router.push(socialRoute('/social/settings'))}
-                        style={styles.circleNavBtn}>
-                        <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                </View>
-              </View>
-
-              {coverError ? <Text style={styles.pictureError}>{coverError}</Text> : null}
-
-              {/* Overlapping Profile Card */}
-              <ProfileHeader
-                profile={profile.data}
-              />
-
-              {/* Streaks, the 14-week grid and the badges of this person */}
-              <ConsistencyCard handle={profile.data.handle} canShare={profile.data.is_me} />
-
-              {/* Posts Tabs (Photos Grid vs Text Cards) */}
-              <View style={[styles.postTabs, { borderBottomColor: p.border, backgroundColor: p.card }]}>
-                {(
-                  [
-                    ['photos', 'images-outline', 'images', 'Photos'],
-                    ['text', 'document-text-outline', 'document-text', 'Words'],
-                  ] as const
-                ).map(([key, icon, filled, label]) => {
-                  const active = postsTab === key;
-                  return (
-                    <Pressable
-                      key={key}
-                      accessibilityRole="tab"
-                      accessibilityLabel={label}
-                      accessibilityState={{ selected: active }}
-                      onPress={() => {
-                        tapSelection();
-                        if (key !== postsTab) {
-                          void queryClient.resetQueries({ queryKey: queryKeys.social.postsOf(handle, key) });
-                        }
-                        setPostsTab(key);
-                      }}
-                      style={[
-                        styles.postTab,
-                        active && [styles.postTabActive, { borderBottomColor: p.text }],
-                      ]}>
-                      <Ionicons name={active ? filled : icon} size={22} color={active ? p.text : p.muted} />
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          }
+          header={topSection ?? undefined}
           emptyTitle={postsTab === 'photos' ? 'No photos yet' : 'No words-only posts yet'}
           emptyBody={
             profile.data.is_me
@@ -261,13 +283,23 @@ export function ProfileScreen({ handle }: { handle: string }) {
   );
 }
 
-function ProfileHeader({ profile }: { profile: SocialProfile }) {
+function ProfileHeader({
+  profile,
+  onSelectTab,
+}: {
+  profile: SocialProfile;
+  onSelectTab?: (tab: ProfileTab) => void;
+}) {
   const p = usePalette();
   const router = useRouter();
+  const consistency = useSocialConsistency(profile.handle);
+  const streak = consistency.data?.streak ?? 0;
   const friend = useFriendHandle();
   const answer = useAnswerFriendRequest();
   const block = useBlockHandle();
   const nudge = useNudgeFriend();
+  // Already nudged: just now, earlier today (the server knows), or the server says the one a day is used (429 nudge_cooldown).
+  const nudged = nudge.isSuccess || profile.nudged_recently || isApiError(nudge.error, 'nudge_cooldown');
   const update = useUpdateSocialProfile();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.display_name ?? '');
@@ -341,11 +373,24 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
         </Pressable>
       </View>
 
-      {/* Name, Handle, Bio & Location */}
+      {/* Name, Handle, Streak & Bio */}
       <View style={styles.infoSection}>
         <Text numberOfLines={1} style={[styles.displayName, { color: p.text }]}>
           {profile.display_name || `@${profile.handle}`}
         </Text>
+        <Text style={[styles.handleSubtext, { color: p.muted }]}>@{profile.handle}</Text>
+
+        {streak > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${streak}-day streak`}
+            onPress={() => onSelectTab?.('consistency')}
+            style={[styles.streakBadge, { backgroundColor: p.surface, borderColor: p.border }]}>
+            <Ionicons name="flame" size={14} color="#E8762B" />
+            <Text style={[styles.streakBadgeText, { color: p.text }]}>{streak}-day streak</Text>
+            <Ionicons name="chevron-forward" size={12} color={p.muted} />
+          </Pressable>
+        ) : null}
 
         {/* A long bio wraps inside the card, even a single long word with no spaces, and shows at most four lines. */}
         {profile.bio ? (
@@ -416,22 +461,28 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
                   tapConfirm();
                   update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) });
                 }}
-                style={[styles.actionPillBtn, { backgroundColor: '#0095F6' }]}>
+                style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
                 {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save</Text>}
               </Pressable>
             </View>
           </View>
         ) : (
           <View style={styles.actionsRow}>
-            <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={[styles.actionPillBtn, styles.primaryPillBtn]}>
-              <Text style={styles.primaryPillText}>Edit profile</Text>
+            <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
+              <View style={styles.pillContent}>
+                <Ionicons name="pencil-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.primaryPillText}>Edit profile</Text>
+              </View>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Activity"
-              onPress={() => router.push(socialRoute('/social/activity'))}
+              onPress={() => onSelectTab?.('consistency')}
               style={[styles.actionPillBtn, styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]}>
-              <Text style={[styles.actionPillText, { color: p.text }]}>Activity</Text>
+              <View style={styles.pillContent}>
+                <Ionicons name="flame-outline" size={16} color={p.text} />
+                <Text style={[styles.actionPillText, { color: p.text }]}>Activity</Text>
+              </View>
             </Pressable>
           </View>
         )
@@ -440,7 +491,7 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
           accessibilityRole="button"
           disabled={block.isPending}
           onPress={() => block.mutate({ handle: profile.handle, block: false })}
-          style={[styles.actionPillBtn, styles.primaryPillBtn]}>
+          style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
           <Text style={styles.primaryPillText}>{block.isPending ? 'Please wait...' : 'Unblock'}</Text>
         </Pressable>
       ) : (
@@ -454,7 +505,7 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
                   tapConfirm();
                   answer.mutate({ id: profile.incoming_request_id as string, accept: true });
                 }}
-                style={[styles.actionPillBtn, styles.primaryPillBtn]}>
+                style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
                 {answer.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryPillText}>Accept Request</Text>}
               </Pressable>
               <Pressable
@@ -479,7 +530,7 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
                 styles.actionPillBtn,
                 friendIsQuiet({ is_friend: profile.is_friend, requested: profile.request_sent })
                   ? [styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]
-                  : styles.primaryPillBtn,
+                  : { backgroundColor: p.accent },
               ]}>
               {friend.isPending ? (
                 <ActivityIndicator color="#FFFFFF" />
@@ -501,10 +552,10 @@ function ProfileHeader({ profile }: { profile: SocialProfile }) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Send a check-in nudge"
-                disabled={nudge.isPending || nudge.isSuccess}
+                disabled={nudge.isPending || nudged}
                 onPress={() => nudge.mutate(profile.handle)}
                 style={[styles.actionPillBtn, styles.secondaryPillBtn, { borderColor: p.border, backgroundColor: p.surface }]}>
-                {nudge.isPending ? <ActivityIndicator color={p.accent} /> : <Text style={[styles.actionPillText, { color: p.text }]}>{nudge.isSuccess ? 'Nudged' : 'Nudge'}</Text>}
+                {nudge.isPending ? <ActivityIndicator color={p.accent} /> : <Text style={[styles.actionPillText, { color: p.text }]}>{nudged ? 'Nudged' : 'Nudge'}</Text>}
               </Pressable>
             ) : null}
             <Pressable
@@ -710,6 +761,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#8E8BA6',
   },
+  handleSubtext: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: -2,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 6,
+  },
+  streakBadgeText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  pillContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -722,9 +797,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  primaryPillBtn: {
-    backgroundColor: '#0095F6',
   },
   primaryPillText: {
     fontSize: 14.5,
@@ -777,19 +849,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  consistencyWrapper: {
+    paddingTop: 8,
+  },
   postTabs: {
     flexDirection: 'row',
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   postTab: {
     flex: 1,
-    height: 48,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    gap: 2,
   },
   postTabActive: {
     borderBottomWidth: 2,
+  },
+  postTabLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
   },
 });

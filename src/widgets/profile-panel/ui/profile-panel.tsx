@@ -9,12 +9,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConsentGrants, useGrantConsentType, useRevokeConsent, type ConsentType } from '@entities/consent';
 import { useCurrentSubject } from '@entities/subject';
 import { useDeactivateAccount } from '@features/account-deactivate';
-import { ProfileDetailsCard, ProfileIdentityCard } from '@features/profile-details';
-import { AddProfileSheet, ProfileMenu, useAccountProfiles } from '@features/profile-switch';
+import { ProfileDetailsCard } from '@features/profile-details';
+import { AddProfileSheet, ProfileMenu } from '@features/profile-switch';
 import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
 import { usePalette, type Palette } from '@shared/ui/theme';
 import { Skeleton } from '@shared/ui/skeleton';
+import { PlanCard } from '@features/subscription';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
+import { useSubscription } from '@entities/subscription';
 
 // What turning each permission off costs the user. Shown in the popup before the change.
 const REVOKE_COPY: Partial<Record<ConsentType, { title: string; message: string; confirmLabel: string; destructive: boolean }>> = {
@@ -58,6 +61,7 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
   const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
   useScrollToTopOnFocus(scrollRef);
   const router = useRouter();
+  const plan = useSubscription();
   const subject = useCurrentSubject();
   const consents = useConsentGrants();
   const revoke = useRevokeConsent();
@@ -115,10 +119,6 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
   // The profile list that opens from the profile card, and the sheet for adding a profile.
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [addingProfile, setAddingProfile] = useState(false);
-  const accountProfiles = useAccountProfiles();
-  const activeProfile = accountProfiles.data?.find((item) => item.is_active);
-  // "You" on the account's own profile, the nickname on a family profile.
-  const profileTag = activeProfile?.role === 'member' ? (activeProfile.nickname ?? 'Family') : 'You';
 
   async function copyCode() {
     if (!codename) return;
@@ -152,16 +152,32 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
           <Text style={styles.title}>Profile</Text>
           <Text style={styles.subtitle}>Show this code to link your health records.</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Switch profile" hitSlop={8} onPress={() => setProfilesOpen(true)} style={styles.groupBtn}>
+          <Ionicons name="people-outline" size={22} color={p.accent} />
+          {/* The chevron says the icon opens something. */}
+          <Ionicons name="chevron-forward" size={14} color={p.accent} />
+        </Pressable>
       </View>
 
-      {/* Who this profile is. The button opens the list of profiles, with a row to add one. */}
-      <ProfileIdentityCard
-        tag={profileTag}
-        open={profilesOpen}
-        onToggle={() => setProfilesOpen((v) => !v)}
-        menu={<ProfileMenu onClose={() => setProfilesOpen(false)} onAdd={() => setAddingProfile(true)} />}
-      />
+      {/* The group icon at the top right of the page opens the profiles in a bottom drawer: pick the profile in use, or add one. */}
+      <BottomSheet visible={profilesOpen} onClose={() => setProfilesOpen(false)}>
+        <Text style={styles.title}>Profiles</Text>
+        <ProfileMenu
+          onClose={() => setProfilesOpen(false)}
+          onAdd={() => {
+            // The drawer closes first, and then the next screen opens (one pop-up cannot open on top of another on every phone).
+            if (plan.locked) {
+              setTimeout(() => router.push('/(app)/subscription' as never), 250);
+            } else {
+              setTimeout(() => setAddingProfile(true), 250);
+            }
+          }}
+        />
+      </BottomSheet>
       <AddProfileSheet visible={addingProfile} onClose={() => setAddingProfile(false)} />
+
+      {/* The plan: Free or Premium */}
+      <PlanCard />
 
       {/* Code card: QR on the left, code and actions on the right, log out below. */}
       <View style={[styles.card, styles.codeCard]}>
@@ -291,6 +307,7 @@ function makeStyles(p: Palette) {
     container: { paddingHorizontal: 18, gap: 16 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerText: { flex: 1, gap: 4 },
+    groupBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 40, paddingHorizontal: 10, borderRadius: 20, backgroundColor: p.accentSoft },
     title: { fontSize: 28, fontWeight: '800', color: p.textStrong },
     subtitle: { fontSize: 13, color: p.accent },
     bell: {

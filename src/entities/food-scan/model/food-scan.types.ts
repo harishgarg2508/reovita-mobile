@@ -41,5 +41,7 @@ export interface FoodScanView<R = MealScanResult | FridgeScanResult> {
   kind: FoodScanKind;
   created_at: string;
   prompt_version: string;
+  // The photo that was scanned is kept with the answer (read with useFoodScanPhoto).
+  has_photo: boolean;
   result: R;
 }

@@ -77,7 +77,9 @@ export function DietaryGuidanceScreen() {
           <Ionicons name="chevron-back" size={20} color={p.text} />
         </Pressable>
         <Text style={[styles.title, { color: p.text }]}>Dietary guidance</Text>
-        <View style={styles.spacer} />
+        <Pressable accessibilityRole="button" accessibilityLabel="My earlier charts" hitSlop={8} onPress={() => router.push('/(app)/dietary-history' as Href)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
+          <Ionicons name="time-outline" size={19} color={p.text} />
+        </Pressable>
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>

@@ -40,6 +40,10 @@ export const queryKeys = {
     pods: () => [...queryKeys.social.root, 'pods'] as const,
     pod: (id: string) => [...queryKeys.social.root, 'pods', id] as const,
     podInvites: () => [...queryKeys.social.root, 'pod-invites'] as const,
+    challenges: () => [...queryKeys.social.root, 'challenges'] as const,
+    challenge: (id: string) => [...queryKeys.social.root, 'challenges', id] as const,
+    challengeInvites: () => [...queryKeys.social.root, 'challenge-invites'] as const,
+    challengeMaps: () => [...queryKeys.social.root, 'challenge-maps'] as const,
     recap: () => [...queryKeys.social.root, 'check-ins', 'recap'] as const,
     quests: () => [...queryKeys.social.root, 'quests'] as const,
     leaderboard: (period: string) => [...queryKeys.social.root, 'leaderboard', period] as const,
@@ -57,6 +61,10 @@ export const queryKeys = {
     picture: (handle: string, kind: 'avatar' | 'cover') => [...queryKeys.social.root, 'picture', handle, kind] as const,
     photo: (postId: string) => [...queryKeys.social.root, 'photo', postId] as const,
   },
+  subscription: {
+    root: ['subscription'] as const,
+    detail: () => [...queryKeys.subscription.root, 'detail'] as const,
+  },
   jobs: {
     root: ['jobs'] as const,
     detail: (id: string) => [...queryKeys.jobs.root, id] as const,
@@ -65,11 +73,14 @@ export const queryKeys = {
     root: ['food-scan'] as const,
     list: (kind: string, limit?: number) => (limit === undefined ? ([...queryKeys.foodScan.root, 'list', kind] as const) : ([...queryKeys.foodScan.root, 'list', kind, limit] as const)),
     detail: (id: string) => [...queryKeys.foodScan.root, 'detail', id] as const,
+    photo: (id: string) => [...queryKeys.foodScan.root, 'photo', id] as const,
   },
   dietary: {
     root: ['dietary'] as const,
     overview: () => [...queryKeys.dietary.root, 'overview'] as const,
     chart: () => [...queryKeys.dietary.root, 'chart'] as const,
+    history: () => [...queryKeys.dietary.root, 'history'] as const,
+    detail: (id: string) => [...queryKeys.dietary.root, 'detail', id] as const,
   },
   knowledge: {
     root: ['knowledge'] as const,

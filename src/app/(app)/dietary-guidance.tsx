@@ -1,5 +1,10 @@
+import { PremiumGate } from '@features/subscription';
 import { DietaryGuidanceScreen } from '@features/dietary-guidance';
 
 export default function DietaryGuidanceRoute() {
-  return <DietaryGuidanceScreen />;
+  return (
+    <PremiumGate feature="Dietary guidance">
+      <DietaryGuidanceScreen />
+    </PremiumGate>
+  );
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useScrollToTopOnFocus } from '@shared/lib';
+import { tapConfirm, tapSelection, useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
@@ -65,7 +65,7 @@ export function RequestsScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
           <Ionicons name="chevron-back" size={20} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Friend requests</Text>
+        <Text style={[styles.title, { color: p.text }]}>Friend Requests</Text>
         <View style={styles.spacer} />
       </View>
 
@@ -75,23 +75,35 @@ export function RequestsScreen() {
         </View>
       ) : (
         <>
-          <View style={[styles.tabs, { borderBottomColor: p.border }]}>
+          {/* Segmented Switch for Received & Sent */}
+          <View style={[styles.switchContainer, { backgroundColor: p.surface, borderColor: p.border }]}>
             {(
               [
-                ['incoming', `Received${totalIncoming ? ` · ${totalIncoming}` : ''}`],
-                ['outgoing', `Sent${totalOutgoing ? ` · ${totalOutgoing}` : ''}`],
+                ['incoming', `Received${totalIncoming ? ` (${totalIncoming})` : ''}`],
+                ['outgoing', `Sent${totalOutgoing ? ` (${totalOutgoing})` : ''}`],
               ] as const
-            ).map(([key, label]) => (
-              <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: tab === key }} onPress={() => setTab(key)} style={[styles.tab, tab === key && { borderBottomColor: p.accent }]}>
-                <Text style={[styles.tabText, { color: tab === key ? p.accent : p.muted }, tab === key && styles.tabTextOn]}>{label}</Text>
-              </Pressable>
-            ))}
+            ).map(([key, label]) => {
+              const active = tab === key;
+              return (
+                <Pressable
+                  key={key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => {
+                    tapSelection();
+                    setTab(key);
+                  }}
+                  style={[styles.switchItem, active && [styles.switchItemActive, { backgroundColor: p.card }]]}>
+                  <Text style={[styles.switchText, { color: active ? p.text : p.muted }]}>{label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
           <RefreshingBar active={list.isFetching && !list.isFetchingNextPage && items.length > 0} />
           <FlatList
-        ref={scrollRef}
+            ref={scrollRef}
             {...pullRefresh.listProps}
             {...pullRefresh.touch}
             data={items}
@@ -109,7 +121,10 @@ export function RequestsScreen() {
                 item={item}
                 busy={(answer.isPending && answer.variables?.id === item.id) || (friend.isPending && friend.variables?.handle === item.handle)}
                 onOpen={() => router.push(socialProfileHref(item.handle))}
-                onAccept={() => answer.mutate({ id: item.id, accept: true })}
+                onAccept={() => {
+                  tapConfirm();
+                  answer.mutate({ id: item.id, accept: true });
+                }}
                 onDeny={() => answer.mutate({ id: item.id, accept: false })}
                 onCancel={() => friend.mutate({ handle: item.handle, add: false, requested: true })}
               />
@@ -165,15 +180,22 @@ function RequestRow({
       {item.direction === 'incoming' ? (
         <View style={styles.actions}>
           <Pressable accessibilityRole="button" accessibilityLabel="Accept" disabled={busy} onPress={onAccept} style={[styles.accept, { backgroundColor: p.accent }]}>
-            {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.acceptText}>Accept</Text>}
+            {busy ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <View style={styles.btnRow}>
+                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                <Text style={styles.acceptText}>Accept</Text>
+              </View>
+            )}
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Decline" disabled={busy} onPress={onDeny} style={[styles.deny, { borderColor: p.border }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Decline" disabled={busy} onPress={onDeny} style={[styles.deny, { borderColor: p.border, backgroundColor: p.surface }]}>
             <Text style={[styles.denyText, { color: p.text }]}>Decline</Text>
           </Pressable>
         </View>
       ) : (
-        <Pressable accessibilityRole="button" accessibilityLabel="Cancel request" disabled={busy} onPress={onCancel} style={[styles.deny, { borderColor: p.border }]}>
-          <Text style={[styles.denyText, { color: p.text }]}>{busy ? '...' : 'Cancel'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cancel request" disabled={busy} onPress={onCancel} style={[styles.deny, { borderColor: p.border, backgroundColor: p.surface }]}>
+          <Text style={[styles.denyText, { color: p.text }]}>{busy ? '...' : 'Withdraw'}</Text>
         </Pressable>
       )}
     </View>
@@ -187,22 +209,21 @@ const styles = StyleSheet.create({
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  tabs: { flexDirection: 'row', gap: 22, borderBottomWidth: 1, marginHorizontal: 16, marginBottom: 12 },
-  tab: { paddingVertical: 10, borderBottomWidth: 2.5, borderBottomColor: 'transparent', marginBottom: -1 },
-  tabText: { fontSize: 14.5, fontWeight: '600' },
-  tabTextOn: { fontWeight: '800' },
+  switchContainer: { flexDirection: 'row', borderWidth: 1, borderRadius: 20, padding: 3, marginHorizontal: 16, marginBottom: 12 },
+  switchItem: { flex: 1, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  switchItemActive: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 },
+  switchText: { fontSize: 13, fontWeight: '700' },
   list: { paddingHorizontal: 16, flexGrow: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 18, padding: 12 },
   who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
-  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '800' },
-  names: { flex: 1, minWidth: 0 },
+  names: { flex: 1, minWidth: 0, gap: 1 },
   name: { fontSize: 15, fontWeight: '800' },
-  sub: { fontSize: 12 },
+  sub: { fontSize: 12, fontWeight: '500' },
   actions: { flexDirection: 'row', gap: 6 },
-  accept: { minWidth: 74, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  btnRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  accept: { minWidth: 78, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   acceptText: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF' },
-  deny: { height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  deny: { height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   denyText: { fontSize: 12.5, fontWeight: '700' },
   emptyBox: { alignItems: 'center', paddingTop: 50, gap: 8, paddingHorizontal: 24 },
   emptyTitle: { fontSize: 17, fontWeight: '800' },

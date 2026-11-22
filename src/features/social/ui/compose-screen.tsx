@@ -239,7 +239,7 @@ export function ComposeScreen() {
             onPress={submit}
             style={[styles.shareActionBtn, !canPost && { opacity: 0.45 }]}>
             {create.isPending ? (
-              <ActivityIndicator color="#0095F6" size="small" />
+              <ActivityIndicator color="#1F7A4D" size="small" />
             ) : (
               <Text style={styles.shareActionText}>Share</Text>
             )}
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   nextActionText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0095F6',
+    color: '#1F7A4D',
   },
   shareActionBtn: {
     paddingHorizontal: 8,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   shareActionText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0095F6',
+    color: '#1F7A4D',
   },
   // Large Media Preview (Image 2)
   previewContainer: {
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   },
   selectedPhotoTile: {
     borderWidth: 2,
-    borderColor: '#0095F6',
+    borderColor: '#1F7A4D',
   },
   tileImage: {
     width: '100%',
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#0095F6',
+    backgroundColor: '#1F7A4D',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   permissionBtn: {
-    backgroundColor: '#0095F6',
+    backgroundColor: '#1F7A4D',
     borderRadius: 18,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   bigShareBtn: {
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#0095F6',
+    backgroundColor: '#1F7A4D',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,

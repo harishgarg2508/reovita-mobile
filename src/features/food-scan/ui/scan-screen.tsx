@@ -160,7 +160,15 @@ export function ScanScreen({ kind }: { kind: FoodScanKind }) {
           <Ionicons name="chevron-back" size={20} color={p.text} />
         </Pressable>
         <Text style={[styles.title, { color: p.text }]}>{copy.title}</Text>
-        <View style={styles.spacer} />
+        {/* The clock opens every earlier scan of this kind, the same button as on Dietary guidance. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={kind === 'fridge' ? 'My earlier fridge scans' : 'My earlier meal scans'}
+          hitSlop={8}
+          onPress={() => router.push((kind === 'fridge' ? '/(app)/fridge-history' : '/(app)/meal-history') as Href)}
+          style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
+          <Ionicons name="time-outline" size={19} color={p.text} />
+        </Pressable>
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
@@ -172,7 +180,7 @@ export function ScanScreen({ kind }: { kind: FoodScanKind }) {
           <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
             <Text style={[styles.cardTitle, { color: p.text }]}>Allow food photos</Text>
             <Text style={[styles.cardText, { color: p.muted }]}>
-              To read a photo, it is sent once to our AI service, together with your diet type and goal if you chose them. The photo is not saved. Only the answer stays on your account, and you can delete it any time. You can take this permission back in Settings.
+              To read a photo, it is sent once to our AI service, together with your diet type and goal if you chose them. The photo is kept with the answer on your account, so you can see it next to the result, and you can delete the scan (and its photo) any time. You can take this permission back in Settings.
             </Text>
             <Pressable accessibilityRole="button" disabled={grant.isPending} onPress={() => void agree()} style={[styles.primary, { backgroundColor: p.accent }]}>
               {grant.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>I agree</Text>}

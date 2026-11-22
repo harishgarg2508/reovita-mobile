@@ -20,6 +20,7 @@ import { ReovitaLeafLogo } from '@shared/ui';
 import { ProgressBar } from '@shared/ui/progress-bar';
 import { Skeleton } from '@shared/ui/skeleton';
 import { ThemeToggle, useResolvedScheme } from '@shared/ui/theme';
+import { PremiumBadge, useSubscription } from '@entities/subscription';
 
 // Colours for the two themes, taken from the dashboard designs.
 const DARK = {
@@ -137,6 +138,9 @@ function partStatusColor(score: number | null, p: Palette): string {
 // Dashboard: header, the most urgent card first, then the health score, briefing and reports.
 export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x: number; y: number }) => void }) {
   const router = useRouter();
+  // A free account sees a lock on each Premium card, and tapping it opens the plan screen. While the plan is still loading nothing shows locked.
+  const plan = useSubscription();
+  const openPremium = (route: string) => router.push((plan.locked ? '/(app)/subscription' : route) as never);
   const insets = useSafeAreaInsets();
   const home = useHome();
   const queryClient = useQueryClient();
@@ -330,52 +334,13 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
 
       <ProfileBmiCard />
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/briefings')}>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/measurements')}>
         <Card p={p}>
           <View style={styles.rowTop}>
-            <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
+            <IconBox p={p} name="heart-outline" color={p.lime} />
             <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Air quality, UV and heat for today.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
-
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/meal-scan')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="restaurant-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my meal</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your plate: calories and protein.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
-
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/fridge-scan')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="nutrition-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my fridge</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your fridge: simple meals to cook.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
-
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/dietary-guidance')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="leaf-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Dietary guidance</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Your BMI and a one-day plan for your goal.</Text>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Vitals</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Log your blood pressure and weight.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>
@@ -389,19 +354,6 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
             <View style={styles.flex}>
               <Text style={[styles.cardTitle, { color: p.text }]}>Social</Text>
               <Text style={[styles.cardText, { color: p.muted }]}>Share your progress and cheer others on.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
-
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/measurements')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="heart-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Vitals</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Log your blood pressure and weight.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={p.purple} />
           </View>
@@ -450,6 +402,79 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
           </View>
         )}
       </Card>
+
+      {/* Premium: what the free plan does not include. A free account sees a lock here and the plan screen opens when a card is tapped. */}
+      <View style={styles.premiumHead}>
+        <Ionicons name="diamond" size={15} color={p.lime} />
+        <Text style={[styles.premiumTitle, { color: p.text }]}>Premium</Text>
+        <Text style={[styles.premiumHint, { color: p.muted }]}>{plan.locked ? 'Food, guidance and the daily briefing' : 'Included in your plan'}</Text>
+      </View>
+      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/meal-scan')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="restaurant-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my meal</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your plate: calories and protein.</Text>
+            </View>
+            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/fridge-scan')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="nutrition-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my fridge</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your fridge: simple meals to cook.</Text>
+            </View>
+            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/dietary-guidance')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="leaf-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Dietary guidance</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Your BMI and a one-day plan for your goal.</Text>
+            </View>
+            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
+          </View>
+        </Card>
+      </Pressable>
+
+      {/* A link under Dietary guidance to the earlier meal scans. */}
+      <Pressable accessibilityRole="button" accessibilityLabel="Meal history" onPress={() => openPremium('/(app)/meal-history')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="restaurant-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Meal history</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>The meals you scanned, day by day.</Text>
+            </View>
+            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
+          </View>
+        </Card>
+      </Pressable>
+
+      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/briefings')}>
+        <Card p={p}>
+          <View style={styles.rowTop}>
+            <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
+              <Text style={[styles.cardText, { color: p.muted }]}>Air quality, UV and heat for today.</Text>
+            </View>
+            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
+          </View>
+        </Card>
+      </Pressable>
+
       <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
         <Pressable style={[styles.infoBackdrop, { backgroundColor: p.bg }]} onPress={() => setScoreInfoOpen(false)}>
           <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border, maxHeight: '85%' }]} onPress={() => undefined}>
@@ -507,7 +532,8 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, gap: 16, flexGrow: 1 },
+  // One even gap between every card.
+  container: { paddingHorizontal: 20, gap: 12, flexGrow: 1 },
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
   tagline: { fontSize: 13, fontStyle: 'italic', marginTop: 2, marginLeft: 4 },
@@ -584,6 +610,9 @@ const styles = StyleSheet.create({
   scoreValue: { fontSize: 44, fontWeight: '800', letterSpacing: 2 },
   // Rotating the whole SVG (not a group inside it) starts the arc at the top. Works on web too.
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  premiumHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  premiumTitle: { fontSize: 15, fontWeight: '800' },
+  premiumHint: { fontSize: 12.5 },
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });

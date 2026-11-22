@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, Text
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tapConfirm, tapSelection } from '@shared/lib';
 import { usePalette } from '@shared/ui/theme';
 import { useMyHandle, useSocialTerms } from '@entities/social';
 
@@ -34,7 +35,10 @@ export function JoinPanel() {
     setPickError(null);
     try {
       const picked = await pickPicture();
-      if (picked) (kind === 'avatar' ? setAvatar : setCover)(picked);
+      if (picked) {
+        tapSelection();
+        (kind === 'avatar' ? setAvatar : setCover)(picked);
+      }
     } catch (err) {
       setPickError((err as Error).message);
     }
@@ -48,6 +52,7 @@ export function JoinPanel() {
 
   function submit() {
     if (!canSubmit || !terms.data) return;
+    tapConfirm();
     if (returning) accept.mutate(terms.data.version);
     else create.mutate({ handle: clean, displayName: name.trim(), termsVersion: terms.data.version, avatar, cover });
   }
@@ -88,7 +93,15 @@ export function JoinPanel() {
                 </View>
                 {pickError ? <Text style={[styles.hint, { color: p.red }]}>{pickError}</Text> : null}
 
-                <Text style={[styles.label, { color: p.text }]}>Handle</Text>
+                <View style={styles.labelRow}>
+                  <Text style={[styles.label, { color: p.text }]}>Handle</Text>
+                  {clean.length >= 3 && validHandle ? (
+                    <View style={styles.validTag}>
+                      <Ionicons name="checkmark-circle" size={13} color="#10B981" />
+                      <Text style={styles.validTagText}>Valid handle</Text>
+                    </View>
+                  ) : null}
+                </View>
                 <View style={[styles.field, { borderColor: create.isError ? p.red : p.border, backgroundColor: p.input }]}>
                   <Text style={[styles.at, { color: p.muted }]}>@</Text>
                   <TextInput
@@ -100,7 +113,7 @@ export function JoinPanel() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     maxLength={25}
-                    placeholder="pavitar"
+                    placeholder="fitness_mover"
                     placeholderTextColor={p.muted}
                     style={[styles.input, { color: p.text }]}
                     accessibilityLabel="Handle"
@@ -110,7 +123,7 @@ export function JoinPanel() {
 
                 <Text style={[styles.label, { color: p.text }]}>Display name (optional)</Text>
                 <View style={[styles.field, { borderColor: p.border, backgroundColor: p.input }]}>
-                  <TextInput value={name} onChangeText={setName} maxLength={40} placeholder="Pavitar" placeholderTextColor={p.muted} style={[styles.input, { color: p.text }]} accessibilityLabel="Display name" />
+                  <TextInput value={name} onChangeText={setName} maxLength={40} placeholder="Display Name" placeholderTextColor={p.muted} style={[styles.input, { color: p.text }]} accessibilityLabel="Display name" />
                 </View>
               </>
             )}
@@ -121,7 +134,14 @@ export function JoinPanel() {
     </ScrollView>
     {terms.data ? (
       <View style={[styles.footer, { borderTopColor: p.border, backgroundColor: p.bg, paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
-            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: agreed }} onPress={() => setAgreed((v) => !v)} style={styles.agreeRow}>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreed }}
+              onPress={() => {
+                tapSelection();
+                setAgreed((v) => !v);
+              }}
+              style={styles.agreeRow}>
               <View style={[styles.box, { borderColor: agreed ? p.accent : p.border, backgroundColor: agreed ? p.accent : 'transparent' }]}>
                 {agreed ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
               </View>
@@ -136,7 +156,7 @@ export function JoinPanel() {
               disabled={!canSubmit}
               onPress={submit}
               style={[styles.button, { backgroundColor: p.accent }, !canSubmit && { opacity: 0.5 }]}>
-              {pending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{returning ? 'Agree and continue' : 'Create account'}</Text>}
+              {pending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>{returning ? 'Agree and continue' : 'Join Social'}</Text>}
             </Pressable>
       </View>
     ) : null}
@@ -160,7 +180,10 @@ const styles = StyleSheet.create({
   fill: { width: '100%', height: '100%' },
   coverPick: { height: 104, borderRadius: 16, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   avatarPick: { position: 'absolute', left: 16, bottom: -28, width: 68, height: 68, borderRadius: 34, borderWidth: 3, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
   label: { fontSize: 13, fontWeight: '700', marginTop: 6 },
+  validTag: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  validTagText: { fontSize: 11.5, fontWeight: '700', color: '#10B981' },
   field: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, height: 50 },
   at: { fontSize: 16, marginRight: 2 },
   input: { flex: 1, fontSize: 16, padding: 0, height: '100%' },
@@ -168,6 +191,6 @@ const styles = StyleSheet.create({
   agreeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   box: { width: 24, height: 24, borderRadius: 7, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   agreeText: { flex: 1, fontSize: 14, fontWeight: '700', lineHeight: 19 },
-  button: { height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  button: { height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 });

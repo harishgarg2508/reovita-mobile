@@ -16,6 +16,8 @@ export interface SocialProfile extends SocialHandle {
   // The person chose a profile picture / a cover (read with usePicture).
   has_avatar: boolean;
   has_cover: boolean;
+  // I already nudged this friend today, so another nudge is refused until tomorrow.
+  nudged_recently: boolean;
   // I sent this person a friend request and they have not answered yet.
   request_sent: boolean;
   // On my own page only: how many people I blocked. Null on anyone else's page.
@@ -143,7 +145,7 @@ export interface SocialNotification {
   has_avatar: boolean;
   id: string;
   // request_accepted: accepted my friend request. follow_request: sent me one (answered in the friend requests, not listed here).
-  type: 'kudos' | 'comment' | 'reply' | 'nudge' | 'pod_invite' | 'follow_request' | 'request_accepted';
+  type: 'kudos' | 'comment' | 'reply' | 'nudge' | 'pod_invite' | 'challenge_invite' | 'follow_request' | 'request_accepted';
   handle: string;
   display_name: string | null;
   post_id: string | null;
@@ -300,4 +302,63 @@ export interface SocialRecap {
   top_habit: string | null;
   streak: number;
   best_streak: number;
+}
+
+// Journeys: a trip along a map that friends make together, moving forward with each day of check-ins.
+export interface SocialJourneyMap {
+  key: string;
+  title: string;
+  tagline: string;
+  total_km: number;
+  days: number;
+  theme: 'plains' | 'mountain' | 'coast' | 'backwaters';
+}
+
+export interface SocialJourneyMember {
+  handle: string;
+  display_name: string | null;
+  has_avatar: boolean;
+  is_me: boolean;
+  is_owner: boolean;
+  km: number;
+  percent: number;
+  finished: boolean;
+  rank: number;
+  checked_in_today: boolean;
+}
+
+export interface SocialJourneySummary {
+  id: string;
+  map_key: string;
+  title: string;
+  tagline: string;
+  theme: string;
+  total_km: number;
+  starts_on: string;
+  ends_on: string;
+  days_left: number;
+  status: 'active' | 'ended';
+  member_count: number;
+  max_members: number;
+  my_km: number;
+  my_percent: number;
+  finished: boolean;
+  is_owner: boolean;
+}
+
+export interface SocialJourneyDetail extends SocialJourneySummary {
+  goal_days: number;
+  members: SocialJourneyMember[];
+  pending_invites: { handle: string; display_name: string | null }[];
+}
+
+export interface SocialJourneyInvite {
+  id: string;
+  challenge_id: string;
+  title: string;
+  total_km: number;
+  days: number;
+  member_count: number;
+  from: { handle: string; display_name: string | null; has_avatar: boolean };
+  created_at: string;
 }

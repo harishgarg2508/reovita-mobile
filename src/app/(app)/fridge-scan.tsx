@@ -1,5 +1,10 @@
+import { PremiumGate } from '@features/subscription';
 import { ScanScreen } from '@features/food-scan';
 
 export default function FridgeScanRoute() {
-  return <ScanScreen kind="fridge" />;
+  return (
+    <PremiumGate feature="Scan my fridge">
+      <ScanScreen kind="fridge" />
+    </PremiumGate>
+  );
 }

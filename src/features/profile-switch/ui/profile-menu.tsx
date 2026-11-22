@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import { usePalette, type Palette } from '@shared/ui/theme';
+import { PremiumBadge, useSubscription } from '@entities/subscription';
 
 import {
   useAccountProfiles,
@@ -27,6 +28,8 @@ export function ProfileMenu({
 }) {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
+  // Family profiles are Premium: on the free plan the row carries a Premium pill, and the page sends the person to the plan screen.
+  const plan = useSubscription();
   const profiles = useAccountProfiles();
   const switchTo = useSwitchProfile();
 
@@ -77,6 +80,7 @@ export function ProfileMenu({
           <Ionicons name="add" size={20} color={p.accent} />
         </View>
         <Text style={styles.addText}>Add profile</Text>
+        {plan.locked ? <PremiumBadge /> : null}
       </Pressable>
     </View>
   );

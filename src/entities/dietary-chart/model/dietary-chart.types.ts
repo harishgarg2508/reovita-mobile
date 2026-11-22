@@ -48,3 +48,16 @@ export interface DietaryChartView {
   diet_type: DietType;
   chart: DietaryChart;
 }
+
+// One line of the history list.
+export interface DietaryChartListItem {
+  id: string;
+  created_at: string;
+  goal: DietaryGoal;
+  diet_type: DietType;
+  bmi: number;
+  bmi_category: string;
+  calories_min: number | null;
+  calories_max: number | null;
+  summary: string;
+}

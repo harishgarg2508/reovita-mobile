@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { api } from '@shared/api';
+import { bytesToDataUri } from '@shared/lib';
 
 import type { FoodScanKind, FoodScanView } from './food-scan.types';
 
@@ -31,6 +32,13 @@ export async function fetchFoodScans(kind: FoodScanKind, limit = 20): Promise<Fo
 export async function fetchFoodScan(id: string): Promise<FoodScanView> {
   const { data } = await api.get<FoodScanView>(`/v1/food-scans/${id}`);
   return data;
+}
+
+// The photo that was scanned, as an address the Image component can show. It is fetched with the person's sign-in.
+export async function fetchFoodScanPhoto(id: string): Promise<string> {
+  const response = await api.get<ArrayBuffer>(`/v1/food-scans/${id}/photo`, { responseType: 'arraybuffer' });
+  const mime = String(response.headers['content-type'] ?? 'image/jpeg').split(';')[0];
+  return bytesToDataUri(new Uint8Array(response.data), mime);
 }
 
 export async function deleteFoodScan(id: string): Promise<void> {

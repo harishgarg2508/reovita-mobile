@@ -26,6 +26,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-sensors",
+        {
+          "motionPermission": "Reovita counts your steps to move you along a journey with friends. Only the number of steps is used, never where you are."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {
@@ -57,7 +63,8 @@
         {
           "locationWhenInUsePermission": "Reovita uses your location to show your local environment briefing."
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true,
