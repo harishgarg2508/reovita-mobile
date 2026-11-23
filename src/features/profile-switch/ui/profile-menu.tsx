@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 import { PremiumBadge, useSubscription } from '@entities/subscription';
 
 import {
@@ -87,53 +87,41 @@ export function ProfileMenu({
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    menu: {
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: p.border,
-      backgroundColor: p.card,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOpacity: 0.16,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 12,
-    },
+    // Flat rows on thin rules: the list is not a card.
+    menu: { borderTopWidth: Rule, borderTopColor: p.border, marginTop: Gap.inner },
     loading: { paddingVertical: 14 },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      gap: 14,
+      paddingVertical: 14,
+      borderBottomWidth: Rule,
+      borderBottomColor: p.border,
     },
-    rowOn: { backgroundColor: p.accentSoft },
+    rowOn: {},
     avatar: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: p.accentSoft,
     },
-    avatarText: { fontSize: 13, fontWeight: '800', color: p.accent },
+    avatarText: { ...Type.label, fontFamily: 'Poppins_600SemiBold', color: p.accent },
     text: { flex: 1, gap: 1 },
-    name: { fontSize: 14.5, fontWeight: '700', color: p.textStrong },
-    code: { fontSize: 12, color: p.muted },
-    addRow: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: p.border,
-    },
+    name: { ...Type.bodyStrong, color: p.textStrong },
+    code: { ...Type.small, color: p.muted },
+    addRow: { borderBottomWidth: 0 },
     addAvatar: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1.5,
       borderStyle: 'dashed',
       borderColor: p.accent,
     },
-    addText: { fontSize: 14.5, fontWeight: '700', color: p.accent },
+    addText: { ...Type.bodyStrong, color: p.accent },
   });
 }

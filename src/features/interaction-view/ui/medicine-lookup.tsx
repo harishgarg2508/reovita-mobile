@@ -109,7 +109,7 @@ function Picker({ label, value, onPick, p }: { label: string; value: MedicineSug
 function makeStyles(p: Palette) {
   return StyleSheet.create({
     wrap: { gap: 14 },
-    card: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 16, gap: 12 },
+    card: { gap: 12 },
     head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     title: { fontSize: 16, fontWeight: '800', color: p.textStrong },
     muted: { fontSize: 12.5, color: p.muted, lineHeight: 18 },

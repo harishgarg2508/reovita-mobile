@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { usePalette } from '@shared/ui/theme';
+import { Type, usePalette } from '@shared/ui/theme';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
 // Report upload block: dashed drop zone, encryption note, and an optional skip link.
@@ -22,18 +22,15 @@ export function ReportDropZone({
   return (
     <View style={styles.wrap}>
       <View style={[styles.dropZone, { backgroundColor: p.card, borderColor: p.accent }]}>
-        <View style={[styles.iconBox, { backgroundColor: p.card }]}>
-          <Ionicons name="document-attach-outline" size={28} color={colors.accent} />
-        </View>
+        <Ionicons name="cloud-upload-outline" size={34} color={colors.accent} />
         <Text style={[styles.dropTitle, { color: p.text }]}>Drop your report here</Text>
-        <Text style={[styles.dropHint, { color: p.muted }]}>PDF, JPG or PNG · Up to 20 MB</Text>
+        <Text style={[styles.dropHint, { color: p.muted }]}>PDF, JPG or PNG, up to 20 MB</Text>
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
           onPress={onChoose}
-          style={({ pressed }) => [styles.chooseBtn, { backgroundColor: p.accentSoft }, pressed && styles.pressed, disabled && styles.disabled]}>
-          <Ionicons name="add" size={16} color={colors.accent} />
-          <Text style={[styles.chooseText, { color: p.accent }]}>Choose file</Text>
+          style={({ pressed }) => [styles.chooseBtn, { backgroundColor: p.accent }, pressed && styles.pressed, disabled && styles.disabled]}>
+          <Text style={styles.chooseText}>Choose file</Text>
         </Pressable>
       </View>
 
@@ -53,14 +50,14 @@ const createStyles = (colors: FormColors) =>
   StyleSheet.create({
   wrap: { gap: 16 },
   dropZone: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.accent,
     borderRadius: 20,
-    paddingVertical: 32,
+    paddingVertical: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: colors.card,
   },
   iconBox: {
@@ -74,19 +71,19 @@ const createStyles = (colors: FormColors) =>
     justifyContent: 'center',
     marginBottom: 8,
   },
-  dropTitle: { fontFamily: 'Poppins_500Medium', fontSize: 16, color: colors.text },
-  dropHint: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.muted },
+  dropTitle: { ...Type.heading, color: colors.text, marginTop: 6 },
+  dropHint: { ...Type.small, color: colors.muted },
   chooseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 12,
-    height: 40,
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    marginTop: 14,
+    height: 48,
+    paddingHorizontal: 32,
     borderRadius: 999,
-    backgroundColor: colors.surfaceAlt,
   },
-  chooseText: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.accent },
+  chooseText: { ...Type.bodyStrong, color: '#FFFFFF' },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.5 },
   banner: {

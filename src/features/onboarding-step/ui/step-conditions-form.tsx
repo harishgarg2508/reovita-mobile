@@ -354,11 +354,11 @@ export function StepConditionsForm({
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
   container: {
-    gap: 20,
+    gap: 28,
     position: 'relative',
   },
   section: {
-    gap: 8,
+    gap: 12,
   },
   blockError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 10 },
   sectionLabel: {
@@ -375,7 +375,7 @@ const createStyles = (colors: FormColors) =>
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    height: 40,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
@@ -391,7 +391,7 @@ const createStyles = (colors: FormColors) =>
   },
   chipText: {
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 14,
     color: colors.muted,
   },
   chipTextSelected: {
@@ -407,16 +407,16 @@ const createStyles = (colors: FormColors) =>
     elevation: 60,
     overflow: 'visible',
   },
-  otherBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 6 },
-  otherInput: { minHeight: 96, fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.text, padding: 0 },
+  otherBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.card, padding: 12, gap: 6 },
+  otherInput: { minHeight: 96, fontFamily: 'Poppins_400Regular', fontSize: 14, color: colors.text, padding: 0 },
   otherCounter: { alignSelf: 'flex-end', fontFamily: 'Poppins_400Regular', fontSize: 11, color: colors.placeholder },
   medSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: 52,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: colors.card,
     paddingHorizontal: 14,
   },
@@ -497,7 +497,7 @@ const createStyles = (colors: FormColors) =>
     fontSize: 13,
     color: colors.onSoft,
   },
-  medCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 8 },
+  medCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.card, padding: 12, gap: 8 },
   medCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   medDoseInput: {
     height: 40,

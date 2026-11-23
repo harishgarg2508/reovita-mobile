@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
@@ -401,8 +401,8 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
       <ListRow p={p} icon="partly-sunny-outline" title="Daily briefing" text="Air quality, UV and heat for today." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/briefings')} />
       </View>
 
-      <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
-        <Pressable style={[styles.infoBackdrop, { backgroundColor: p.bg }]} onPress={() => setScoreInfoOpen(false)}>
+      <Modal visible={scoreInfoOpen} animationType="fade" transparent onRequestClose={() => setScoreInfoOpen(false)}>
+        <Pressable style={styles.infoBackdrop} onPress={() => setScoreInfoOpen(false)}>
           <Pressable style={[styles.infoSheet, { backgroundColor: p.card, borderColor: p.border, maxHeight: '85%' }]} onPress={() => undefined}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.infoBody}>
             <Text style={[styles.cardTitle, { color: p.text }]}>How your score is calculated</Text>
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   // Status text and arrow on one centred line.
   partFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%' },
   partStatus: { ...Type.label, flexShrink: 1 },
-  infoBackdrop: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 20 },
+  infoBackdrop: { flex: 1, backgroundColor: 'rgba(15, 12, 24, 0.45)', justifyContent: 'center', padding: 20, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}), },
   infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8, flexShrink: 1 },
   infoBody: { gap: 8, paddingBottom: 4 },
   legend: { gap: 6, marginTop: 2 },

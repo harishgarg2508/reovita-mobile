@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
@@ -14,6 +14,7 @@ import { socialProfileHref, socialRoute } from '../model/routes';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
 import { SOCIAL_DOCK_SPACE } from './social-dock';
+import { TopicStrip } from './topic-strip';
 
 type Tab = 'for_you' | 'friends';
 
@@ -70,16 +71,7 @@ export function SocialScreen() {
       </View>
 
       {/* Topics: plain text, the chosen one filled */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topics}>
-        {[{ value: null, label: 'All' }, ...SOCIAL_TOPICS].map((t) => {
-          const on = topic === t.value;
-          return (
-            <Pressable key={t.label} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => selectTopic(t.value)} style={[styles.topic, on && { backgroundColor: p.accent }]}>
-              <Text style={[SOCIAL_TYPE.label, { color: on ? '#FFFFFF' : p.muted }]}>{t.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <TopicStrip options={[{ value: null, label: 'All' }, ...SOCIAL_TOPICS]} selected={topic} onSelect={selectTopic} />
     </View>
   );
 
@@ -139,7 +131,5 @@ const styles = StyleSheet.create({
   // The feed already pads its header by the screen edge, so the tabs and the topics add none: they start under the heading.
   tabs: { flexDirection: 'row', gap: 28, borderBottomWidth: SOCIAL_RULE },
   tab: { paddingTop: 6, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -StyleSheet.hairlineWidth },
-  topics: { gap: 8 },
-  topic: { height: 32, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   error: { textAlign: 'center', marginTop: 40, paddingHorizontal: 24 },
 });

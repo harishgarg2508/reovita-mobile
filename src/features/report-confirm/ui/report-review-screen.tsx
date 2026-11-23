@@ -48,7 +48,7 @@ import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 const createLoadingStyles = (colors: FormColors) =>
   StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 18, fontWeight: '800', color: colors.text },
+  title: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: colors.text },
   subtitle: { fontSize: 14, color: colors.muted },
   error: { fontSize: 14, color: colors.error },
 });
@@ -605,7 +605,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
                         flex: 1,
                         minWidth: 0,
                         fontSize: 15,
-                        fontWeight: '600',
+                        fontFamily: 'Poppins_600SemiBold',
                         color: colors.text,
                         paddingHorizontal: 10,
                         paddingVertical: 7,
@@ -725,11 +725,11 @@ const createStyles = (colors: FormColors) =>
   backArrow: {
     fontSize: 22,
     color: colors.text,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   infoCallout: {
@@ -751,7 +751,7 @@ const createStyles = (colors: FormColors) =>
   },
   infoTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
     marginBottom: 2,
   },
@@ -792,12 +792,12 @@ const createStyles = (colors: FormColors) =>
   },
   biomarkerName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   biomarkerValue: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   dualActionRow: {
@@ -817,7 +817,7 @@ const createStyles = (colors: FormColors) =>
   },
   editBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.accent,
   },
   confirmBtn: {
@@ -835,7 +835,7 @@ const createStyles = (colors: FormColors) =>
   confirmError: { fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 10 },
   confirmBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.onAccent,
   },
   centerHeroSection: {
@@ -895,7 +895,7 @@ const createStyles = (colors: FormColors) =>
   },
   readyTitle: {
     fontSize: 25,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
     textAlign: 'center',
     marginBottom: 6,
@@ -933,7 +933,7 @@ const createStyles = (colors: FormColors) =>
   },
   allNormalText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#365314',
   },
   scoreCard: {
@@ -953,7 +953,7 @@ const createStyles = (colors: FormColors) =>
   },
   scoreCardLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
     marginBottom: 4,
   },
@@ -964,18 +964,18 @@ const createStyles = (colors: FormColors) =>
   },
   scoreBig: {
     fontSize: 38,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
     letterSpacing: -1,
   },
   scoreUpArrow: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#84CC16',
   },
   scoreDenominator: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.muted,
   },
   sparklineCol: {
@@ -988,7 +988,7 @@ const createStyles = (colors: FormColors) =>
   },
   insightsTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   insightItem: {
@@ -1012,7 +1012,7 @@ const createStyles = (colors: FormColors) =>
   insightText: {
     fontSize: 14,
     color: colors.text,
-    fontWeight: '500',
+    fontFamily: 'Poppins_500Medium',
     flex: 1,
   },
   detailedSection: {
@@ -1032,7 +1032,7 @@ const createStyles = (colors: FormColors) =>
   },
   detailedVal: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   actionColumn: {
@@ -1055,7 +1055,7 @@ const createStyles = (colors: FormColors) =>
   },
   primaryReportBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.onAccent,
   },
   secondaryDashboardBtn: {
@@ -1070,7 +1070,7 @@ const createStyles = (colors: FormColors) =>
   },
   secondaryDashboardBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
 });

@@ -62,7 +62,7 @@ export function ReportsListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 20, gap: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { fontSize: 26, fontWeight: '800' },
+  title: { fontSize: 26, fontFamily: 'Poppins_600SemiBold' },
   loading: { gap: 10 },
   listFill: { flex: 1 },
   empty: { fontSize: 14, marginTop: 8 },

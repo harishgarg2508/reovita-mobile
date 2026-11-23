@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '@app-root/store';
 import { selectIsSignedIn, selectSessionStatus, sessionReady } from '@entities/session';
 import { friendlySignInError, LoginScreen, useGoogleSignIn } from '@features/auth';
 import { isApiError } from '@shared/api';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '@shared/ui/theme';
 
@@ -48,9 +48,9 @@ export default function LoginRoute() {
       pending={signIn.isPending}
       errorMessage={signIn.isError ? friendlySignInError(signIn.error) : null}
       />
-      <Modal visible={recoverOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setRecoverOpen(false)}>
-        <View style={[styles.backdrop, { backgroundColor: palette.bg }]}>
-          <View style={[styles.dialog, { backgroundColor: palette.card, borderColor: palette.border }]}>
+      <Modal visible={recoverOpen} animationType="fade" transparent onRequestClose={() => setRecoverOpen(false)}>
+        <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={() => setRecoverOpen(false)}>
+          <Pressable style={[styles.dialog, { backgroundColor: palette.card, borderColor: palette.border }]} onPress={() => undefined}>
             <Text style={[styles.title, { color: palette.text }]}>Reactivate your account?</Text>
             <Text style={[styles.body, { color: palette.muted }]}>
               Your data was kept when the account was deactivated. Reactivating restores access to it.
@@ -69,15 +69,15 @@ export default function LoginRoute() {
                 <Text style={styles.confirmText}>Reactivate</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 12, 24, 0.45)', alignItems: 'center', justifyContent: 'center', padding: 24, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}), },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
   title: { fontSize: 18, fontWeight: '800' },
   body: { fontSize: 14, lineHeight: 20 },

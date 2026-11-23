@@ -81,9 +81,6 @@ export function StepIdentityForm({
       {/* Birth year: scroll wheel from the current year back to 1900 */}
       <View style={[styles.block, missing.includes('year') && styles.blockError]} onLayout={(e) => onFieldLayout?.('year', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
-          <View style={styles.labelBadge}>
-            <Ionicons name="calendar-outline" size={13} color={colors.accent} />
-          </View>
           <Text style={styles.label}>Birth year *</Text>
         </View>
         <NumberWheel value={draft.year ?? DEFAULT_BIRTH_YEAR} minValue={MIN_YEAR} maxValue={MAX_YEAR} onChange={(year) => update({ year })} />
@@ -92,9 +89,6 @@ export function StepIdentityForm({
       {/* Sex segments */}
       <View style={[styles.block, sexMissing && styles.blockError]} onLayout={(e) => onFieldLayout?.('sex', e.nativeEvent.layout.y)}>
         <View style={styles.labelRow}>
-          <View style={styles.labelBadge}>
-            <Ionicons name="male-female-outline" size={13} color={colors.accent} />
-          </View>
           <Text style={styles.label}>Sex *</Text>
         </View>
         <View style={[styles.segments, sexMissing && styles.fieldError]}>
@@ -118,9 +112,6 @@ export function StepIdentityForm({
       <View style={styles.row} onLayout={(e) => onFieldLayout?.('height', e.nativeEvent.layout.y)}>
         <View style={styles.half}>
           <View style={styles.labelRow}>
-            <View style={styles.labelBadge}>
-              <Ionicons name="resize-outline" size={13} color={colors.accent} />
-            </View>
             <Text style={styles.label}>Height *</Text>
           </View>
           <View style={[styles.numeric, heightMissing && styles.fieldError]}>
@@ -139,9 +130,6 @@ export function StepIdentityForm({
         </View>
         <View style={styles.half}>
           <View style={styles.labelRow}>
-            <View style={styles.labelBadge}>
-              <Ionicons name="speedometer-outline" size={13} color={colors.accent} />
-            </View>
             <Text style={styles.label}>Weight *</Text>
           </View>
           <View style={[styles.numeric, weightMissing && styles.fieldError]}>
@@ -164,7 +152,7 @@ export function StepIdentityForm({
       <View style={styles.bmiCard}>
         <View style={styles.bmiTop}>
           <View>
-            <Text style={styles.bmiLabel}>BMI · Automatic</Text>
+            <Text style={styles.bmiLabel}>BMI (automatic)</Text>
             <Text style={styles.bmiValue}>{bmi !== null ? bmi.toFixed(1) : '--'}</Text>
           </View>
           {category ? (
@@ -194,8 +182,8 @@ const createStyles = (colors: FormColors) =>
   StyleSheet.create({
   fieldError: { borderColor: colors.error, borderWidth: 1.5 },
   blockError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 10 },
-  form: { gap: 24 },
-  block: { gap: 8 },
+  form: { gap: 28 },
+  block: { gap: 10 },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -209,7 +197,7 @@ const createStyles = (colors: FormColors) =>
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: colors.text },
+  label: { fontFamily: 'Poppins_500Medium', fontSize: 14, color: colors.text },
 
   segments: {
     flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, padding: 4, borderRadius: 999, backgroundColor: colors.surfaceAlt,
@@ -221,18 +209,18 @@ const createStyles = (colors: FormColors) =>
   segmentTextOn: { fontFamily: 'Poppins_600SemiBold', color: colors.onAccent },
 
   row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1, gap: 8 },
+  half: { flex: 1, gap: 10 },
   numeric: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 64,
-    padding: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card,
+    paddingHorizontal: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.card,
   },
-  numericValue: { flex: 1, minWidth: 0, width: 0, fontFamily: 'Poppins_400Regular', fontSize: 24, color: colors.text, padding: 0 },
+  numericValue: { flex: 1, minWidth: 0, width: 0, fontFamily: 'Poppins_500Medium', fontSize: 24, color: colors.text, padding: 0 },
   unit: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.muted, flexShrink: 0, marginLeft: 8 },
 
-  bmiCard: { backgroundColor: colors.surfaceAlt, borderRadius: 16, padding: 16, gap: 12 },
+  bmiCard: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 20, gap: 14 },
   bmiTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  bmiLabel: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: colors.muted },
-  bmiValue: { fontFamily: 'Poppins_500Medium', fontSize: 26, color: colors.text },
+  bmiLabel: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: colors.muted },
+  bmiValue: { fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 38, color: colors.text },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, backgroundColor: '#D4FF3F',
@@ -242,6 +230,6 @@ const createStyles = (colors: FormColors) =>
   band: { flex: 1, alignItems: 'center', gap: 4 },
   bandBar: { height: 4, alignSelf: 'stretch', borderRadius: 999, backgroundColor: colors.border },
   bandBarOn: { backgroundColor: colors.accentFill },
-  bandText: { fontFamily: 'Poppins_400Regular', fontSize: 10, color: colors.muted },
+  bandText: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: colors.muted },
   bandTextOn: { color: colors.accent },
 });

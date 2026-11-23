@@ -47,8 +47,7 @@ export function AddProfileSheet({
     add.mutate(name, {
       onSuccess: (failure) => {
         if (failure === null) close();
-        else if (failure !== 'cancelled')
-          setError(ADD_PROFILE_FAILURE_TEXT[failure]);
+        else setError(ADD_PROFILE_FAILURE_TEXT[failure]);
       },
       onError: () => setError(ADD_PROFILE_FAILURE_TEXT.failed),
     });
@@ -57,9 +56,6 @@ export function AddProfileSheet({
   return (
     <BottomSheet visible={visible} onClose={close}>
       <View style={styles.wrap}>
-        <View style={styles.icon}>
-          <Ionicons name="people-outline" size={24} color={colors.accent} />
-        </View>
         <Text style={styles.title}>Add a profile</Text>
         <Text style={styles.sub}>
           For someone whose health records you look after. Each profile has its
@@ -115,7 +111,7 @@ export function AddProfileSheet({
 
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
-    wrap: { gap: 12, paddingBottom: 8 },
+    wrap: { gap: 14, paddingBottom: 8 },
     icon: {
       width: 48,
       height: 48,
@@ -125,19 +121,20 @@ const createStyles = (colors: FormColors) =>
       justifyContent: 'center',
     },
     title: {
-      fontFamily: 'Poppins_700Bold',
-      fontSize: 19,
+      fontFamily: 'Poppins_600SemiBold',
+      fontSize: 21,
+      lineHeight: 28,
       color: colors.textStrong,
     },
     sub: {
       fontFamily: 'Poppins_400Regular',
-      fontSize: 13,
-      lineHeight: 19,
+      fontSize: 14.5,
+      lineHeight: 21,
       color: colors.muted,
     },
     input: {
-      height: 50,
-      borderRadius: 14,
+      height: 52,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border2,
       paddingHorizontal: 14,

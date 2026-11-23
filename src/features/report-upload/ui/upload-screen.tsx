@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState, useMemo } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LlmConsentSheet, useGrantLlmConsent } from '@entities/consent';
@@ -128,8 +128,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         styles.container,
         {
           backgroundColor: p.bg,
-          paddingTop: Math.max(insets.top, 20) + 8,
-          paddingBottom: Math.max(insets.bottom, 20) + 16,
+          paddingTop: insets.top + 16,
+          paddingBottom: Math.max(insets.bottom, 16) + 16,
         },
       ]}>
       <View style={styles.headerSection}>
@@ -143,7 +143,7 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
             <Text style={[styles.brandName, { color: p.text }]}>Reovita</Text>
           </View>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: p.text }]}>{hasReports ? 'Your Reports' : 'Your First Report'}</Text>
+            <Text style={[styles.title, { color: p.text }]}>{hasReports ? 'Your reports' : 'Your first report'}</Text>
             {hasReports ? (
               <Pressable accessibilityRole="button" accessibilityLabel="About your reports" onPress={() => setInfoOpen(true)} hitSlop={8}>
                 <Ionicons name="information-circle-outline" size={22} color={p.muted} />
@@ -187,8 +187,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
                     accessibilityRole="button"
                     accessibilityLabel="Show all reports"
                     onPress={() => router.push('/(app)/reports/list')}
-                    style={[styles.moreRow, { borderColor: p.border, backgroundColor: p.card }]}>
-                    <Text style={[styles.moreText, { color: p.accent }]}>More</Text>
+                    style={[styles.moreRow, { borderColor: p.border }]}>
+                    <Text style={[styles.moreText, { color: p.accent }]}>See all reports</Text>
                     <Ionicons name="chevron-forward" size={18} color={p.accent} />
                   </Pressable>
                 ) : null
@@ -211,9 +211,9 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
         onAllow={onAllowLlm}
         onDecline={() => setLlmSheetOpen(false)}
       />
-      <Modal visible={infoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setInfoOpen(false)}>
-        <View style={[styles.backdrop, { backgroundColor: p.bg }]}>
-          <View style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]}>
+      <Modal visible={infoOpen} animationType="fade" transparent onRequestClose={() => setInfoOpen(false)}>
+        <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={() => setInfoOpen(false)}>
+          <Pressable style={[styles.dialog, { backgroundColor: p.card, borderColor: p.border }]} onPress={() => undefined}>
             <Text style={[styles.dialogTitle, { color: p.text }]}>Your reports are encrypted</Text>
             <Text style={[styles.dialogBody, { color: p.muted }]}>
               Every report is encrypted before it is stored, and only you can read it. It stays private and is never used for advertising.
@@ -221,8 +221,8 @@ export function UploadScreen({ autoPick = false }: { autoPick?: boolean }) {
             <Pressable accessibilityRole="button" onPress={() => setInfoOpen(false)} style={styles.dialogButton}>
               <Text style={styles.dialogButtonText}>Got it</Text>
             </Pressable>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -232,7 +232,7 @@ const createStyles = (colors: FormColors) =>
   StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     flexGrow: 1,
     backgroundColor: colors.card,
   },
@@ -263,23 +263,23 @@ const createStyles = (colors: FormColors) =>
     height: 24,
   },
   brandName: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 20,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 18,
     color: colors.text,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.8,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
     color: colors.text,
     marginTop: 2,
   },
   subtitle: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
     color: colors.muted,
   },
   body: {
@@ -291,7 +291,7 @@ const createStyles = (colors: FormColors) =>
     minHeight: 0,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backdrop: { flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 12, 24, 0.45)', alignItems: 'center', justifyContent: 'center', padding: 24, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}), },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 22, gap: 12 },
   dialogTitle: { fontSize: 18, fontWeight: '800' },
   dialogBody: { fontSize: 14, lineHeight: 20 },
@@ -305,13 +305,10 @@ const createStyles = (colors: FormColors) =>
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  moreText: { fontSize: 14, fontWeight: '600' },
+  moreText: { fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
   listFill: {
     flex: 1,
     minHeight: 0,

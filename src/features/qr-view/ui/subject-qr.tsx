@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
   },
   code: {
     fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 2,
+    fontFamily: 'Poppins_600SemiBold',
+    letterSpacing: 0,
     color: '#171717',
   },
   iconBtn: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   shareText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#FFFFFF',
   },
 });

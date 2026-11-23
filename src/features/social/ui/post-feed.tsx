@@ -98,8 +98,14 @@ export function PostFeed({
   const firstFocus = useRef(true);
   useFocusEffect(
     useCallback(() => {
-      if (firstFocus.current) firstFocus.current = false;
-      else void queryRef.current.refetch();
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      // Switching between the Social tabs is quick and often: the posts are asked for again only when what is shown is more than 30 seconds old. A fresh list
+      // is left alone, so the tab opens at once and the screen is not redrawn for nothing.
+      const q = queryRef.current;
+      if (Date.now() - (q.dataUpdatedAt || 0) > 30_000) void q.refetch();
     }, []),
   );
   const pullRefresh = usePullToRefresh(() => queryRef.current.refetch());

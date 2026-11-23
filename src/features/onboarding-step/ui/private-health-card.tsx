@@ -53,13 +53,13 @@ export function PrivateHealthCard() {
 
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
-    card: { gap: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 20, backgroundColor: colors.card, padding: 16 },
+    card: { gap: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 20 },
     head: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-    icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
+    icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
     headText: { flex: 1, gap: 2 },
-    title: { fontFamily: 'Poppins_600SemiBold', fontSize: 14.5, color: colors.textStrong },
-    sub: { fontFamily: 'Poppins_400Regular', fontSize: 12.5, lineHeight: 18, color: colors.muted },
-    button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 44, borderRadius: 14, borderWidth: 1, borderColor: colors.accent, paddingHorizontal: 14 },
-    buttonText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13.5, color: colors.accent },
-    note: { fontFamily: 'Poppins_400Regular', fontSize: 11.5, color: colors.muted },
+    title: { fontFamily: 'Poppins_600SemiBold', fontSize: 17, color: colors.textStrong },
+    sub: { fontFamily: 'Poppins_400Regular', fontSize: 13.5, lineHeight: 20, color: colors.muted },
+    button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 48, borderRadius: 999, borderWidth: 1.5, borderColor: colors.accent, paddingHorizontal: 18 },
+    buttonText: { fontFamily: 'Poppins_600SemiBold', fontSize: 15, color: colors.accent },
+    note: { fontFamily: 'Poppins_400Regular', fontSize: 12.5, color: colors.muted },
   });

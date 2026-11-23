@@ -53,19 +53,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#C22F43',
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'Poppins_500Medium',
     color: '#C22F43',
     opacity: 0.9,
   },
   chevron: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#C22F43',
     marginLeft: 6,
   },

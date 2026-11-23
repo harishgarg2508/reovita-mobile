@@ -12,7 +12,6 @@ import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { useConsentFlow } from '../model/use-consent-flow';
 
 const VIOLET = '#1F6F3F';
-const LIME = '#d4ff3f';
 const INK = '#242032';
 const INK_SECONDARY = '#655f74';
 const INK_TERTIARY = '#6b7280';
@@ -170,8 +169,8 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
               <Text style={styles.body}>
                 {"Your health, in your words. Before we start, we'll walk you through exactly how your data is handled: two quick consents, then you're in."}
               </Text>
-              <Text style={styles.eyebrow}>CLEAR CHOICES. YOUR CONTROL.</Text>
-              <Text style={styles.caption}>Health data storage  ·  AI report processing</Text>
+              <Text style={styles.eyebrow}>Clear choices. Your control.</Text>
+              <Text style={styles.caption}>Health data storage, AI report processing</Text>
             </View>
 
             <View style={styles.actions}>
@@ -194,7 +193,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
 
             <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.storageContent}>
               <View style={styles.introBlock}>
-                <Text style={styles.eyebrowSmall}>CONSENT 1 OF 2</Text>
+                <Text style={styles.eyebrowSmall}>Consent 1 of 2</Text>
                 <Text style={styles.heading}>Store my health data</Text>
                 <Text style={styles.body}>
                   VITA securely stores your profile (age, sex, height, weight), your uploaded medical reports, and the health values extracted from them. This is what powers your timeline and your insights.
@@ -205,16 +204,20 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
                 <Text style={styles.agreementText}>Read the Health Data Agreement →</Text>
               </Pressable>
 
-              <View style={styles.trustRow}>
-                <Ionicons name="shield-checkmark-outline" size={14} color={INK_TERTIARY} />
-                <Text style={styles.trustText}>Encrypted at rest · Never sold · Delete anytime</Text>
+              <View style={styles.trustList}>
+                {['Encrypted at rest', 'Never sold', 'Delete anytime'].map((line) => (
+                  <View key={line} style={styles.trustRow}>
+                    <Ionicons name="shield-checkmark-outline" size={15} color={VIOLET} />
+                    <Text style={styles.trustText}>{line}</Text>
+                  </View>
+                ))}
               </View>
 
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: healthDraft }}
                 onPress={toggleHealthAgree}
-                style={styles.consentCard}>
+                style={[styles.consentCard, healthDraft && styles.consentCardOn]}>
                 <View style={[styles.checkbox, healthDraft && styles.checkboxOn]}>
                   {healthDraft ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
                 </View>
@@ -248,7 +251,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
 
             <ScrollView style={styles.flex} contentContainerStyle={styles.storageContent}>
               <View style={styles.introBlock}>
-                <Text style={styles.eyebrowSmall}>CONSENT 2 OF 2</Text>
+                <Text style={styles.eyebrowSmall}>Consent 2 of 2</Text>
                 <Text style={styles.heading}>Process my reports with AI</Text>
                 <Text style={styles.body}>
                   When you upload a report, VITA sends the extracted values to its AI service to generate a plain-language interpretation and an action plan. Reports are never sold and never used to train public AI models.
@@ -259,9 +262,13 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
                 <Text style={styles.agreementText}>How AI works →</Text>
               </Pressable>
 
-              <View style={styles.trustRow}>
-                <Ionicons name="shield-checkmark-outline" size={14} color={INK_TERTIARY} />
-                <Text style={styles.trustText}>Processed only on your request · Not used for model training</Text>
+              <View style={styles.trustList}>
+                {['Processed only on your request', 'Not used for model training'].map((line) => (
+                  <View key={line} style={styles.trustRow}>
+                    <Ionicons name="shield-checkmark-outline" size={15} color={VIOLET} />
+                    <Text style={styles.trustText}>{line}</Text>
+                  </View>
+                ))}
               </View>
 
               <Pressable
@@ -271,7 +278,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
                   tapConfirm();
                   setAiDraft((v) => !v);
                 }}
-                style={styles.consentCard}>
+                style={[styles.consentCard, aiDraft && styles.consentCardOn]}>
                 <View style={[styles.checkbox, aiDraft && styles.checkboxOn]}>
                   {aiDraft ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
                 </View>
@@ -354,7 +361,7 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', alignItems: 'center' },
   dotsCenter: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: BORDER, marginHorizontal: 19 },
-  dotDone: { width: 6, height: 6, borderRadius: 3, backgroundColor: LIME, marginHorizontal: 19 },
+  dotDone: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#8FC4A0', marginHorizontal: 19 },
   dotActive: { width: 20, height: 6, borderRadius: 999, backgroundColor: VIOLET, marginHorizontal: 12 },
   counter: { fontFamily: 'Poppins_500Medium', fontSize: 11, color: INK_TERTIARY, width: 38, textAlign: 'right' },
 
@@ -362,7 +369,7 @@ const styles = StyleSheet.create({
   progressFill: { height: 4, borderRadius: 999, backgroundColor: VIOLET },
 
   hero: { height: 248, alignItems: 'center', justifyContent: 'center' },
-  glow: { position: 'absolute', width: 228, height: 228, borderRadius: 114, backgroundColor: LIME, opacity: 0.18 },
+  glow: { position: 'absolute', width: 228, height: 228, borderRadius: 114, backgroundColor: '#CFE8D7', opacity: 0.45 },
   appCard: {
     width: 128, height: 128, borderRadius: 36, backgroundColor: '#FFFFFF',
     borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center',
@@ -374,15 +381,17 @@ const styles = StyleSheet.create({
   storageImage: { width: 390, height: 224 },
   storageContent: { paddingTop: 8, paddingBottom: 12, gap: 14 },
   introBlock: { gap: 10 },
-  eyebrowSmall: { fontFamily: 'Poppins_700Bold', fontSize: 11, letterSpacing: 1.4, color: VIOLET },
+  eyebrowSmall: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: VIOLET },
   agreementLink: { height: 44, justifyContent: 'center' },
   agreementText: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: VIOLET },
-  trustRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trustText: { fontFamily: 'Poppins_400Regular', fontSize: 11, lineHeight: 16, color: INK_TERTIARY },
+  trustList: { gap: 6 },
+  trustRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  trustText: { fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18, color: INK_SECONDARY },
   consentCard: {
     flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 80, padding: 16,
-    borderRadius: 16, borderWidth: 1, borderColor: BORDER, backgroundColor: '#FFFFFF',
+    borderRadius: 18, borderWidth: 1, borderColor: BORDER, backgroundColor: '#FFFFFF',
   },
+  consentCardOn: { borderColor: VIOLET, borderWidth: 1.5, backgroundColor: '#F2F9F4' },
   checkbox: {
     width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: BORDER,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF',
@@ -391,14 +400,14 @@ const styles = StyleSheet.create({
   consentLabel: { flex: 1, fontFamily: 'Poppins_500Medium', fontSize: 14, lineHeight: 20, color: INK },
 
   copy: { flex: 1, gap: 10, paddingTop: 8 },
-  heading: { fontFamily: 'Poppins_400Regular', fontSize: 30, lineHeight: 34, letterSpacing: -1.1, color: INK },
+  heading: { fontFamily: 'Poppins_600SemiBold', fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: INK },
   body: { fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22, color: INK_SECONDARY },
-  eyebrow: { fontFamily: 'Poppins_600SemiBold', fontSize: 12, letterSpacing: 1, color: VIOLET, marginTop: 20 },
+  eyebrow: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: VIOLET, marginTop: 20 },
   caption: { fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 20, color: INK_TERTIARY },
 
   actions: { gap: 8, paddingTop: 12, paddingBottom: 8 },
   primary: { height: 52, borderRadius: 999, backgroundColor: VIOLET, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
-  primaryText: { fontFamily: 'Poppins_400Regular', fontSize: 16, color: '#FFFFFF' },
+  primaryText: { fontFamily: 'Poppins_600SemiBold', fontSize: 16, color: '#FFFFFF' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   disabled: { opacity: 0.5 },
   footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 44 },

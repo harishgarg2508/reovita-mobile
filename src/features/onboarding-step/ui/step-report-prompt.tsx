@@ -20,8 +20,8 @@ export function StepReportPrompt({ onChoose }: { onChoose: () => void; onSkip: (
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 14 },
-  note: { borderRadius: 16, padding: 14, gap: 4 },
-  noteTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 13.5 },
-  noteText: { fontFamily: 'Poppins_400Regular', fontSize: 12.5, lineHeight: 18 },
+  wrap: { gap: 20 },
+  note: { borderRadius: 16, padding: 16, gap: 4 },
+  noteTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
+  noteText: { fontFamily: 'Poppins_400Regular', fontSize: 13.5, lineHeight: 20 },
 });

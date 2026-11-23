@@ -54,13 +54,13 @@ function makeStyles(p: Palette) {
     scroll: { flex: 1, backgroundColor: p.bg },
     container: { paddingHorizontal: 18, gap: 14 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    title: { fontSize: 26, fontWeight: '800', color: p.textStrong },
+    title: { fontSize: 26, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     card: { backgroundColor: p.card, borderRadius: 20, borderWidth: 1, borderColor: p.border, padding: 16, gap: 10 },
-    cardTitle: { fontSize: 16, fontWeight: '800', color: p.textStrong },
+    cardTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     toggle: { flexDirection: 'row', gap: 8, backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 4 },
     toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 12 },
     toggleOn: { backgroundColor: '#1F6F3F' },
-    toggleText: { fontSize: 14, fontWeight: '700', color: '#1F6F3F' },
+    toggleText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#1F6F3F' },
     toggleTextOn: { color: '#FFFFFF' },
   });
 }

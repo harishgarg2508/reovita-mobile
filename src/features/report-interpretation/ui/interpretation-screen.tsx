@@ -211,8 +211,8 @@ export function InterpretationScreen({ reportId }: { reportId: string }) {
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 24,
     backgroundColor: colors.bg,
     flexGrow: 1,
   },
@@ -231,30 +231,29 @@ const createStyles = (colors: FormColors) =>
   backArrow: {
     fontSize: 22,
     color: colors.text,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
-  section: { gap: 10 },
+  section: { gap: 4 },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 19,
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
+  // A finding is a row on a thin rule, not a box.
   card: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
     gap: 6,
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   cardHeader: {
@@ -268,13 +267,13 @@ const createStyles = (colors: FormColors) =>
   infoBox: { fontSize: 12.5, lineHeight: 18, color: colors.text, backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12 },
   status: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
   },
   code: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.muted,
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
   body: {
     fontSize: 14,

@@ -36,52 +36,50 @@ export function useSwitchProfile() {
 }
 
 export type AddProfileFailure =
-  'cancelled' | 'not_available' | 'limit' | 'wrong_account' | 'failed';
+  | 'cancelled'
+  | 'not_available'
+  | 'premium'
+  | 'limit'
+  | 'wrong_account'
+  | 'popup_blocked'
+  | 'failed';
 
-export const ADD_PROFILE_FAILURE_TEXT: Record<
-  Exclude<AddProfileFailure, 'cancelled'>,
-  string
-> = {
+export const ADD_PROFILE_FAILURE_TEXT: Record<AddProfileFailure, string> = {
+  cancelled: 'Google sign-in was closed, so the profile was not added. Try again and pick your account.',
   not_available: 'Family profiles are not available yet.',
+  premium: 'Family profiles are part of Premium.',
   limit: 'This account already has the most profiles it can hold.',
-  wrong_account:
-    'That is not the Google account you are signed in with. Pick the same account to confirm.',
+  wrong_account: 'That is not the Google account you are signed in with. Pick the same account to confirm.',
+  popup_blocked: 'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
   failed: 'Could not add the profile. Please try again.',
 };
 
-// Adds a family profile. The server wants the account holder to have signed in again in the last 5 minutes, so the first try goes
-// straight to the server, and only when it asks (reauth_required) does the person see the Google account chooser, after which the
-// same request is sent once more. Returns why it did not finish, or null when the profile was added.
+function failureOf(error: unknown): AddProfileFailure {
+  if (isApiError(error, 'feature_disabled')) return 'not_available';
+  if (isApiError(error, 'premium_required')) return 'premium';
+  if (isApiError(error, 'subject_limit_reached')) return 'limit';
+  if (isApiError(error, 'reauth_account_mismatch')) return 'wrong_account';
+  if ((error as { code?: string } | null)?.code === 'auth/popup-blocked') return 'popup_blocked';
+  return 'failed';
+}
+
+// Adds a family profile. The server wants the account holder to have signed in again in the last 5 minutes. The Google window has to open
+// straight from the person's tap (a browser blocks a window opened after a network call), so the sign-in comes first, then the request.
+// Returns why it did not finish, or null when the profile was added.
 export function useAddProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (nickname: string): Promise<AddProfileFailure | null> => {
-      const run = async (): Promise<AddProfileFailure | null> => {
-        await addAccountProfile(nickname);
-        return null;
-      };
-      try {
-        return await run();
-      } catch (error) {
-        if (isApiError(error, 'feature_disabled')) return 'not_available';
-        if (isApiError(error, 'subject_limit_reached')) return 'limit';
-        if (!isApiError(error, 'reauth_required')) return 'failed';
-      }
-      // Sign in again, then repeat the request.
       try {
         if (!(await reauthenticateAccountHolder())) return 'cancelled';
-        return await run();
+        await addAccountProfile(nickname);
+        return null;
       } catch (error) {
-        if (isApiError(error, 'reauth_account_mismatch'))
-          return 'wrong_account';
-        if (isApiError(error, 'feature_disabled')) return 'not_available';
-        if (isApiError(error, 'subject_limit_reached')) return 'limit';
-        return 'failed';
+        return failureOf(error);
       }
     },
     onSuccess: (failure) => {
-      if (failure === null)
-        void queryClient.invalidateQueries({ queryKey: ACCOUNT_PROFILES_KEY });
+      if (failure === null) void queryClient.invalidateQueries({ queryKey: ACCOUNT_PROFILES_KEY });
     },
   });
 }

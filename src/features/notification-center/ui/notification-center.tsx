@@ -105,7 +105,7 @@ export function NotificationCenter() {
           <Pressable
             accessibilityRole="button"
             onPress={() => open(item)}
-            style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, item.read_at === null && { backgroundColor: p.accentSoft, borderColor: p.accent }]}>
+            style={[styles.card, { borderBottomColor: p.border }]}>
             <View style={styles.cardTop}>
               {item.read_at === null ? <View style={[styles.dot, { backgroundColor: p.accent }]} /> : null}
               <Text style={[styles.title, { color: p.text }]}>{item.title}</Text>
@@ -121,27 +121,28 @@ export function NotificationCenter() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
-  gutter: { paddingHorizontal: 24, gap: 12 },
+  gutter: { paddingHorizontal: 16, gap: 12 },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 44,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 12,
   },
   allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#171717' },
-  markAll: { fontSize: 13, fontWeight: '600', color: '#1F6F3F' },
+  headerTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: '#171717' },
+  markAll: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#1F6F3F' },
   inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   disabled: { color: '#B8B3C7' },
-  list: { paddingHorizontal: 24, paddingTop: 4 },
-  separator: { height: 12 },
-  card: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#ECEAEF', gap: 6 },
+  list: { paddingHorizontal: 16, paddingTop: 4 },
+  separator: { height: 0 },
+  // A notification is a row on a thin rule. Unread ones carry a green dot.
+  card: { paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
   cardUnread: { backgroundColor: '#F8F5FF', borderColor: '#DCD3F5' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1F6F3F' },
-  title: { fontSize: 15, fontWeight: '700', color: '#171717', flexShrink: 1 },
+  title: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: '#171717', flexShrink: 1 },
   body: { fontSize: 14, color: '#3C3A46' },
   when: { fontSize: 12, color: '#8A8694' },
   empty: { fontSize: 14, color: '#8A8694', textAlign: 'center', marginTop: 32 },

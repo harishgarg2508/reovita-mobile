@@ -138,10 +138,10 @@ export function DietaryHistoryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
-  round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingBottom: 8 },
+  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   spacer: { width: 40, height: 40 },
-  title: { fontSize: 18, fontWeight: '800' },
+  title: { fontFamily: 'Poppins_600SemiBold', fontSize: 18, letterSpacing: -0.2 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   group: { gap: 8 },
   groupLabel: { fontSize: 12.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },

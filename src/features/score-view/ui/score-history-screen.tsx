@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { partWord, ScoreTrendBadge, scoreZone, useScoreHistory, type HealthScoreEntry } from '@entities/score';
 import { goBackOr } from '@shared/ui';
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 
 import { ScoreHistoryChart } from './score-history-chart';
 import { useScrollToTopOnFocus } from '@shared/lib';
@@ -40,7 +40,7 @@ export function ScoreHistoryScreen() {
   return (
     <ScrollView ref={scrollRef}
       style={styles.scroll}
-      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16) + 8, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 4, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}
       onScroll={({ nativeEvent }) => {
         const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
         // Load the next page when the user is within 200 px of the bottom.
@@ -100,7 +100,7 @@ export function ScoreHistoryScreen() {
           </View>
 
           <Text style={styles.section}>All scores</Text>
-          <View style={styles.card}>
+          <View style={styles.list}>
             {newestFirst.map((entry, index) => (
               <View key={entry.created_at} style={[styles.item, index > 0 && styles.itemBorder]}>
                 <View style={styles.row}>
@@ -132,13 +132,13 @@ export function ScoreHistoryScreen() {
   );
 }
 
-// "Lifestyle Normal · Conditions Watch · Reports Normal". A part with no information yet is left out.
+// "Lifestyle Normal, Conditions Watch, Reports Normal". A part with no information yet is left out.
 function partsLine(entry: HealthScoreEntry): string {
   const parts = PARTS.map(({ key, label }) => {
     const word = partWord(entry.parts?.[key]);
     return word === null ? null : `${label} ${word}`;
   }).filter((text): text is string => text !== null);
-  return parts.join('  ·  ');
+  return parts.join(', ');
 }
 
 function longDate(iso: string): string {
@@ -151,30 +151,32 @@ function timeOf(iso: string): string {
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    scroll: { flex: 1, backgroundColor: p.surface },
-    content: { padding: 16, gap: 14 },
+    scroll: { flex: 1, backgroundColor: p.bg },
+    content: { paddingHorizontal: Gap.edge, gap: Gap.group },
     header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    back: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card, alignItems: 'center', justifyContent: 'center' },
+    back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -12 },
     headerText: { flex: 1 },
-    title: { fontSize: 22, fontWeight: '800', color: p.textStrong },
-    subtitle: { fontSize: 13, color: p.muted, marginTop: 2 },
+    title: { ...Type.display, fontSize: 26, lineHeight: 32, color: p.textStrong },
+    subtitle: { ...Type.small, color: p.muted, marginTop: 2 },
     center: { paddingVertical: 60, alignItems: 'center' },
-    card: { backgroundColor: p.card, borderRadius: 22, borderWidth: 1, borderColor: p.border, padding: 16, gap: 12 },
-    cardTitle: { fontSize: 16, fontWeight: '700', color: p.textStrong },
-    muted: { fontSize: 12.5, color: p.muted, lineHeight: 18 },
+    // The latest score and its graph are the one framed object; the list of scores is rows on rules.
+    card: { backgroundColor: p.card, borderRadius: 22, borderWidth: Rule, borderColor: p.border, padding: 16, gap: 12 },
+    list: { borderTopWidth: Rule, borderTopColor: p.border },
+    cardTitle: { ...Type.heading, color: p.textStrong },
+    muted: { ...Type.small, color: p.muted },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
     right: { alignItems: 'flex-end', gap: 6, flexShrink: 1 },
-    total: { fontSize: 32, fontWeight: '800', color: p.textStrong },
-    section: { fontSize: 15, fontWeight: '700', color: p.textStrong, marginTop: 4 },
-    item: { gap: 6, paddingVertical: 12 },
-    itemBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border },
-    itemDate: { fontSize: 14, fontWeight: '600', color: p.textStrong },
-    itemRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    itemTotal: { fontSize: 16, fontWeight: '800', color: p.textStrong, minWidth: 64, textAlign: 'right' },
-    parts: { fontSize: 12.5, color: p.muted },
-    retry: { height: 44, borderRadius: 14, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
-    retryText: { color: '#FFFFFF', fontWeight: '700' },
-    moreBtn: { height: 42, borderRadius: 14, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-    moreText: { color: p.accent, fontWeight: '700' },
+    total: { ...Type.figure, color: p.textStrong },
+    section: { ...Type.title, color: p.textStrong, marginBottom: -Gap.inner },
+    item: { gap: 4, paddingVertical: 16, borderBottomWidth: Rule, borderBottomColor: p.border },
+    itemBorder: {},
+    itemDate: { ...Type.bodyStrong, color: p.textStrong },
+    itemRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    itemTotal: { ...Type.bodyStrong, color: p.textStrong, minWidth: 64, textAlign: 'right' },
+    parts: { ...Type.small, color: p.muted },
+    retry: { height: 48, borderRadius: 24, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
+    retryText: { ...Type.bodyStrong, color: '#FFFFFF' },
+    moreBtn: { height: 46, borderRadius: 23, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center', marginTop: Gap.inner },
+    moreText: { ...Type.label, color: p.accent },
   });
 }

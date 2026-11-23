@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#171717',
     marginBottom: 10,
   },
@@ -130,19 +130,19 @@ const styles = StyleSheet.create({
   },
   scoreValue: {
     fontSize: 48,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#171717',
     letterSpacing: -1.5,
     lineHeight: 52,
   },
   upArrow: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#84CC16',
   },
   scoreDenominator: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#8E929A',
   },
   trendRow: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   },
   trendGreenText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#65A30D',
   },
   gaugeContainer: {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#365314',
   },
 });

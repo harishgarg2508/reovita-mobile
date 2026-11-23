@@ -155,8 +155,8 @@ export function OnboardingStepper({ step }: { step: number }) {
         contentContainerStyle={[
           styles.container,
           {
-            paddingTop: Math.max(insets.top, 20) + 8,
-            paddingBottom: Math.max(insets.bottom, 20) + 16,
+            paddingTop: insets.top + 16,
+            paddingBottom: Math.max(insets.bottom, 16) + 16,
           },
         ]}>
         {/* Top Header: Logo on left, stylized icon on right, step progress, bold title */}
@@ -175,12 +175,12 @@ export function OnboardingStepper({ step }: { step: number }) {
             {/* How much steps: pill badge and progress indicator */}
             {editing ? null : (
             <View style={styles.stepRow}>
-              <View style={styles.stepPill}>
-                <Text style={styles.stepBadge}>Step {step} of 3</Text>
+              <View style={styles.segments}>
+                {[1, 2, 3].map((n) => (
+                  <View key={n} style={[styles.segment, n <= step && styles.segmentOn]} />
+                ))}
               </View>
-              <View style={styles.stepTrack}>
-                <View style={[styles.stepFill, { width: `${(step / 3) * 100}%` }]} />
-              </View>
+              <Text style={styles.stepBadge}>Step {step} of 3</Text>
             </View>
             )}
 
@@ -191,7 +191,7 @@ export function OnboardingStepper({ step }: { step: number }) {
 
           {/* Icon in the top right */}
           <View style={styles.headerRight}>
-            <StepHeaderBadge step={step} size={82} />
+            <StepHeaderBadge step={step} size={64} />
           </View>
         </View>
 
@@ -214,8 +214,8 @@ export function OnboardingStepper({ step }: { step: number }) {
         <View style={styles.actionWrap}>
           {step === 1 ? (
             <View style={styles.requiredPill}>
-              <Ionicons name="information-circle-outline" size={15} color={colors.accent} />
-              <Text style={styles.requiredPillText}>All fields required</Text>
+              <Ionicons name="information-circle-outline" size={16} color={colors.muted} />
+              <Text style={styles.requiredPillText}>All fields are required</Text>
             </View>
           ) : null}
           <View style={styles.buttonGroup}>
@@ -249,7 +249,7 @@ export function OnboardingStepper({ step }: { step: number }) {
             ) : editing ? null : (
             <View style={styles.nextGroupItem}>
               <Button
-                label={step >= 3 ? 'Submit' : step === 1 ? 'Continue →' : 'Next →'}
+                label={step >= 3 ? 'Submit' : step === 1 ? 'Continue' : 'Next'}
                 disabled={save.isPending}
                 onPress={onSave}
               />
@@ -296,7 +296,7 @@ const createStyles = (colors: FormColors) =>
     backgroundColor: colors.bg,
   },
   container: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     flexGrow: 1,
     justifyContent: 'space-between',
   },
@@ -327,10 +327,10 @@ const createStyles = (colors: FormColors) =>
     height: 24,
   },
   brandName: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 20,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 18,
     color: colors.textStrong,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   stepRow: {
     flexDirection: 'row',
@@ -338,42 +338,27 @@ const createStyles = (colors: FormColors) =>
     gap: 10,
     marginBottom: 2,
   },
-  stepPill: {
-    backgroundColor: colors.surfaceAlt,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
+  // Three segments for the three steps, and the step in words beside them.
+  segments: { flexDirection: 'row', gap: 4 },
+  segment: { width: 22, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  segmentOn: { backgroundColor: colors.accentFill },
   stepBadge: {
-    fontFamily: 'Poppins_600SemiBold',
-    fontSize: 12,
-    color: colors.accent,
-    letterSpacing: 0.2,
-  },
-  stepTrack: {
-    width: 64,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: colors.border,
-    overflow: 'hidden',
-  },
-  stepFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: colors.accentFill,
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 13,
+    color: colors.muted,
   },
   title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.8,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
     color: colors.textStrong,
     marginTop: 2,
   },
   subtitle: {
     fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.muted,
   },
   stepBody: {
@@ -386,18 +371,16 @@ const createStyles = (colors: FormColors) =>
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceAlt,
-    marginBottom: 12,
+    height: 32,
+    marginBottom: 8,
   },
   requiredPillText: {
-    fontFamily: 'Poppins_500Medium',
+    fontFamily: 'Poppins_400Regular',
     fontSize: 13,
     color: colors.muted,
   },
   footerFixed: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 12,
     backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -416,8 +399,8 @@ const createStyles = (colors: FormColors) =>
     height: 52,
     paddingHorizontal: 22,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border2,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.card,
@@ -425,7 +408,7 @@ const createStyles = (colors: FormColors) =>
   skipButtonText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: colors.muted,
+    color: colors.accent,
   },
   nextGroupItem: {
     flex: 1,

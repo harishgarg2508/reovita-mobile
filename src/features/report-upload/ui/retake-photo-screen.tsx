@@ -152,11 +152,11 @@ const createStyles = (colors: FormColors) =>
   backArrow: {
     fontSize: 22,
     color: colors.text,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
   },
   centerContent: {
@@ -175,7 +175,7 @@ const createStyles = (colors: FormColors) =>
   },
   mainTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.text,
     textAlign: 'center',
     marginBottom: 10,
@@ -206,7 +206,7 @@ const createStyles = (colors: FormColors) =>
   },
   retakeBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.onAccent,
   },
   backLink: {
@@ -216,7 +216,7 @@ const createStyles = (colors: FormColors) =>
   },
   backLinkText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins_600SemiBold',
     color: colors.accent,
   },
 });

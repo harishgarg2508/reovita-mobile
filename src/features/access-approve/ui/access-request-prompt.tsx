@@ -1,4 +1,4 @@
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette, type Palette } from '@shared/ui/theme';
 
@@ -13,7 +13,7 @@ export function AccessRequestPrompt() {
   const next = incoming.data?.[0];
 
   return (
-    <Modal visible={!!next} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => undefined}>
+    <Modal visible={!!next} animationType="fade" transparent onRequestClose={() => undefined}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <Text style={styles.title}>Someone wants to read your information</Text>
@@ -53,7 +53,7 @@ export function AccessRequestPrompt() {
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    backdrop: { flex: 1, backgroundColor: p.bg, justifyContent: 'center', padding: 22 },
+    backdrop: { flex: 1, backgroundColor: 'rgba(15, 12, 24, 0.45)', justifyContent: 'center', padding: 22, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as object) : {}), },
     sheet: { backgroundColor: p.card, borderRadius: 24, borderWidth: 1, borderColor: p.border, padding: 22, gap: 12 },
     title: { fontSize: 18, fontWeight: '800', color: p.textStrong },
     body: { fontSize: 14, lineHeight: 20, color: p.text },
