@@ -75,13 +75,25 @@ export function JourneysScreen() {
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
           <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
-            <View style={[styles.heroIcon, { backgroundColor: p.accentSoft }]}>
-              <Ionicons name="map-outline" size={22} color={p.accent} />
+            <View style={styles.heroTop}>
+              <View style={[styles.heroIcon, { backgroundColor: p.accentSoft }]}>
+                <Ionicons name="map-outline" size={22} color={p.accent} />
+              </View>
+              <View style={styles.flex}>
+                <Text style={[styles.heroTitle, { color: p.text }]}>Walk a route together</Text>
+                <Text style={[styles.hint, { color: p.muted }]}>Pick a map and invite friends. Your steps move you along the route, and whoever gets furthest leads.</Text>
+              </View>
             </View>
-            <View style={styles.flex}>
-              <Text style={[styles.heroTitle, { color: p.text }]}>Walk a route together</Text>
-              <Text style={[styles.hint, { color: p.muted }]}>Pick a map and invite friends. The steps you walk move you along the route. Whoever gets furthest leads.</Text>
-            </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                tapSelection();
+                setChoosing(true);
+              }}
+              style={[styles.startBtn, { backgroundColor: p.accent }]}>
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.startText}>Start a journey</Text>
+            </Pressable>
           </View>
 
           <StepsCard />
@@ -146,16 +158,6 @@ export function JourneysScreen() {
             </View>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              tapSelection();
-              setChoosing(true);
-            }}
-            style={[styles.newBtn, { borderColor: p.accent, backgroundColor: p.surface }]}>
-            <Ionicons name="add" size={20} color={p.accent} />
-            <Text style={[styles.newText, { color: p.accent }]}>Start a journey</Text>
-          </Pressable>
         </ScrollView>
       )}
 
@@ -267,16 +269,18 @@ export function JourneysScreen() {
 function JourneyRow({ journey, onOpen }: { journey: { title: string; theme?: string; total_km: number; my_km: number; my_percent: number; days_left: number; member_count: number; finished: boolean; status: string }; onOpen: () => void }) {
   const p = usePalette();
   const pct = Math.round(journey.my_percent);
+  const look = THEMES[(journey.theme && journey.theme in THEMES ? journey.theme : 'plains') as JourneyTheme];
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} style={[styles.card, { backgroundColor: p.card, borderColor: journey.finished ? p.accent : p.border }]}>
       <View style={styles.row}>
-        <View style={[styles.journeyIconBox, { backgroundColor: journey.finished ? p.accentSoft : p.surface }]}>
-          <Ionicons name={journey.finished ? 'trophy' : 'map-outline'} size={18} color={journey.finished ? p.accent : p.text} />
+        <View style={[styles.thumb, { backgroundColor: look.skyTop }]}>
+          <View style={[styles.thumbLand, { backgroundColor: look.grass[0] }]} />
+          <Ionicons name={journey.finished ? 'trophy' : (THEME_ICON[journey.theme ?? 'plains'] ?? 'map-outline')} size={20} color="#FFFFFF" />
         </View>
         <View style={styles.flex}>
           <Text numberOfLines={1} style={[styles.cardTitle, { color: p.text }]}>{journey.title}</Text>
           <Text style={[styles.hint, { color: p.muted }]}>
-            {journey.my_km} of {journey.total_km} km ({pct}%) · {journey.member_count} {journey.member_count === 1 ? 'walker' : 'walkers'}
+            <Text style={[styles.kmStrong, { color: p.text }]}>{journey.my_km} km</Text> of {journey.total_km} km · {pct}%
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={16} color={p.muted} />
@@ -286,7 +290,7 @@ function JourneyRow({ journey, onOpen }: { journey: { title: string; theme?: str
       </View>
       <View style={styles.journeyMetaRow}>
         <Text style={[styles.hint, { color: p.muted }]}>
-          {journey.status === 'ended' ? 'Expedition concluded' : `${journey.days_left} ${journey.days_left === 1 ? 'day' : 'days'} remaining`}
+          {journey.member_count} {journey.member_count === 1 ? 'walker' : 'walkers'} · {journey.status === 'ended' ? 'ended' : `${journey.days_left} ${journey.days_left === 1 ? 'day' : 'days'} left`}
         </Text>
         {journey.finished ? (
           <View style={[styles.finisherPill, { backgroundColor: p.accentSoft }]}>
@@ -308,7 +312,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderRadius: 20, padding: 14 },
+  hero: { borderWidth: 1, borderRadius: 22, padding: 14, gap: 14 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  startBtn: { height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  startText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  thumb: { width: 50, height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  thumbLand: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 20 },
+  kmStrong: { fontWeight: '800' },
   heroIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontSize: 15, fontWeight: '800' },
   block: { gap: 10 },

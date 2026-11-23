@@ -22,6 +22,31 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+// The day group a notification belongs to: Today, Yesterday, This week or Earlier.
+function dayGroup(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days < 1) return 'Today';
+  if (days < 2) return 'Yesterday';
+  if (days < 7) return 'This week';
+  return 'Earlier';
+}
+
+type Row = { kind: 'label'; key: string; label: string } | { kind: 'item'; key: string; item: SocialNotification };
+
+function groupRows(items: SocialNotification[]): Row[] {
+  const rows: Row[] = [];
+  let last = '';
+  for (const item of items) {
+    const group = dayGroup(item.created_at);
+    if (group !== last) {
+      rows.push({ kind: 'label', key: `label-${group}`, label: group });
+      last = group;
+    }
+    rows.push({ kind: 'item', key: item.id, item });
+  }
+  return rows;
+}
+
 function getNotificationMeta(type: string) {
   switch (type) {
     case 'kudos':
@@ -60,6 +85,7 @@ export function ActivityScreen() {
 
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const hasUnread = items.some((item) => !item.read);
+  const rows = groupRows(items);
 
   function open(item: SocialNotification) {
     tapSelection();
@@ -101,33 +127,28 @@ export function ActivityScreen() {
         ref={scrollRef}
         {...pullRefresh.listProps}
         {...pullRefresh.touch}
-        data={items}
-        keyExtractor={(item) => item.id}
+        data={rows}
+        keyExtractor={(row) => row.key}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         onEndReachedThreshold={0.4}
         onEndReached={() => {
           if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
         }}
         refreshing={list.isRefetching && !list.isFetchingNextPage}
         onRefresh={() => void list.refetch()}
-        renderItem={({ item }) => {
+        renderItem={({ item: row }) => {
+          if (row.kind === 'label') return <Text style={[styles.groupLabel, { color: p.muted }]}>{row.label}</Text>;
+          const item = row.item;
           const name = item.display_name || `@${item.handle}`;
           const meta = getNotificationMeta(item.type);
           return (
             <Pressable
               accessibilityRole="button"
               onPress={() => open(item)}
-              style={[
-                styles.row,
-                {
-                  backgroundColor: item.read ? p.card : p.accentSoft,
-                  borderColor: item.read ? p.border : p.accent,
-                },
-              ]}>
+              style={[styles.row, { backgroundColor: item.read ? 'transparent' : p.accentSoft }]}>
               {/* Avatar with Floating Event Icon */}
               <View style={styles.avatarBox}>
-                <SocialAvatar handle={item.handle} hasAvatar={false} size={42} />
+                <SocialAvatar handle={item.handle} hasAvatar={false} size={46} />
                 <View style={[styles.miniBadge, { backgroundColor: meta.color }]}>
                   <Ionicons name={meta.icon} size={11} color="#FFFFFF" />
                 </View>
@@ -155,32 +176,37 @@ export function ActivityScreen() {
                 {(item.type === 'kudos' || item.type === 'comment' || item.type === 'reply') && item.post_preview ? (
                   <Text numberOfLines={1} style={[styles.preview, { color: p.muted }]}>{item.post_preview}</Text>
                 ) : null}
-                <Text style={[styles.when, { color: p.muted }]}>@{item.handle} · {timeAgo(item.created_at)}</Text>
               </View>
 
-              {!item.read ? <View style={[styles.unreadDot, { backgroundColor: p.accent }]} /> : null}
+              <View style={styles.side}>
+                <Text style={[styles.when, { color: p.muted }]}>{timeAgo(item.created_at)}</Text>
+                {!item.read ? <View style={[styles.unreadDot, { backgroundColor: p.accent }]} /> : null}
+              </View>
             </Pressable>
           );
         }}
         ListHeaderComponent={
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(socialRoute('/social/requests'))}
-            style={[styles.requestsLink, { backgroundColor: p.card, borderColor: p.border }]}>
-            <View style={[styles.requestsIconBox, { backgroundColor: p.accentSoft }]}>
-              <Ionicons name="people" size={20} color={p.accent} />
-            </View>
-            <View style={styles.requestsText}>
-              <Text style={[styles.requestsTitle, { color: p.text }]}>Friend Requests</Text>
-              <Text style={[styles.requestsSub, { color: p.muted }]}>{requests > 0 ? `${requests} waiting for your answer` : 'See the requests you received and sent'}</Text>
-            </View>
-            {requests > 0 ? (
-              <View style={[styles.requestsBadge, { backgroundColor: p.accent }]}>
-                <Text style={styles.requestsBadgeText}>{requests > 9 ? '9+' : requests}</Text>
+          <View style={styles.tiles}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(socialRoute('/social/requests'))} style={[styles.tile, { backgroundColor: p.card, borderColor: p.border }]}>
+              <View style={[styles.tileIcon, { backgroundColor: p.accentSoft }]}>
+                <Ionicons name="people" size={19} color={p.accent} />
+                {requests > 0 ? (
+                  <View style={[styles.tileBadge, { backgroundColor: p.accent }]}>
+                    <Text style={styles.tileBadgeText}>{requests > 9 ? '9+' : requests}</Text>
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-            <Ionicons name="chevron-forward" size={18} color={p.muted} />
-          </Pressable>
+              <Text style={[styles.tileTitle, { color: p.text }]}>Friend requests</Text>
+              <Text numberOfLines={1} style={[styles.tileSub, { color: p.muted }]}>{requests > 0 ? `${requests} waiting` : 'Received and sent'}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.push(socialRoute('/social/kudos'))} style={[styles.tile, { backgroundColor: p.card, borderColor: p.border }]}>
+              <View style={[styles.tileIcon, { backgroundColor: '#FDE8EC' }]}>
+                <Ionicons name="heart" size={19} color="#F43F5E" />
+              </View>
+              <Text style={[styles.tileTitle, { color: p.text }]}>Kudos you got</Text>
+              <Text numberOfLines={1} style={[styles.tileSub, { color: p.muted }]}>Who cheered your posts</Text>
+            </Pressable>
+          </View>
         }
         ListEmptyComponent={
           list.isPending ? (
@@ -209,21 +235,23 @@ const styles = StyleSheet.create({
   allRead: { minWidth: 56, alignItems: 'flex-end' },
   allReadText: { fontSize: 13.5, fontWeight: '700' },
   list: { paddingHorizontal: 16, flexGrow: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, padding: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 11 },
+  side: { alignItems: 'flex-end', gap: 6, minWidth: 28 },
+  groupLabel: { fontSize: 12.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 14, marginBottom: 4, marginHorizontal: 4 },
+  tiles: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  tile: { flex: 1, borderWidth: 1, borderRadius: 20, padding: 14, gap: 3 },
+  tileIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  tileBadge: { position: 'absolute', top: -4, right: -6, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  tileBadgeText: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF' },
+  tileTitle: { fontSize: 14, fontWeight: '800' },
+  tileSub: { fontSize: 12 },
   avatarBox: { position: 'relative' },
   miniBadge: { position: 'absolute', right: -2, bottom: -2, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  line: { fontSize: 13.5, lineHeight: 18 },
+  line: { fontSize: 14, lineHeight: 19 },
   strong: { fontWeight: '800' },
   preview: { fontSize: 12 },
-  when: { fontSize: 11.5 },
-  requestsLink: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, padding: 12, marginBottom: 12 },
-  requestsIconBox: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  requestsText: { flex: 1 },
-  requestsTitle: { fontSize: 14.5, fontWeight: '800' },
-  requestsSub: { fontSize: 12, marginTop: 1 },
-  requestsBadge: { minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7 },
-  requestsBadgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  when: { fontSize: 12, fontWeight: '600' },
   unreadDot: { width: 9, height: 9, borderRadius: 4.5 },
   emptyBox: { alignItems: 'center', paddingTop: 50, gap: 8, paddingHorizontal: 24 },
   emptyTitle: { fontSize: 17, fontWeight: '800' },

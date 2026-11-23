@@ -101,12 +101,30 @@ export function PodScreen({ id }: { id: string }) {
             </View>
           </View>
 
+          <Text style={[styles.weekLine, { color: data.week_complete ? p.accent : p.muted }]}>
+            {data.week_complete ? 'Everyone reached the target this week. The streak keeps going.' : `Each member needs ${data.weekly_goal} active days (5,000 steps) this week for the streak to continue.`}
+          </Text>
+
           {/* Members List */}
           <View style={styles.sectionHead}>
             <Text style={[styles.section, { color: p.text }]}>Members</Text>
-            <View style={[styles.memberCountBadge, { backgroundColor: p.surface, borderColor: p.border }]}>
-              <Ionicons name="people-outline" size={13} color={p.muted} />
-              <Text style={[styles.memberCountText, { color: p.text }]}>{data.member_count} of {data.max_members}</Text>
+            <View style={styles.headRight}>
+              <View style={[styles.memberCountBadge, { backgroundColor: p.surface, borderColor: p.border }]}>
+                <Ionicons name="people-outline" size={13} color={p.muted} />
+                <Text style={[styles.memberCountText, { color: p.text }]}>{data.member_count} of {data.max_members}</Text>
+              </View>
+              {/* The friends to invite are chosen in a drawer. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Invite a friend to this pod"
+                onPress={() => {
+                  tapSelection();
+                  setInviting(true);
+                }}
+                style={[styles.invitePill, { backgroundColor: p.accent }]}>
+                <Ionicons name="person-add" size={14} color="#FFFFFF" />
+                <Text style={styles.invitePillLabel}>Invite</Text>
+              </Pressable>
             </View>
           </View>
 
@@ -188,28 +206,17 @@ export function PodScreen({ id }: { id: string }) {
             </View>
           ))}
 
-          {/* The friends to invite are chosen in a drawer. */}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              tapSelection();
-              setInviting(true);
-            }}
-            style={[styles.newInvite, { borderColor: p.accent, backgroundColor: p.surface }]}>
-            <Ionicons name="person-add-outline" size={17} color={p.accent} />
-            <Text style={[styles.newInviteText, { color: p.accent }]}>Invite a Friend to Squad</Text>
-          </Pressable>
 
           {/* Danger Zone Actions */}
           <View style={styles.dangerRow}>
             <Pressable accessibilityRole="button" onPress={() => setConfirm('leave')} style={styles.dangerBtn}>
               <Ionicons name="log-out-outline" size={16} color={p.red} />
-              <Text style={[styles.dangerText, { color: p.red }]}>Leave Squad</Text>
+              <Text style={[styles.dangerText, { color: p.red }]}>Leave pod</Text>
             </Pressable>
             {data.is_owner ? (
               <Pressable accessibilityRole="button" onPress={() => setConfirm('delete')} style={styles.dangerBtn}>
                 <Ionicons name="trash-outline" size={16} color={p.red} />
-                <Text style={[styles.dangerText, { color: p.red }]}>Delete Squad</Text>
+                <Text style={[styles.dangerText, { color: p.red }]}>Delete pod</Text>
               </Pressable>
             ) : null}
           </View>
@@ -289,6 +296,10 @@ const styles = StyleSheet.create({
   summaryTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   summaryValue: { fontSize: 18, fontWeight: '800' },
   summaryLabel: { fontSize: 11.5, fontWeight: '600' },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  invitePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 30, borderRadius: 15 },
+  invitePillLabel: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
+  weekLine: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', paddingHorizontal: 12, marginTop: -2 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   section: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
   memberCountBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },

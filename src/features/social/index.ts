@@ -7,6 +7,7 @@ export { KudosScreen } from './ui/kudos-screen';
 export { RequestsScreen } from './ui/requests-screen';
 export { SavedScreen } from './ui/saved-screen';
 export { QuestsScreen } from './ui/quests-screen';
+export { MoveScreen } from './ui/move-screen';
 export { PodsScreen } from './ui/pods-screen';
 export { PodScreen } from './ui/pod-screen';
 export { JourneysScreen } from './ui/journeys-screen';

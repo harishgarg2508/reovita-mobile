@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tapConfirm, tapSelection } from '@shared/lib';
 import { AnimatedDock, type DockItem } from '@shared/ui/bottom-dock';
-import { useMyHandle, useSocialUnread } from '@entities/social';
+import { useMyHandle } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref, socialRoute } from '../model/routes';
 
@@ -15,21 +15,19 @@ function iconFor(name: keyof typeof Ionicons.glyphMap, filled: keyof typeof Ioni
   };
 }
 
-export type SocialDockItem = 'home' | 'search' | 'kudos' | 'profile';
+export type SocialDockItem = 'home' | 'search' | 'move' | 'profile';
 
 // Height the dock takes at the bottom of a screen, so a list can leave room under its last item.
 export const SOCIAL_DOCK_SPACE = 96;
 
-// The bottom dock of Social: Home, Search, [Post], Kudos, Profile. It is the same dock as the main tabs (the same shared dock, so the same
-// look, crest, sliding indicator and button animation), with Post as the centre button. Switching between Home, Search, Kudos and Profile
+// The bottom dock of Social: Home, Search, [Post], Move, Profile. It is the same dock as the main tabs (the same shared dock, so the same
+// look, crest, sliding indicator and button animation), with Post as the centre button. Switching between Home, Search, Move and Profile
 // replaces the screen instead of stacking a new one, so Back always leaves Social. Post opens the composer on top. It is not shown to a person
 // who has not created a social account yet: there is nothing to go to.
 export function SocialDock({ active }: { active?: SocialDockItem }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
-  // The unread counts for the Kudos badge. They are kept live by the social stream (see SocialStream), which the Social layout opens once.
-  const unread = useSocialUnread(me.joined);
   // No dock until the person has agreed to the terms (no account yet, or the terms changed and must be agreed to again).
   if (!me.joined || me.needsJoin) return null;
   const handle = me.data?.handle ?? '';
@@ -39,7 +37,7 @@ export function SocialDock({ active }: { active?: SocialDockItem }) {
     tapSelection();
     if (item === 'home') router.replace(SOCIAL_HOME);
     else if (item === 'search') router.replace(socialRoute('/social/search'));
-    else if (item === 'kudos') router.replace(socialRoute('/social/kudos'));
+    else if (item === 'move') router.replace(socialRoute('/social/move'));
     else router.replace(socialProfileHref(handle));
   };
 
@@ -48,11 +46,11 @@ export function SocialDock({ active }: { active?: SocialDockItem }) {
     { key: 'search', label: 'Search', renderIcon: iconFor('search-outline', 'search'), focused: active === 'search', onPress: () => go('search') },
   ];
   const right: DockItem[] = [
-    { key: 'kudos', label: 'Kudos', renderIcon: iconFor('heart-outline', 'heart'), focused: active === 'kudos', badge: unread.data?.kudos ?? 0, onPress: () => go('kudos') },
+    { key: 'move', label: 'Move', renderIcon: iconFor('walk-outline', 'walk'), focused: active === 'move', onPress: () => go('move') },
     { key: 'profile', label: 'Profile', renderIcon: iconFor('person-outline', 'person'), focused: active === 'profile', onPress: () => go('profile') },
   ];
   // The slot of the active item: 0 and 1 left of the centre button, 2 and 3 right of it. None active (another person's page): no indicator.
-  const order: SocialDockItem[] = ['home', 'search', 'kudos', 'profile'];
+  const order: SocialDockItem[] = ['home', 'search', 'move', 'profile'];
   const activeIndex = active ? order.indexOf(active) : -1;
 
   return (

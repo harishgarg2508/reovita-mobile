@@ -148,7 +148,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
                 hitSlop={8}
                 onPress={() => router.push(socialRoute('/social/settings'))}
                 style={styles.circleNavBtn}>
-                <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+                <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
               </Pressable>
             ) : null}
           </View>
@@ -327,17 +327,9 @@ function ProfileHeader({
 
   return (
     <View style={[styles.profileCard, { backgroundColor: p.card, borderColor: p.border }]}>
-      {/* Avatar with Left & Right Flanking Stats */}
+      {/* Avatar */}
       <View style={styles.avatarStatsRow} pointerEvents="box-none">
-        {/* Left Stat: Posts count */}
-        <View style={styles.statColumn}>
-          <Text style={[styles.statValue, { color: p.text }]}>
-            {formatSocialCount(profile.posts_count)}
-          </Text>
-          <Text style={styles.statLabel}>Posts</Text>
-        </View>
-
-        {/* Center Overlapping Avatar */}
+        {/* The avatar overlaps the cover */}
         <View style={[styles.avatarRing, { borderColor: p.card }]}>
           <Pressable
             accessibilityRole="button"
@@ -360,17 +352,6 @@ function ProfileHeader({
           ) : null}
         </View>
 
-        {/* Right Stat: Friends count */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Friends: ${profile.friends_count}`}
-          onPress={() => router.push(socialFriendsHref(profile.handle))}
-          style={styles.statColumn}>
-          <Text style={[styles.statValue, { color: p.text }]}>
-            {formatSocialCount(profile.friends_count)}
-          </Text>
-          <Text style={[styles.statLabel, { color: p.accent }]}>Friends</Text>
-        </Pressable>
       </View>
 
       {/* Name, Handle, Streak & Bio */}
@@ -379,18 +360,6 @@ function ProfileHeader({
           {profile.display_name || `@${profile.handle}`}
         </Text>
         <Text style={[styles.handleSubtext, { color: p.muted }]}>@{profile.handle}</Text>
-
-        {streak > 0 ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${streak}-day streak`}
-            onPress={() => onSelectTab?.('consistency')}
-            style={[styles.streakBadge, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <Ionicons name="flame" size={14} color="#E8762B" />
-            <Text style={[styles.streakBadgeText, { color: p.text }]}>{streak}-day streak</Text>
-            <Ionicons name="chevron-forward" size={12} color={p.muted} />
-          </Pressable>
-        ) : null}
 
         {/* A long bio wraps inside the card, even a single long word with no spaces, and shows at most four lines. */}
         {profile.bio ? (
@@ -410,6 +379,27 @@ function ProfileHeader({
         ) : profile.is_me ? (
           <Text style={[styles.bioText, styles.bioEmpty]}>Add a line about you with Edit profile.</Text>
         ) : null}
+      </View>
+
+      {/* Numbers: posts, friends and the streak (it opens the Activity tab) */}
+      <View style={[styles.statsStrip, { backgroundColor: p.surface, borderColor: p.border }]}>
+        <View style={styles.statCell}>
+          <Text style={[styles.statNumber, { color: p.text }]}>{formatSocialCount(profile.posts_count)}</Text>
+          <Text style={[styles.statName, { color: p.muted }]}>Posts</Text>
+        </View>
+        <View style={[styles.statDivider, { backgroundColor: p.border }]} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Friends: ${profile.friends_count}`} onPress={() => router.push(socialFriendsHref(profile.handle))} style={styles.statCell}>
+          <Text style={[styles.statNumber, { color: p.text }]}>{formatSocialCount(profile.friends_count)}</Text>
+          <Text style={[styles.statName, { color: p.accent }]}>Friends</Text>
+        </Pressable>
+        <View style={[styles.statDivider, { backgroundColor: p.border }]} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`${streak}-day streak`} onPress={() => onSelectTab?.('consistency')} style={styles.statCell}>
+          <View style={styles.streakNumber}>
+            <Ionicons name="flame" size={17} color={streak > 0 ? '#E8762B' : p.muted} />
+            <Text style={[styles.statNumber, { color: p.text }]}>{streak}</Text>
+          </View>
+          <Text style={[styles.statName, { color: p.muted }]}>Day streak</Text>
+        </Pressable>
       </View>
 
       {/* Action Buttons */}
@@ -666,7 +656,7 @@ const styles = StyleSheet.create({
   avatarStatsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 10,
     marginTop: -48,
   },
@@ -712,6 +702,12 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: '100%', height: '100%' },
   avatarEdit: { position: 'absolute', right: 0, bottom: 2, width: 30, height: 30, borderRadius: 15, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  statsStrip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: 16, borderWidth: 1, borderRadius: 18, paddingVertical: 12 },
+  statCell: { flex: 1, alignItems: 'center', gap: 2 },
+  statDivider: { width: 1, height: 28 },
+  statNumber: { fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
+  statName: { fontSize: 12, fontWeight: '700' },
+  streakNumber: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   coverMenu: { gap: 2 },
   coverMenuRow: { height: 52, flexDirection: 'row', alignItems: 'center', gap: 12 },
   coverMenuText: { fontSize: 15.5, fontWeight: '600' },

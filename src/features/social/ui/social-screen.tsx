@@ -7,34 +7,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
 import { tapSelection } from '@shared/lib';
-import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette } from '@shared/ui/theme';
 import {
   useMyHandle,
   useSocialFeed,
   useSocialUnread,
   SOCIAL_TOPICS,
-  useTodayCheckIns,
 } from '@entities/social';
 
 import { socialProfileHref, socialRoute } from '../model/routes';
-import { useToggleCheckIn } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
 import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 
 type Tab = 'for_you' | 'friends';
 
-const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  sleep: 'moon-outline',
-  daily_steps: 'footsteps-outline',
-  nutrition: 'nutrition-outline',
-  hydration: 'water-outline',
-  mindfulness: 'leaf-outline',
-  strength: 'barbell-outline',
-  yoga: 'body-outline',
-  recovery: 'heart-circle-outline',
-};
 
 // The redesigned Social home:
 // - Top bar houses community links: Quests, Pods, and Notifications
@@ -49,16 +36,8 @@ export function SocialScreen() {
   const unread = useSocialUnread(me.joined);
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('for_you');
-  const today = useTodayCheckIns(me.joined);
-  const checkIn = useToggleCheckIn();
   const [topic, setTopic] = useState<string | null>(null);
-  // The habit check-in opens in a bottom drawer.
-  const [habitsOpen, setHabitsOpen] = useState(false);
 
-  const streak = today.data?.streak ?? 0;
-  const completedHabits = today.data?.habits ?? [];
-  const doneCount = completedHabits.length;
-  const totalHabits = SOCIAL_TOPICS.length;
 
   const selectTab = (next: Tab) => {
     if (next !== tab) {
@@ -83,39 +62,6 @@ export function SocialScreen() {
   // Clean, uncluttered list header
   const header = (
     <View style={styles.headerWrap}>
-      {/* 1. Daily Habit Pulse: Sleek, compact status ribbon */}
-      <View style={[styles.pulseCard, { backgroundColor: p.card, borderColor: p.border }]}>
-        <View style={styles.pulseHeader}>
-          {/* Streak pill */}
-          <View style={[styles.streakBadge, { backgroundColor: streak > 0 ? '#FEF3EB' : p.surface }]}>
-            <Ionicons name="flame" size={16} color={streak > 0 ? '#E8762B' : p.muted} />
-            <Text style={[styles.streakCount, { color: streak > 0 ? '#D65A12' : p.muted }]}>
-              {streak}-day streak
-            </Text>
-          </View>
-
-          {/* Habit progress count */}
-          <Text style={[styles.progressText, { color: p.muted }]}>
-            <Text style={[styles.progressNumber, { color: p.text }]}>{doneCount}</Text> of {totalHabits} habits
-          </Text>
-
-          {/* Opens the check-in drawer */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Check in to your habits"
-            onPress={() => {
-              tapSelection();
-              setHabitsOpen(true);
-            }}
-            hitSlop={8}
-            style={[styles.toggleBtn, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <Text style={[styles.toggleText, { color: p.text }]}>Check in</Text>
-            <Ionicons name="chevron-up" size={14} color={p.text} />
-          </Pressable>
-        </View>
-
-      </View>
-
       {/* 2. Feed Navigation: Segmented Switcher & Topic Filters */}
       <View style={styles.navRow}>
         <View style={[styles.segmentTrack, { backgroundColor: p.surface, borderColor: p.border }]}>
@@ -194,7 +140,7 @@ export function SocialScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
-      {/* Top Header Bar: Community hub with Quests, Pods, Notifications */}
+      {/* Top bar: back, the title, and the bell (activity: kudos, comments, requests, invitations). The rest of the actions are in the dock and in Move. */}
       <View style={styles.bar}>
         <Pressable
           accessibilityRole="button"
@@ -208,36 +154,6 @@ export function SocialScreen() {
         <Text style={[styles.title, { color: p.text }]}>Social</Text>
 
         <View style={styles.barEnd}>
-          {/* Quests button */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Quests & Leaderboard"
-            hitSlop={8}
-            onPress={() => router.push(socialRoute('/social/quests'))}
-            style={[styles.roundBtn, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="trophy-outline" size={18} color={p.text} />
-          </Pressable>
-
-          {/* Pods button */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Accountability Pods"
-            hitSlop={8}
-            onPress={() => router.push(socialRoute('/social/pods'))}
-            style={[styles.roundBtn, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="people-outline" size={19} color={p.text} />
-          </Pressable>
-
-          {/* Journeys button */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Journeys"
-            hitSlop={8}
-            onPress={() => router.push(socialRoute('/social/journeys'))}
-            style={[styles.roundBtn, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="map-outline" size={19} color={p.text} />
-          </Pressable>
-
           {/* Notifications activity bell */}
           <Pressable
             accessibilityRole="button"
@@ -274,58 +190,6 @@ export function SocialScreen() {
           bottomPadding={insets.bottom + SOCIAL_DOCK_SPACE + 16}
         />
       )}
-
-      {/* Today's check-in: the 8 habits in a swipe-down drawer. Tap a habit to check in, tap it again to take it back. */}
-      <BottomSheet visible={habitsOpen} onClose={() => setHabitsOpen(false)}>
-        <View style={styles.sheetHead}>
-          <Text style={[styles.sheetTitle, { color: p.text }]}>Today&apos;s check-in</Text>
-          <View style={[styles.streakBadge, { backgroundColor: streak > 0 ? '#FEF3EB' : p.surface }]}>
-            <Ionicons name="flame" size={16} color={streak > 0 ? '#E8762B' : p.muted} />
-            <Text style={[styles.streakCount, { color: streak > 0 ? '#D65A12' : p.muted }]}>{streak}-day streak</Text>
-          </View>
-        </View>
-        <Text style={[styles.sheetHint, { color: p.muted }]}>
-          {doneCount} of {totalHabits} habits today. Check in to the ones you did.
-        </Text>
-        <View style={styles.habitGrid}>
-            {SOCIAL_TOPICS.map((t) => {
-              const done = completedHabits.includes(t.value);
-              const iconName = TOPIC_ICONS[t.value] ?? 'checkmark-circle-outline';
-              return (
-                <Pressable
-                  key={t.value}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: done }}
-                  disabled={checkIn.isPending || today.isPending}
-                  onPress={() => {
-                    tapSelection();
-                    checkIn.mutate({ habit: t.value, on: !done });
-                  }}
-                  style={[
-                    styles.habitChip,
-                    {
-                      borderColor: done ? p.accent : p.border,
-                      backgroundColor: done ? p.accentSoft : p.surface,
-                    },
-                  ]}>
-                  <Ionicons
-                    name={done ? 'checkmark' : iconName}
-                    size={14}
-                    color={done ? p.accent : p.muted}
-                  />
-                  <Text
-                    style={[
-                      styles.habitChipText,
-                      { color: done ? p.accent : p.text },
-                      done && styles.habitChipTextDone,
-                    ]}>
-                    {t.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-      </BottomSheet>
 
       <SocialDock active="home" />
     </View>

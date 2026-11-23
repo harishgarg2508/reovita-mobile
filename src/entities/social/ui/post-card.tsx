@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { memo, useRef } from 'react';
+import { memo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { tapSelection } from '@shared/lib';
@@ -21,13 +21,26 @@ export function formatSocialCount(count: number): string {
   return String(count);
 }
 
-// The date of a post, like "Fri, 20 Nov 2026".
-function postDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+// How long ago a post was made, like "5m", "3h", "2d", and the date once it is a week old ("20 Nov", or "20 Nov 2025" in an earlier year).
+function postAge(iso: string): string {
+  const then = new Date(iso);
+  const minutes = Math.max(0, Math.floor((Date.now() - then.getTime()) / 60_000));
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}h`;
+  if (minutes < 60 * 24 * 7) return `${Math.floor(minutes / (60 * 24))}d`;
+  const sameYear = then.getFullYear() === new Date().getFullYear();
+  return then.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-// One post in a feed: verified avatar, author info, circular more button, full portrait photo with
-// a floating frosted glass action pill containing the like chip, comments, share, and bookmark.
+// The full date, for a screen reader.
+const fullDate = (iso: string): string => new Date(iso).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+// One post in a feed, in one plain layout for every kind of post:
+//   author row (avatar, name, @handle and how long ago, a quiet "more" button)
+//   the post: a text post reads as large text, a photo post as a rounded picture, with the caption under the actions
+//   one action row under it: kudos, comments, share on the left, save on the right (never drawn over the picture)
+//   small tags under that: the streak stamp and the topic
 export const PostCard = memo(function PostCard({
   post,
   onKudos,
@@ -54,27 +67,17 @@ export const PostCard = memo(function PostCard({
 }) {
   const p = usePalette();
   const photo = usePostPhoto(post.id, post.has_photo);
-  const bookmarked = post.saved;
   const name = post.display_name || `@${post.handle}`;
+  const topic = topicLabel(post.topic);
 
   const handleLike = () => {
     tapSelection();
     onKudos(post);
   };
 
-  const handleShare = () => {
-    tapSelection();
-    onShare(post);
-  };
-
-  const handleBookmark = () => {
-    tapSelection();
-    onSave?.(post);
-  };
-
   // Double tap on the post gives kudos, like other social apps. It only adds kudos (a second double tap never takes it back), and a heart pops up.
   const lastTap = useRef(0);
-  const heart = useRef(new Animated.Value(0)).current;
+  const [heart] = useState(() => new Animated.Value(0));
   const onPostTap = () => {
     const now = Date.now();
     if (now - lastTap.current > 300) {
@@ -92,12 +95,7 @@ export const PostCard = memo(function PostCard({
   };
   const heartStyle = { opacity: heart, transform: [{ scale: heart.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] };
 
-  const handleComments = () => {
-    tapSelection();
-    onComments?.(post);
-  };
-
-  // Holding the like button on my own post shows who gave kudos (the comment button now opens the comments).
+  // Holding the kudos button on my own post shows who gave kudos.
   const handleKudosList = () => {
     if (post.is_mine && onKudosList) {
       tapSelection();
@@ -105,426 +103,157 @@ export const PostCard = memo(function PostCard({
     }
   };
 
+  const openMenu = () => {
+    tapSelection();
+    onMenu(post);
+  };
+
   return (
     <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, flush && styles.flush]}>
-      {/* Top Header */}
+      {/* Author row */}
       <View style={styles.head}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!onOpenProfile}
-          onPress={() => onOpenProfile?.(post.handle)}
-          style={styles.authorRow}>
-          <View style={styles.avatarWrap}>
-            <SocialAvatar handle={post.handle} hasAvatar={post.has_avatar} size={44} />
-          </View>
+        <Pressable accessibilityRole="button" disabled={!onOpenProfile} onPress={() => onOpenProfile?.(post.handle)} style={styles.authorRow}>
+          <SocialAvatar handle={post.handle} hasAvatar={post.has_avatar} size={40} />
           <View style={styles.names}>
-            <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>
-              {name}
-            </Text>
-            <Text numberOfLines={1} style={styles.sub}>
-              @{post.handle}
+            <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{name}</Text>
+            <Text numberOfLines={1} accessibilityLabel={`@${post.handle}, ${fullDate(post.created_at)}`} style={[styles.sub, { color: p.muted }]}>
+              @{post.handle} · {postAge(post.created_at)}
             </Text>
           </View>
         </Pressable>
-
-        {/* Circular more button (...) */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="More options"
-          hitSlop={8}
-          onPress={() => onMenu(post)}
-          style={[styles.moreBtn, { borderColor: p.text }]}>
-          <Ionicons name="ellipsis-horizontal" size={15} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="More options" hitSlop={10} onPress={openMenu} style={styles.moreBtn}>
+          <Ionicons name="ellipsis-horizontal" size={20} color={p.muted} />
         </Pressable>
       </View>
 
-      {/* Media or Text Container */}
+      {/* The post */}
       {post.has_photo ? (
-        <Pressable accessible={false} onPress={onPostTap} onLongPress={() => { tapSelection(); onMenu(post); }} delayLongPress={400} style={[styles.photoContainer, { backgroundColor: p.surface }]}>
+        <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={[styles.photoBox, { backgroundColor: p.surface }]}>
           {photo.data ? (
             <Image source={{ uri: photo.data }} style={styles.photo} resizeMode="cover" accessibilityLabel="Photo in post" />
           ) : photo.isError ? (
-            <View style={styles.photoFallback}>
+            <View style={styles.photoState}>
               <Ionicons name="image-outline" size={32} color={p.muted} />
-              <Text style={[styles.photoErrorText, { color: p.muted }]}>Photo could not be loaded</Text>
+              <Text style={[styles.stateText, { color: p.muted }]}>Photo could not be loaded</Text>
             </View>
           ) : (
-            <View style={styles.photoLoading}>
+            <View style={styles.photoState}>
               <ActivityIndicator color={p.accent} size="large" />
             </View>
           )}
-
           <Animated.View pointerEvents="none" style={[styles.bigHeart, heartStyle]}>
             <Ionicons name="heart" size={96} color="#E34255" />
           </Animated.View>
-
-          {/* Floating Frosted Glass Action Bar */}
-          <View
-            style={[
-              styles.floatingBar,
-              {
-                backgroundColor: p.text === '#FFFFFF' ? 'rgba(25, 22, 38, 0.78)' : 'rgba(255, 255, 255, 0.58)',
-                borderColor: p.text === '#FFFFFF' ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.75)',
-              },
-            ]}>
-            {/* Left: Like button as solid white pill */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={post.kudoed ? 'Liked' : 'Like'}
-              onPress={handleLike}
-              onLongPress={handleKudosList}
-              style={[
-                styles.likePill,
-                {
-                  backgroundColor: p.text === '#FFFFFF' ? '#27233E' : '#FFFFFF',
-                },
-              ]}>
-              <Ionicons
-                name={post.kudoed ? 'heart' : 'heart-outline'}
-                size={18}
-                color={post.kudoed ? '#E34255' : (p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24')}
-              />
-              <Text style={[styles.likeCount, { color: p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24' }]}>
-                {formatSocialCount(post.kudos_count)}
-              </Text>
-            </Pressable>
-
-            {/* Comment / Kudos details button */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Comments"
-              onPress={handleComments}
-              hitSlop={6}
-              style={styles.actionBtn}>
-              <Ionicons name="chatbubble-outline" size={19} color={p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24'} />
-              <Text style={[styles.actionCount, { color: p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24' }]}>
-                {formatSocialCount(post.comments_count)}
-              </Text>
-            </Pressable>
-
-            {/* Share / Paper Plane */}
-            <Pressable accessibilityRole="button" accessibilityLabel="Share" onPress={handleShare} hitSlop={6} style={styles.iconOnlyBtn}>
-              <Ionicons name="paper-plane-outline" size={19} color={p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24'} />
-            </Pressable>
-
-            {/* Bookmark / Ribbon */}
-            {post.is_mine ? null : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={bookmarked ? 'Saved' : 'Save'}
-              onPress={handleBookmark}
-              hitSlop={6}
-              style={styles.iconOnlyBtn}>
-              <Ionicons
-                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={19}
-                color={bookmarked ? p.accent : (p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24')}
-              />
-            </Pressable>
-            )}
-          </View>
         </Pressable>
-      ) : (
-        /* Text-only post with matching docked frosted bar */
-        <Pressable accessible={false} onPress={onPostTap} onLongPress={() => { tapSelection(); onMenu(post); }} delayLongPress={400} style={[styles.textContainer, { backgroundColor: p.surface, borderColor: p.border }]}>
-          {post.body ? <Text style={[styles.textBody, { color: p.text }]}>{post.body}</Text> : null}
-
-          {/* Docked Action Bar */}
-          <View
-            style={[
-              styles.dockedBar,
-              {
-                backgroundColor: p.card,
-                borderColor: p.border,
-              },
-            ]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={post.kudoed ? 'Liked' : 'Like'}
-              onPress={handleLike}
-              onLongPress={handleKudosList}
-              style={[
-                styles.likePill,
-                {
-                  backgroundColor: p.text === '#FFFFFF' ? '#27233E' : p.surface,
-                },
-              ]}>
-              <Ionicons
-                name={post.kudoed ? 'heart' : 'heart-outline'}
-                size={18}
-                color={post.kudoed ? '#E34255' : (p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24')}
-              />
-              <Text style={[styles.likeCount, { color: p.text === '#FFFFFF' ? '#FFFFFF' : '#1C1A24' }]}>
-                {formatSocialCount(post.kudos_count)}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Comments"
-              onPress={handleComments}
-              hitSlop={6}
-              style={styles.actionBtn}>
-              <Ionicons name="chatbubble-outline" size={19} color={p.text} />
-              <Text style={[styles.actionCount, { color: p.text }]}>{formatSocialCount(post.comments_count)}</Text>
-            </Pressable>
-
-            <Pressable accessibilityRole="button" accessibilityLabel="Share" onPress={handleShare} hitSlop={6} style={styles.iconOnlyBtn}>
-              <Ionicons name="paper-plane-outline" size={19} color={p.text} />
-            </Pressable>
-
-            {post.is_mine ? null : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={bookmarked ? 'Saved' : 'Save'}
-              onPress={handleBookmark}
-              hitSlop={6}
-              style={styles.iconOnlyBtn}>
-              <Ionicons
-                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={19}
-                color={bookmarked ? p.accent : p.text}
-              />
-            </Pressable>
-            )}
-          </View>
+      ) : post.body ? (
+        <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={styles.textBox}>
+          <Text style={[styles.textBody, { color: p.text }]}>{post.body}</Text>
           <Animated.View pointerEvents="none" style={[styles.bigHeart, heartStyle]}>
             <Ionicons name="heart" size={72} color="#E34255" />
           </Animated.View>
         </Pressable>
-      )}
-
-      {post.stamp ? (
-        <View style={[styles.stamp, { backgroundColor: p.accentSoft }]}>
-          <Ionicons name="flame" size={14} color="#E8762B" />
-          <Text style={[styles.stampText, { color: p.text }]}>
-            {post.stamp.streak}-day streak · {topicLabel(post.stamp.habit) ?? 'Habit'}
-          </Text>
-        </View>
       ) : null}
 
-      {topicLabel(post.topic) ? (
-        <View style={[styles.topicChip, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.topicText, { color: p.accent }]}>#{topicLabel(post.topic)}</Text>
-        </View>
-      ) : null}
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Pressable accessibilityRole="button" accessibilityLabel={post.kudoed ? 'Remove kudos' : 'Give kudos'} onPress={handleLike} onLongPress={handleKudosList} hitSlop={6} style={styles.action}>
+          <Ionicons name={post.kudoed ? 'heart' : 'heart-outline'} size={24} color={post.kudoed ? '#E34255' : p.text} />
+          <Text style={[styles.count, { color: post.kudoed ? '#E34255' : p.text }]}>{formatSocialCount(post.kudos_count)}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Comments"
+          onPress={() => {
+            tapSelection();
+            onComments?.(post);
+          }}
+          hitSlop={6}
+          style={styles.action}>
+          <Ionicons name="chatbubble-outline" size={22} color={p.text} />
+          <Text style={[styles.count, { color: p.text }]}>{formatSocialCount(post.comments_count)}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Share"
+          onPress={() => {
+            tapSelection();
+            onShare(post);
+          }}
+          hitSlop={6}
+          style={styles.action}>
+          <Ionicons name="paper-plane-outline" size={22} color={p.text} />
+        </Pressable>
+        <View style={styles.grow} />
+        {post.is_mine ? null : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={post.saved ? 'Saved' : 'Save'}
+            onPress={() => {
+              tapSelection();
+              onSave?.(post);
+            }}
+            hitSlop={6}
+            style={styles.action}>
+            <Ionicons name={post.saved ? 'bookmark' : 'bookmark-outline'} size={22} color={post.saved ? p.accent : p.text} />
+          </Pressable>
+        )}
+      </View>
 
-      {/* Caption & Date when photo is present */}
+      {/* The caption of a photo post */}
       {post.has_photo && post.body ? (
-        <View style={styles.captionBox}>
-          <Text style={[styles.caption, { color: p.text }]}>
-            <Text style={styles.captionHandle} onPress={() => onOpenProfile?.(post.handle)}>
-              @{post.handle}{' '}
-            </Text>
-            {post.body}
+        <Text style={[styles.caption, { color: p.text }]}>
+          <Text style={styles.captionHandle} onPress={() => onOpenProfile?.(post.handle)}>
+            @{post.handle}{' '}
           </Text>
-          <Text style={[styles.dateText, { color: p.muted }]}>{postDate(post.created_at)}</Text>
+          {post.body}
+        </Text>
+      ) : null}
+
+      {/* Tags */}
+      {post.stamp || topic ? (
+        <View style={styles.tags}>
+          {post.stamp ? (
+            <View style={[styles.tag, { backgroundColor: '#FEF3EB' }]}>
+              <Ionicons name="flame" size={13} color="#E8762B" />
+              <Text style={[styles.tagText, { color: '#B4530F' }]}>
+                {post.stamp.streak}-day streak · {topicLabel(post.stamp.habit) ?? 'Habit'}
+              </Text>
+            </View>
+          ) : null}
+          {topic ? (
+            <View style={[styles.tag, { backgroundColor: p.accentSoft }]}>
+              <Text style={[styles.tagText, { color: p.accent }]}>#{topic}</Text>
+            </View>
+          ) : null}
         </View>
-      ) : !post.has_photo ? (
-        <Text style={[styles.dateTextStandalone, { color: p.muted }]}>{postDate(post.created_at)}</Text>
       ) : null}
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 24,
-    borderWidth: 1,
-    // No padding on the card itself: the photo runs edge to edge. Only the header, caption and text areas have their own padding.
-    overflow: 'hidden',
-    paddingBottom: 14,
-    gap: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
-  },
+  card: { borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingTop: 14, paddingBottom: 12, gap: 12 },
   flush: { borderRadius: 0, borderLeftWidth: 0, borderRightWidth: 0 },
-  head: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: 14,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    flex: 1,
-    minWidth: 0,
-  },
-  avatarWrap: {
-    position: 'relative',
-    width: 44,
-    height: 44,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  names: {
-    flex: 1,
-    minWidth: 0,
-    gap: 1.5,
-  },
-  name: {
-    fontSize: 15.5,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  sub: {
-    fontSize: 12.8,
-    fontWeight: '500',
-    color: '#8E8BA6',
-  },
-  moreBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoContainer: {
-    width: '100%',
-    aspectRatio: 4 / 4.4,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  bigHeart: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoLoading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoFallback: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  photoErrorText: {
-    fontSize: 13,
-  },
-  floatingBar: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  likePill: {
-    height: 40,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  likeCount: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    height: 40,
-  },
-  actionCount: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  iconOnlyBtn: {
-    width: 38,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textContainer: {
-    marginHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    gap: 14,
-  },
-  textBody: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  dockedBar: {
-    borderRadius: 22,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stamp: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 14, paddingHorizontal: 12, height: 30, borderRadius: 15 },
-  stampText: { fontSize: 13, fontWeight: '800' },
-  topicChip: { alignSelf: 'flex-start', marginHorizontal: 14, paddingHorizontal: 10, height: 26, borderRadius: 13, justifyContent: 'center' },
-  topicText: { fontSize: 12.5, fontWeight: '700' },
-  captionBox: {
-    paddingHorizontal: 14,
-    paddingTop: 2,
-    gap: 4,
-  },
-  caption: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  captionHandle: {
-    fontWeight: '700',
-  },
-  dateText: {
-    fontSize: 11.5,
-    marginTop: 2,
-  },
-  dateTextStandalone: {
-    fontSize: 11.5,
-    paddingHorizontal: 14,
-  },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1, minWidth: 0 },
+  names: { flex: 1, minWidth: 0, gap: 1 },
+  name: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  sub: { fontSize: 12.5, fontWeight: '500' },
+  moreBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  photoBox: { marginHorizontal: 12, borderRadius: 18, overflow: 'hidden', aspectRatio: 4 / 4.6, position: 'relative' },
+  photo: { width: '100%', height: '100%' },
+  photoState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  stateText: { fontSize: 13 },
+  bigHeart: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
+  textBox: { paddingHorizontal: 16, paddingVertical: 4, position: 'relative' },
+  textBody: { fontSize: 17, lineHeight: 25, letterSpacing: -0.1 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12 },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 6 },
+  count: { fontSize: 14, fontWeight: '700' },
+  grow: { flex: 1 },
+  caption: { fontSize: 14.5, lineHeight: 21, paddingHorizontal: 16 },
+  captionHandle: { fontWeight: '800' },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 14 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 26, borderRadius: 13 },
+  tagText: { fontSize: 12, fontWeight: '800' },
 });

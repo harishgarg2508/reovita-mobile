@@ -71,15 +71,28 @@ export function PodsScreen() {
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {/* Athletic Squad Hero Card */}
           <View style={[styles.heroCard, { backgroundColor: p.card, borderColor: p.border }]}>
-            <View style={[styles.heroIconBox, { backgroundColor: p.accentSoft }]}>
-              <Ionicons name="people" size={22} color={p.accent} />
+            <View style={styles.heroTop}>
+              <View style={[styles.heroIconBox, { backgroundColor: p.accentSoft }]}>
+                <Ionicons name="people" size={22} color={p.accent} />
+              </View>
+              <View style={styles.heroText}>
+                <Text style={[styles.heroTitle, { color: p.text }]}>Squad accountability</Text>
+                <Text style={[styles.heroBody, { color: p.muted }]}>
+                  A private circle of up to 5 friends with one weekly target. A day counts at 5,000 steps, and the streak grows while everyone reaches it.
+                </Text>
+              </View>
             </View>
-            <View style={styles.heroText}>
-              <Text style={[styles.heroTitle, { color: p.text }]}>Squad Accountability</Text>
-              <Text style={[styles.heroBody, { color: p.muted }]}>
-                Private circles of up to 5 friends. Set a weekly target of active days together; a day is active at 5,000 steps. The squad streak grows as long as every member hits their goal.
-              </Text>
-            </View>
+            {/* Make a pod: the form opens in a bottom drawer. */}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                tapSelection();
+                setCreating(true);
+              }}
+              style={[styles.newPod, { backgroundColor: p.accent, borderColor: p.accent }]}>
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={[styles.newPodText, { color: '#FFFFFF' }]}>Make a pod</Text>
+            </Pressable>
           </View>
 
           <StepsCard />
@@ -206,17 +219,6 @@ export function PodsScreen() {
             ))}
           </View>
 
-          {/* Make a pod: the form opens in a bottom drawer. */}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              tapSelection();
-              setCreating(true);
-            }}
-            style={[styles.newPod, { borderColor: p.accent, backgroundColor: p.surface }]}>
-            <Ionicons name="add" size={20} color={p.accent} />
-            <Text style={[styles.newPodText, { color: p.accent }]}>Make an Accountability Pod</Text>
-          </Pressable>
         </ScrollView>
       )}
 
@@ -297,7 +299,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
-  heroCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderRadius: 20, padding: 14 },
+  heroCard: { borderWidth: 1, borderRadius: 22, padding: 14, gap: 14 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   heroIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1, minWidth: 0, gap: 2 },
   heroTitle: { fontSize: 15, fontWeight: '800' },

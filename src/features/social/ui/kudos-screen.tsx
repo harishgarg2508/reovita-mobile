@@ -118,7 +118,7 @@ export function KudosScreen() {
         </>
       )}
 
-      <SocialDock active="kudos" />
+      <SocialDock />
     </View>
   );
 }

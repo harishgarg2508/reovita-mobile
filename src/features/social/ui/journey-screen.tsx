@@ -180,10 +180,10 @@ export function JourneyScreen({ id }: { id: string }) {
             <View style={[styles.metricsStrip, { borderColor: p.border }]}>
               <View style={styles.metricItem}>
                 <View style={styles.metricTop}>
-                  <Ionicons name="footsteps-outline" size={14} color={p.accent} />
-                  <Text style={[styles.metricValue, { color: p.text }]}>{data.my_km} km</Text>
+                  <Ionicons name="people-outline" size={14} color={p.accent} />
+                  <Text style={[styles.metricValue, { color: p.text }]}>{data.member_count}</Text>
                 </View>
-                <Text style={[styles.metricLabel, { color: p.muted }]}>You walked</Text>
+                <Text style={[styles.metricLabel, { color: p.muted }]}>Walkers</Text>
               </View>
 
               <View style={[styles.metricDivider, { backgroundColor: p.border }]} />
@@ -217,29 +217,43 @@ export function JourneyScreen({ id }: { id: string }) {
                 <Ionicons name="trophy" size={20} color={p.accent} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={[styles.finishTitle, { color: p.text }]}>Expedition Completed! 🏆</Text>
-                <Text style={[styles.finishBody, { color: p.muted }]}>You reached the end of the route and earned this badge on your profile.</Text>
+                <Text style={[styles.finishTitle, { color: p.text }]}>Journey complete</Text>
+                <Text style={[styles.finishBody, { color: p.muted }]}>You reached the end of the route. The badge is on your profile.</Text>
               </View>
             </View>
           ) : null}
 
-          {/* Subtle Game Distance Note */}
-          <View style={[styles.disclaimerBox, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <Ionicons name="information-circle-outline" size={15} color={p.muted} />
-            <Text style={[styles.disclaimerText, { color: p.muted }]}>
-              Distance comes from the steps your phone counts (7,000 steps is a full day on the route). It is never a GPS position. Turn on step counting on the Journeys screen.
-            </Text>
+          {/* Where the distance comes from */}
+          <View style={styles.noteRow}>
+            <Ionicons name="footsteps-outline" size={14} color={p.muted} />
+            <Text style={[styles.disclaimerText, { color: p.muted }]}>Distance comes from your steps: 7,000 steps is a full day on the route. It is never a GPS position.</Text>
           </View>
 
           {/* Ranking Section */}
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={[styles.sectionTitle, { color: p.text }]}>Expedition Ranking</Text>
-              <Text style={[styles.sectionSubtitle, { color: p.muted }]}>Walkers on this route</Text>
+              <Text style={[styles.sectionTitle, { color: p.text }]}>Ranking</Text>
+              <Text style={[styles.sectionSubtitle, { color: p.muted }]}>Furthest first</Text>
             </View>
-            <View style={[styles.memberCountPill, { backgroundColor: p.surface, borderColor: p.border }]}>
-              <Ionicons name="people-outline" size={13} color={p.muted} />
-              <Text style={[styles.memberCountText, { color: p.text }]}>{data.member_count} of {data.max_members}</Text>
+            <View style={styles.headRight}>
+              <View style={[styles.memberCountPill, { backgroundColor: p.surface, borderColor: p.border }]}>
+                <Ionicons name="people-outline" size={13} color={p.muted} />
+                <Text style={[styles.memberCountText, { color: p.text }]}>{data.member_count} of {data.max_members}</Text>
+              </View>
+              {/* The friends to invite are chosen in a drawer. */}
+              {data.status === 'active' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Invite a friend to this journey"
+                  onPress={() => {
+                    tapSelection();
+                    setInviting(true);
+                  }}
+                  style={[styles.invitePill, { backgroundColor: p.accent }]}>
+                  <Ionicons name="person-add" size={14} color="#FFFFFF" />
+                  <Text style={styles.invitePillLabel}>Invite</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -342,20 +356,6 @@ export function JourneyScreen({ id }: { id: string }) {
               </View>
             </View>
           ))}
-
-          {/* The friends to invite are chosen in a drawer. */}
-          {data.status === 'active' ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                tapSelection();
-                setInviting(true);
-              }}
-              style={[styles.inviteActionBtn, { borderColor: p.accent, backgroundColor: p.surface }]}>
-              <Ionicons name="person-add-outline" size={18} color={p.accent} />
-              <Text style={[styles.inviteActionText, { color: p.accent }]}>Invite a Friend to Journey</Text>
-            </Pressable>
-          ) : null}
 
           {/* Leave Journey Danger Link */}
           <Pressable accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.leaveBtn}>
@@ -509,6 +509,10 @@ const styles = StyleSheet.create({
   disclaimerBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderWidth: 1, borderRadius: 14, padding: 10 },
   disclaimerText: { flex: 1, fontSize: 12, lineHeight: 16 },
   // Section Header
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  invitePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 30, borderRadius: 15 },
+  invitePillLabel: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 4 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   sectionTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
   sectionSubtitle: { fontSize: 12, fontWeight: '500', marginTop: 1 },
