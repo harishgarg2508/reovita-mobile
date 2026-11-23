@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
 import { useHome } from '@entities/home';
-import { isDocumentReport, reportTypeLabel, useReportList } from '@entities/report';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileBmiCard } from '@features/profile-details';
@@ -167,9 +166,6 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
   const socialMe = useMyHandle();
   const socialUnread = useSocialUnread(socialMe.joined).data;
   const socialNew = (socialUnread?.unread ?? 0) + (socialUnread?.requests ?? 0);
-  // The newest reports: the dashboard shows the top three.
-  const reportPages = useReportList();
-  const recentItems = reportPages.data?.pages.flatMap((page) => page.items) ?? [];
   useNotificationStream();
   const scheme = useResolvedScheme();
   const p = scheme === 'dark' ? DARK : LIGHT;
@@ -354,51 +350,10 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
       <ListRow p={p} icon="medkit-outline" title="Medication check" text="See if your medicines interact. Scan a pack or check any two." onPress={() => router.push('/(app)/medication-interactions')} />
 
       <ListRow p={p} icon="people-outline" title="Social" text={socialNew > 0 ? `${socialNew} new: kudos, comments and requests` : 'Share your progress and cheer others on.'} badge={socialNew} onPress={() => router.push(SOCIAL_HOME)} />
-      </View>
 
-      <View style={styles.block}>
-        <Text style={[Type.title, { color: p.text }]}>Recent uploads</Text>
-        <View style={[styles.list, { borderTopColor: p.border }]}>
-          {recentItems.length === 0 ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')} style={[styles.listRow, { borderBottomColor: p.border }]}>
-              <Text style={[Type.bodyStrong, styles.flex, { color: p.purple }]}>Upload a report</Text>
-              <Ionicons name="chevron-forward" size={18} color={p.muted} />
-            </Pressable>
-          ) : (
-            <>
-              {recentItems.slice(0, 2).map((item) => (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  onPress={() =>
-                    // A prescription, scan or other document has no review step: it opens on its summary.
-                    isDocumentReport(item)
-                      ? router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id: item.id } })
-                      : router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })
-                  }
-                  style={[styles.listRow, { borderBottomColor: p.border }]}>
-                  <View style={styles.flex}>
-                    <Text style={[Type.bodyStrong, { color: p.text }]}>{reportTypeLabel(item)}</Text>
-                    <Text style={[Type.small, { color: p.muted }]}>{formatReportDate(item.created_at)}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={p.muted} />
-                </Pressable>
-              ))}
-              <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/list')} style={[styles.listRow, { borderBottomColor: p.border }]}>
-                <Text style={[Type.bodyStrong, styles.flex, { color: p.purple }]}>See all uploads</Text>
-                <Ionicons name="chevron-forward" size={18} color={p.muted} />
-              </Pressable>
-            </>
-          )}
-        </View>
-      </View>
+      <ListRow p={p} icon="document-text-outline" title="Recent reports" text="Open your uploaded reports and their results." onPress={() => router.push('/(app)/reports/list')} />
 
-      {/* Premium: what the free plan does not include. A free account sees a lock here and the plan screen opens when a card is tapped. */}
-      <View style={styles.block}>
-        <Text style={[Type.title, { color: p.text }]}>Premium</Text>
-        <Text style={[Type.small, { color: p.muted }]}>{plan.locked ? 'Food, guidance and the daily briefing' : 'Included in your plan'}</Text>
-      </View>
-      <View style={[styles.list, { borderTopColor: p.border }]}>
+      {/* Premium rows, in the same list: a free account sees a lock on each and the plan screen opens when one is tapped. */}
         <ListRow p={p} icon="restaurant-outline" title="Scan my meal" text="Photo of your plate: calories and protein." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/meal-scan')} />
 
       <ListRow p={p} icon="nutrition-outline" title="Scan my fridge" text="Photo of your fridge: simple meals to cook." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/fridge-scan')} />
@@ -541,7 +496,6 @@ const styles = StyleSheet.create({
   partGaugeCell: { alignItems: 'center', gap: 8 },
   partGaugeLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   partRingLabel: { ...Type.label },
-  recentList: { gap: 8, marginTop: 4 },
   recentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
   recentLabel: { fontSize: 14, fontWeight: '600' },
   card: { padding: 18, borderRadius: 22, borderWidth: 1, gap: 12 },
@@ -559,10 +513,3 @@ const styles = StyleSheet.create({
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });
-
-function formatReportDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? ''
-    : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
