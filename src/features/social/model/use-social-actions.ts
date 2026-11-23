@@ -101,17 +101,18 @@ export function useUpdateSocialProfile() {
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { body: string; topic?: string | null; stamp?: boolean; photo?: { uri: string; name: string; type: string } }): Promise<SocialPost> => {
+    mutationFn: async (input: { body: string; topic?: string | null; stamp?: boolean; photos?: { uri: string; name: string; type: string }[] }): Promise<SocialPost> => {
       const form = new FormData();
       form.append('body', input.body);
       if (input.topic) form.append('topic', input.topic);
       if (input.topic && input.stamp) form.append('stamp', 'true');
-      if (input.photo) {
+      // One field `photo` for each picture, in the order the person chose them.
+      for (const photo of input.photos ?? []) {
         if (Platform.OS === 'web') {
           // Browsers need a real Blob in FormData; the native { uri, name, type } object is ignored.
-          form.append('photo', await (await fetch(input.photo.uri)).blob(), input.photo.name);
+          form.append('photo', await (await fetch(photo.uri)).blob(), photo.name);
         } else {
-          form.append('photo', { uri: input.photo.uri, name: input.photo.name, type: input.photo.type } as unknown as Blob);
+          form.append('photo', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
         }
       }
       const { data } = await api.post<SocialPost>('/v1/social/posts', form, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -439,6 +440,18 @@ export function useDeleteComment(postId: string) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.social.comments(postId) });
       void queryClient.invalidateQueries({ queryKey: [...queryKeys.social.root, 'replies'] });
     },
+  });
+}
+
+// Changes the text of my own post. Every list that holds the post shows the new text at once.
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { post: SocialPost; body: string }) => {
+      const { data } = await api.patch<SocialPost>(`/v1/social/posts/${input.post.id}`, { body: input.body });
+      return data;
+    },
+    onSuccess: (updated) => patchPost(queryClient, updated.id, (post) => ({ ...post, body: updated.body })),
   });
 }
 

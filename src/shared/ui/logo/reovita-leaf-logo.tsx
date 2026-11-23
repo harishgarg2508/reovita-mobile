@@ -112,15 +112,15 @@ export function ReovitaLeafLogo({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
   colContainer: {
     flexDirection: 'column',
     gap: 8,
   },
   rowContainer: {
+    alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
+    gap: 4,
   },
   emblemWrapper: {
     position: 'relative',
@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontWeight: '600',
+    fontStyle: 'italic',
     letterSpacing: 0.2,
     marginTop: 2,
   },

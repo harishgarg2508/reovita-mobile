@@ -64,7 +64,6 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   const processed = statusTone(record.status);
   const [downloading, setDownloading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const remove = useDeleteReport();
 
@@ -91,32 +90,10 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
 
   return (
     <View style={styles.card}>
-      {/* More: opens a menu with Delete. Delete asks for confirmation first. */}
       {/* The eye opens the rest of the record in a swipe-down drawer. */}
       <Pressable accessibilityRole="button" accessibilityLabel="Show the details of this record" onPress={() => setOpen(true)} hitSlop={8} style={styles.eyeBtn}>
         <Ionicons name="eye-outline" size={21} color={p.accent} />
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="More options"
-        onPress={() => setMenuOpen((v) => !v)}
-        hitSlop={8}
-        style={styles.moreBtn}>
-        <Ionicons name="ellipsis-horizontal" size={20} color={p.muted} />
-      </Pressable>
-      {menuOpen ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Delete report"
-          onPress={() => {
-            setMenuOpen(false);
-            setConfirmDelete(true);
-          }}
-          style={[styles.menu, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="trash-outline" size={16} color="#C22F43" />
-          <Text style={styles.menuText}>Delete report</Text>
-        </Pressable>
-      ) : null}
       <View style={styles.head}>
         <View style={styles.fileIcon}>
           <Ionicons name={isPdf ? 'document-text-outline' : 'image-outline'} size={26} color={p.accent} />
@@ -188,18 +165,32 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
           )}
         </ScrollView>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Download the uploaded file"
-          disabled={!file || downloading}
-          onPress={() => {
-            // Several files open a picker of their own, on top of this drawer, which stays open under it.
-            onDownload();
-          }}
-          style={[styles.downloadWide, (!file || downloading) && { opacity: 0.5 }]}>
-          {downloading ? <ActivityIndicator color={p.accent} /> : <Ionicons name="download-outline" size={18} color={p.accent} />}
-          <Text style={styles.detailsText}>Download file</Text>
-        </Pressable>
+        <View style={styles.buttonRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Download the uploaded file"
+            disabled={!file || downloading}
+            onPress={() => {
+              // Several files open a picker of their own, on top of this drawer, which stays open under it.
+              onDownload();
+            }}
+            style={[styles.downloadWide, (!file || downloading) && { opacity: 0.5 }]}>
+            {downloading ? <ActivityIndicator color={p.accent} /> : <Ionicons name="download-outline" size={18} color={p.accent} />}
+            <Text style={styles.detailsText}>Download file</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete this report"
+            onPress={() => {
+              // The drawer closes first so the confirmation is not drawn under it.
+              setOpen(false);
+              setConfirmDelete(true);
+            }}
+            style={styles.deleteWide}>
+            <Ionicons name="trash-outline" size={18} color="#C22F43" />
+            <Text style={styles.deleteText}>Delete report</Text>
+          </Pressable>
+        </View>
         <Modal visible={pickerOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPickerOpen(false)}>
           <Pressable style={styles.sheetBackdrop} onPress={() => setPickerOpen(false)}>
             <Pressable style={styles.sheet} onPress={() => undefined}>
@@ -291,10 +282,9 @@ function makeStyles(p: Palette) {
     footer: { paddingVertical: 12 },
     // A record is a row on a rule, not a box: the file and date, the details, the actions.
     card: { borderBottomWidth: Rule, borderBottomColor: p.border, paddingVertical: Gap.group - 6, gap: Gap.inner + 4, position: 'relative' },
-    eyeBtn: { position: 'absolute', top: Gap.group - 9, right: 36, zIndex: 2, padding: 4 },
-    moreBtn: { position: 'absolute', top: Gap.group - 8, right: 0, zIndex: 2, padding: 4 },
-    menu: { position: 'absolute', top: 44, right: 0, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: Rule },
-    menuText: { ...Type.label, color: '#C22F43' },
+    eyeBtn: { position: 'absolute', top: Gap.group - 9, right: 0, zIndex: 2, padding: 4 },
+    deleteWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, borderWidth: 1.5, borderColor: '#C22F43' },
+    deleteText: { ...Type.label, color: '#C22F43' },
     head: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: 72 },
     fileIcon: { width: 32, alignItems: 'center' },
     headText: { flex: 1, gap: 1 },
@@ -316,6 +306,7 @@ function makeStyles(p: Palette) {
     zipBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
     sheetSection: { ...Type.heading, color: p.textStrong, marginTop: Gap.inner },
     obsScroll: { maxHeight: 260 },
+    buttonRow: { flexDirection: 'column', gap: 10 },
     downloadWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, borderWidth: 1.5, borderColor: p.accent },
     detailsText: { ...Type.bodyStrong, color: p.accent },
     obsWrap: { borderTopWidth: Rule, borderTopColor: p.border, paddingTop: 10, gap: 8 },

@@ -4,16 +4,27 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import type { BriefingColors } from './briefing-theme';
 
-// "Your area": place name and coordinates on a clean card with a delicate pin and sun/hills illustration.
-export function AreaBanner({ name, coords, colors }: { name: string; coords: string; colors: BriefingColors }) {
+// "Your area": place name and coordinates on a clean card with a delicate pin and sun/hills illustration. In the evening the sun becomes a crescent moon.
+export function AreaBanner({ name, coords, colors, night = false }: { name: string; coords: string; colors: BriefingColors; night?: boolean }) {
   const hillFar = colors.dark ? '#1F3628' : '#E2EFE0';
   const hillNear = colors.dark ? '#274433' : '#CFE6C7';
   const sunColor = colors.dark ? '#5E5230' : '#FDF1B6';
+  const moonColor = colors.dark ? '#8C96C8' : '#C9D0EC';
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Svg style={StyleSheet.absoluteFill} viewBox="0 0 340 76" preserveAspectRatio="xMaxYMid slice">
-        <Circle cx={286} cy={22} r={13} fill={sunColor} opacity={0.9} />
+        {night ? (
+          <>
+            <Circle cx={286} cy={22} r={13} fill={moonColor} opacity={0.95} />
+            <Circle cx={292} cy={18} r={11} fill={colors.card} />
+            <Circle cx={262} cy={14} r={1.4} fill={moonColor} />
+            <Circle cx={310} cy={36} r={1.2} fill={moonColor} />
+            <Circle cx={250} cy={32} r={1} fill={moonColor} />
+          </>
+        ) : (
+          <Circle cx={286} cy={22} r={13} fill={sunColor} opacity={0.9} />
+        )}
         <Path d="M236 76 C260 48 296 42 340 32 L340 76 Z" fill={hillFar} />
         <Path d="M276 76 C294 54 316 48 340 46 L340 76 Z" fill={hillNear} />
       </Svg>

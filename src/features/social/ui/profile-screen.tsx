@@ -306,11 +306,17 @@ function ProfileHeader({
   const [bioOpen, setBioOpen] = useState(false);
   const avatarPicture = useSocialPicture(profile.handle, 'avatar', profile.has_avatar);
   const setAvatar = useSetPicture('avatar');
-  const removeCover = useSetPicture('cover').remove;
   const [pictureError, setPictureError] = useState<string | null>(null);
   // Tapping the round photo asks what to do: see it, or change it (my own). The viewer shows the whole picture.
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [avatarViewerOpen, setAvatarViewerOpen] = useState(false);
+  // Opens the edit drawer with the current name and line, so a cancelled edit never keeps old text.
+  function openEditor() {
+    setName(profile.display_name ?? '');
+    setBio(profile.bio ?? '');
+    setPictureError(null);
+    setEditing(true);
+  }
   const hasAvatarPhoto = profile.has_avatar && !!avatarPicture.data;
   const canTapAvatar = hasAvatarPhoto || profile.is_me;
 
@@ -403,61 +409,8 @@ function ProfileHeader({
 
       {/* Action Buttons */}
       {profile.is_me ? (
-        editing ? (
-          <View style={styles.editSection}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              maxLength={40}
-              placeholder="Display name"
-              placeholderTextColor={p.muted}
-              style={[styles.inputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
-              accessibilityLabel="Display name"
-            />
-            <TextInput
-              value={bio}
-              onChangeText={setBio}
-              maxLength={160}
-              multiline
-              placeholder="A line about you..."
-              placeholderTextColor={p.muted}
-              style={[styles.inputField, styles.bioInputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
-              accessibilityLabel="Bio"
-            />
-            {pictureError ? <Text style={styles.pictureError}>{pictureError}</Text> : null}
-            {profile.has_avatar || profile.has_cover ? (
-              <View style={styles.removeRow}>
-                {profile.has_avatar ? (
-                  <Pressable accessibilityRole="button" disabled={setAvatar.remove.isPending} onPress={() => setAvatar.remove.mutate(profile.handle)}>
-                    <Text style={[styles.removeText, { color: p.red }]}>Remove profile photo</Text>
-                  </Pressable>
-                ) : null}
-                {profile.has_cover ? (
-                  <Pressable accessibilityRole="button" disabled={removeCover.isPending} onPress={() => removeCover.mutate(profile.handle)}>
-                    <Text style={[styles.removeText, { color: p.red }]}>Remove cover</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : null}
-            <View style={styles.actionsRow}>
-              <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={[styles.actionPillBtn, { borderColor: p.border, borderWidth: 1 }]}>
-                <Text style={[styles.actionPillText, { color: p.text }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={update.isPending}
-                onPress={() => {
-                  tapConfirm();
-                  update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) });
-                }}
-                style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
-                {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save</Text>}
-              </Pressable>
-            </View>
-          </View>
-        ) : (
           <View style={styles.actionsRow}>
-            <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
+            <Pressable accessibilityRole="button" onPress={openEditor} style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
               <View style={styles.pillContent}>
                 <Ionicons name="pencil-outline" size={15} color="#FFFFFF" />
                 <Text style={styles.primaryPillText}>Edit profile</Text>
@@ -474,7 +427,6 @@ function ProfileHeader({
               </View>
             </Pressable>
           </View>
-        )
       ) : profile.has_blocked ? (
         <Pressable
           accessibilityRole="button"
@@ -556,6 +508,47 @@ function ProfileHeader({
           </View>
         </View>
       )}
+
+      {/* Edit profile: the name, the line about you and the photos, in a drawer that swipes down to close. */}
+      <BottomSheet visible={editing} onClose={() => setEditing(false)}>
+      <View style={styles.editSection}>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            maxLength={40}
+            placeholder="Display name"
+            placeholderTextColor={p.muted}
+            style={[styles.inputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
+            accessibilityLabel="Display name"
+          />
+          <TextInput
+            value={bio}
+            onChangeText={setBio}
+            maxLength={160}
+            multiline
+            placeholder="A line about you..."
+            placeholderTextColor={p.muted}
+            style={[styles.inputField, styles.bioInputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
+            accessibilityLabel="Bio"
+          />
+          {pictureError ? <Text style={styles.pictureError}>{pictureError}</Text> : null}
+          <View style={styles.actionsRow}>
+            <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={[styles.actionPillBtn, { borderColor: p.border, borderWidth: 1 }]}>
+              <Text style={[styles.actionPillText, { color: p.text }]}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={update.isPending}
+              onPress={() => {
+                tapConfirm();
+                update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) });
+              }}
+              style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
+              {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save</Text>}
+            </Pressable>
+          </View>
+        </View>
+      </BottomSheet>
 
       <BottomSheet visible={avatarMenuOpen} onClose={() => setAvatarMenuOpen(false)}>
         <View style={styles.coverMenu}>

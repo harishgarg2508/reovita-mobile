@@ -164,8 +164,8 @@ export async function fetchPicture(handle: string, kind: 'avatar' | 'cover'): Pr
   return `data:${mime};base64,${toBase64(new Uint8Array(response.data))}`;
 }
 
-export async function fetchPostPhoto(postId: string): Promise<string> {
-  const response = await api.get<ArrayBuffer>(`/v1/social/posts/${postId}/photo`, { responseType: 'arraybuffer' });
+export async function fetchPostPhoto(postId: string, position = 0): Promise<string> {
+  const response = await api.get<ArrayBuffer>(`/v1/social/posts/${postId}/photo`, { params: position > 0 ? { position } : undefined, responseType: 'arraybuffer' });
   const mime = String(response.headers['content-type'] ?? 'image/jpeg').split(';')[0];
   return `data:${mime};base64,${toBase64(new Uint8Array(response.data))}`;
 }

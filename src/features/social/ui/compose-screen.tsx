@@ -25,6 +25,8 @@ import { useCreatePost } from '../model/use-social-actions';
 
 const MAX_CHARS = 500;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// The most pictures in one post (the server allows the same).
+const MAX_PHOTOS = 5;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_SPACING = 2;
 const TILE_SIZE = Math.floor((SCREEN_WIDTH - GRID_SPACING * 2) / 3);
@@ -43,7 +45,9 @@ export function ComposeScreen() {
   // Screen flow modes: 'gallery' (media picker) -> 'camera' (live viewfinder) -> 'caption' (details & share)
   const [mode, setMode] = useState<ComposeMode>('gallery');
   const [text, setText] = useState('');
-  const [photo, setPhoto] = useState<Photo | null>(null);
+  // Up to MAX_PHOTOS pictures, in the order they were chosen. The first is the one shown large.
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const photo = photos[0] ?? null;
   const [photoError, setPhotoError] = useState<string | null>(null);
   // An optional topic, so others who care about the same habit can find the post. Tapping the chosen one again clears it.
   const [topic, setTopic] = useState<string | null>(null);
@@ -60,22 +64,27 @@ export function ComposeScreen() {
 
   const canPost = (text.trim().length > 0 || photo !== null) && !create.isPending;
 
-  // Pick a photo from device files or gallery
+  // Pick photos from device files or gallery, up to MAX_PHOTOS in all.
   async function pickPhoto() {
     setPhotoError(null);
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) {
+      setPhotoError(`A post has up to ${MAX_PHOTOS} photos. Tap one to take it out.`);
+      return;
+    }
     try {
       const picked = await DocumentPicker.getDocumentAsync({
         type: ['image/jpeg', 'image/png'],
-        multiple: false,
+        multiple: true,
         copyToCacheDirectory: true,
       });
       if (picked.canceled) return;
-      const asset = picked.assets[0];
-      if (asset.size && asset.size > MAX_PHOTO_BYTES) {
-        setPhotoError('Choose a photo under 5 MB.');
-        return;
-      }
-      setPhoto({ uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'image/jpeg' });
+      const fit = picked.assets.filter((asset) => !asset.size || asset.size <= MAX_PHOTO_BYTES);
+      const chosen = fit.slice(0, room);
+      if (fit.length < picked.assets.length) setPhotoError('Photos must be under 5 MB each. Some were left out.');
+      else if (fit.length > room) setPhotoError(`A post has up to ${MAX_PHOTOS} photos. The first ${room} were added.`);
+      if (chosen.length === 0) return;
+      setPhotos((current) => [...current, ...chosen.map((asset) => ({ uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'image/jpeg' }))]);
       tapSelection();
     } catch {
       setPhotoError('Could not open photos.');
@@ -93,11 +102,7 @@ export function ComposeScreen() {
         skipProcessing: false,
       });
       if (captured?.uri) {
-        setPhoto({
-          uri: captured.uri,
-          name: 'camera-post.jpg',
-          type: 'image/jpeg',
-        });
+        setPhotos((current) => (current.length >= MAX_PHOTOS ? current : [...current, { uri: captured.uri, name: `camera-post-${current.length + 1}.jpg`, type: 'image/jpeg' }]));
         setMode('gallery');
       }
     } catch {
@@ -115,7 +120,7 @@ export function ComposeScreen() {
     if (!canPost) return;
     tapConfirm();
     create.mutate(
-      { body: text.trim(), topic, stamp: stamp && topic !== null, photo: photo ?? undefined },
+      { body: text.trim(), topic, stamp: stamp && topic !== null, photos },
       { onSuccess: () => goBackOr(router, SOCIAL_HOME) },
     );
   }
@@ -250,7 +255,14 @@ export function ComposeScreen() {
           {/* Preview & Caption Input Row */}
           <View style={styles.captionInputRow}>
             {photo ? (
-              <Image source={{ uri: photo.uri }} style={styles.captionThumb} resizeMode="cover" />
+              <View>
+                <Image source={{ uri: photo.uri }} style={styles.captionThumb} resizeMode="cover" />
+                {photos.length > 1 ? (
+                  <View style={styles.thumbCount}>
+                    <Text style={styles.photoNumber}>{photos.length}</Text>
+                  </View>
+                ) : null}
+              </View>
             ) : (
               <View style={styles.captionThumbPlaceholder}>
                 <Ionicons name="text" size={24} color="#888888" />
@@ -261,6 +273,7 @@ export function ComposeScreen() {
               onChangeText={(v) => setText(v.slice(0, MAX_CHARS))}
               multiline
               placeholder="Write a caption..."
+              autoFocus
               placeholderTextColor="#7E7A94"
               style={styles.captionTextInput}
               accessibilityLabel="Post caption"
@@ -364,7 +377,7 @@ export function ComposeScreen() {
 
         <Pressable accessibilityRole="button" onPress={() => void pickPhoto()} style={styles.selectPillBtn}>
           <Ionicons name="copy-outline" size={15} color="#FFFFFF" />
-          <Text style={styles.selectPillText}>Select</Text>
+          <Text style={styles.selectPillText}>{photos.length > 0 ? `Select ${photos.length}/${MAX_PHOTOS}` : 'Select'}</Text>
         </Pressable>
       </View>
 
@@ -384,18 +397,24 @@ export function ComposeScreen() {
           <Ionicons name="camera" size={32} color="#FFFFFF" />
         </Pressable>
 
-        {/* Tile 2: Current Selected Photo Thumbnail if any */}
-        {photo ? (
+        {/* Tile 2: the chosen photos, numbered in order. Tap one to take it out. */}
+        {photos.map((chosen, index) => (
           <Pressable
+            key={chosen.uri}
             accessibilityRole="button"
-            accessibilityLabel="Selected photo"
+            accessibilityLabel={`Photo ${index + 1}, tap to remove`}
+            onPress={() => {
+              tapSelection();
+              setPhotos((current) => current.filter((item) => item.uri !== chosen.uri));
+              setPhotoError(null);
+            }}
             style={[styles.photoTile, styles.selectedPhotoTile]}>
-            <Image source={{ uri: photo.uri }} style={styles.tileImage} resizeMode="cover" />
+            <Image source={{ uri: chosen.uri }} style={styles.tileImage} resizeMode="cover" />
             <View style={styles.activeCheckBadge}>
-              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+              <Text style={styles.photoNumber}>{index + 1}</Text>
             </View>
           </Pressable>
-        ) : null}
+        ))}
 
         {/* Tile 3: Browse Photos / Gallery Tile */}
         <Pressable
@@ -413,7 +432,7 @@ export function ComposeScreen() {
           accessibilityLabel="Text post"
           onPress={() => {
             tapSelection();
-            setPhoto(null);
+            setPhotos([]);
             setMode('caption');
           }}
           style={styles.browseTile}>
@@ -426,6 +445,8 @@ export function ComposeScreen() {
 }
 
 const styles = StyleSheet.create({
+  photoNumber: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  thumbCount: { position: 'absolute', right: 4, bottom: 4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.65)' },
   screenDark: {
     flex: 1,
     backgroundColor: '#000000',

@@ -459,15 +459,15 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
 
 const styles = StyleSheet.create({
   // One even gap between every card.
-  container: { paddingHorizontal: Gap.edge, gap: Gap.group, flexGrow: 1 },
+  container: { paddingHorizontal: Gap.edge, gap: Gap.inner + 4, flexGrow: 1 },
   block: { gap: 2, marginBottom: -Gap.inner },
   list: { borderTopWidth: Rule },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: Rule },
   listIcon: { width: 28, alignItems: 'center' },
   historyLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
-  tagline: { ...Type.small, marginTop: 2, marginLeft: 4 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 },
+  tagline: { ...Type.small, fontStyle: 'italic', marginTop: 2, marginLeft: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bellBtn: {
     width: 42,

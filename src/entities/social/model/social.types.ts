@@ -37,6 +37,8 @@ export interface SocialPost {
   display_name: string | null;
   body: string;
   has_photo: boolean;
+  // How many photos the post has, 0 to 5. The first is the one used for a tile or a share card.
+  photo_count: number;
   kudos_count: number;
   kudoed: boolean;
   comments_count: number;

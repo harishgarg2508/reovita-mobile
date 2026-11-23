@@ -46,6 +46,8 @@ export function InteractionScreen() {
         </View>
       </View>
 
+      <MedicineLookup />
+
       {check.isLoading ? (
         <ActivityIndicator color={p.accent} style={styles.center} />
       ) : check.isError ? (
@@ -60,7 +62,6 @@ export function InteractionScreen() {
         <InteractionResult data={check.data} />
       ) : null}
 
-      <MedicineLookup />
     </ScrollView>
   );
 }

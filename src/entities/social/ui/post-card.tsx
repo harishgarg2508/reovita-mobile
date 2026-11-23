@@ -8,6 +8,7 @@ import { usePalette } from '@shared/ui/theme';
 import { usePostPhoto } from '../model/use-social';
 import { topicLabel } from '../model/social-topics';
 import { SOCIAL_RADIUS, SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE } from '../model/social-system';
+import { PostPhotoPager } from './post-photo-pager';
 import { SocialAvatar } from './social-avatar';
 import type { SocialPost } from '../model/social.types';
 
@@ -70,7 +71,7 @@ export const PostCard = memo(function PostCard({
   bleed?: boolean;
 }) {
   const p = usePalette();
-  const photo = usePostPhoto(post.id, post.has_photo);
+  const photo = usePostPhoto(post.id, post.has_photo && post.photo_count <= 1);
   const name = post.display_name || `@${post.handle}`;
   const topic = topicLabel(post.topic);
 
@@ -132,7 +133,9 @@ export const PostCard = memo(function PostCard({
       {/* The post */}
       {post.has_photo ? (
         <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={[styles.photoBox, { backgroundColor: p.surface }, bleed && styles.photoBleed]}>
-          {photo.data ? (
+          {post.photo_count > 1 ? (
+            <PostPhotoPager postId={post.id} count={post.photo_count} />
+          ) : photo.data ? (
             <Image source={{ uri: photo.data }} style={styles.photo} resizeMode="cover" accessibilityLabel="Photo in post" />
           ) : photo.isError ? (
             <View style={styles.photoState}>

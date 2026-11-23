@@ -5,16 +5,18 @@ import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette } from '@shared/ui/theme';
 import { REPORT_REASONS, type SocialPost } from '@entities/social';
 
-// The menu of one post, in the swipe-down bottom drawer: delete my own post, or report it and block its author. A report asks for a reason first.
+// The menu of one post, in the swipe-down bottom drawer: edit or delete my own post, or report it and block its author. A report asks for a reason first.
 export function PostMenu({
   post,
   onClose,
+  onEdit,
   onDelete,
   onReport,
   onBlock,
 }: {
   post: SocialPost | null;
   onClose: () => void;
+  onEdit: (post: SocialPost) => void;
   onDelete: (post: SocialPost) => void;
   onReport: (post: SocialPost, reason: string) => void;
   onBlock: (post: SocialPost) => void;
@@ -32,7 +34,10 @@ export function PostMenu({
       <View style={styles.list}>
         {post && !reporting ? (
           post.is_mine ? (
-            <Row label="Delete post" color={p.red} onPress={() => { close(); onDelete(post); }} />
+            <>
+              <Row label="Edit caption" color={p.text} onPress={() => { close(); onEdit(post); }} />
+              <Row label="Delete post" color={p.red} onPress={() => { close(); onDelete(post); }} />
+            </>
           ) : (
             <>
               <Row label="Report post" color={p.text} onPress={() => setReporting(true)} />

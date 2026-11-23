@@ -12,6 +12,7 @@ import { PostCard, type SocialPost, type SocialPostPage } from '@entities/social
 
 import { useBlockHandle, useDeletePost, useReportPost, useToggleKudos, useToggleSaved } from '../model/use-social-actions';
 import { CommentsSheet } from './comments-sheet';
+import { EditPostSheet } from './edit-post-sheet';
 import { KudosSheet } from './kudos-sheet';
 import { PostMenu } from './post-menu';
 import { ShareCardSheet } from './share-card-sheet';
@@ -60,6 +61,7 @@ export function PostFeed({
   const [kudosPost, setKudosPost] = useState<SocialPost | null>(null);
   const [commentsId, setCommentsId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<SocialPost | null>(null);
+  const [editing, setEditing] = useState<SocialPost | null>(null);
   const [blocking, setBlocking] = useState<SocialPost | null>(null);
   // The post open in the drawer (grid layout), and how wide the list is, so the squares fill the row exactly.
   const [openId, setOpenId] = useState<string | null>(null);
@@ -131,10 +133,12 @@ export function PostFeed({
       <PostMenu
         post={menuPost}
         onClose={() => setMenuPost(null)}
+        onEdit={setEditing}
         onDelete={setDeleting}
         onReport={(post, reason) => report.mutate({ post, reason })}
         onBlock={setBlocking}
       />
+      <EditPostSheet post={editing} onClose={() => setEditing(null)} />
     </>
   );
 

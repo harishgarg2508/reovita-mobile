@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
@@ -52,6 +52,7 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
   // The threads that are open (by the id of the comment at their top).
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [text, setText] = useState('');
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const comments = list.data?.pages.flatMap((page) => page.items) ?? [];
   const clean = text.trim();
 
@@ -98,6 +99,8 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
 
   function answer(comment: SocialComment) {
     setReplyTo({ id: comment.id, rootId: comment.parent_id ?? comment.id, handle: comment.handle });
+    // The cursor goes to the reply field, so the person can type at once.
+    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   const actions = { onOpenProfile: visit, onReply: answer, onActions: setActing, onLike: toggleLike };
@@ -123,6 +126,7 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
 
             <View style={[styles.inputRow, { backgroundColor: p.input, borderColor: add.isError ? p.red : p.border }]}>
               <TextInput
+                ref={inputRef}
                 value={text}
                 onChangeText={(v) => {
                   add.reset();

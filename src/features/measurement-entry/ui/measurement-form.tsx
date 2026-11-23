@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMeasurements, type Measurement, type MeasurementType } from '@entities/measurement';
 import { isApiError } from '@shared/api';
 import { tapConfirm, USE_NATIVE_DRIVER, useScrollToTopOnFocus } from '@shared/lib';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { useCreateMeasurement } from '../model/use-create-measurement';
@@ -42,6 +43,8 @@ export function MeasurementEntryScreen() {
   const [error, setErrorState] = useState<{ section: 'bp' | 'weight'; message: string } | null>(null);
   const [savedNote, setSavedNoteState] = useState<{ section: 'bp' | 'weight'; message: string } | null>(null);
   const [section, setSection] = useState<'bp' | 'weight'>('bp');
+  // The reading whose drawer is open. Each reading has its own drawer with its own fields.
+  const [sheet, setSheet] = useState<'bp' | 'weight' | null>(null);
   // Fields that failed validation after a save attempt. They turn red until the user changes them.
   const [bad, setBad] = useState<{ sys?: boolean; dia?: boolean; weight?: boolean }>({});
 
@@ -50,6 +53,14 @@ export function MeasurementEntryScreen() {
   useEffect(() => {
     Animated.timing(enter, { toValue: 1, duration: 320, useNativeDriver: USE_NATIVE_DRIVER }).start();
   }, [enter]);
+
+  function openSheet(which: 'bp' | 'weight') {
+    setSection(which);
+    setErrorState(null);
+    setSavedNoteState(null);
+    setBad({});
+    setSheet(which);
+  }
 
   function fail(err: unknown) {
     setSavedNoteState(null);
@@ -80,6 +91,7 @@ export function MeasurementEntryScreen() {
           setSystolic('');
           setDiastolic('');
           setSavedNoteState({ section: 'bp', message: 'Blood pressure saved.' });
+          setSheet(null);
         },
         onError: fail,
       },
@@ -101,9 +113,18 @@ export function MeasurementEntryScreen() {
       onSuccess: () => {
         setWeight('');
         setSavedNoteState({ section: 'weight', message: 'Weight saved.' });
+        setSheet(null);
       },
       onError: fail,
     });
+  }
+
+  // The newest reading of each kind, for the rows.
+  const latest: Record<string, { value: string; day: string } | undefined> = {};
+  for (const group of groupLog(recent.data ?? [])) {
+    for (const entry of group.entries) {
+      if (!latest[entry.title]) latest[entry.title] = { value: entry.value, day: group.day };
+    }
   }
 
   return (
@@ -126,40 +147,30 @@ export function MeasurementEntryScreen() {
       </View>
       <Text style={styles.subtitle}>Log your blood pressure and weight. They feed your cardiovascular and metabolic scores.</Text>
 
-      <View style={styles.card}>
-        <View style={styles.cardHead}>
-          <Ionicons name="heart-outline" size={20} color={p.accent} />
-          <Text style={styles.cardTitle}>Blood pressure</Text>
-        </View>
-        <View style={styles.row}>
-          <Field label="Top (mmHg)" value={systolic} onChange={(v) => { setSystolic(v); setBad((b) => ({ ...b, sys: false })); }} styles={styles} min={RANGE.sys.min} max={RANGE.sys.max} invalid={bad.sys} />
-          <Field label="Bottom (mmHg)" value={diastolic} onChange={(v) => { setDiastolic(v); setBad((b) => ({ ...b, dia: false })); }} styles={styles} min={RANGE.dia.min} max={RANGE.dia.max} invalid={bad.dia} />
-        </View>
-        <Text style={[styles.hint, (bad.sys || bad.dia) && styles.hintBad]}>
-          Top {RANGE.sys.min} to {RANGE.sys.max}, bottom {RANGE.dia.min} to {RANGE.dia.max} {RANGE.sys.unit}
-        </Text>
-        {error?.section === 'bp' ? <Text style={styles.error}>{error.message}</Text> : null}
-        {savedNote?.section === 'bp' && !error ? <Text style={styles.ok}>{savedNote.message}</Text> : null}
-        <Pressable accessibilityRole="button" onPress={saveBp} disabled={save.isPending} style={styles.saveBtn}>
-          {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save blood pressure</Text>}
-        </Pressable>
+      {/* One row for each reading: the latest value, and a tap that opens its own drawer to add a new one. */}
+      <View style={styles.list}>
+        {(
+          [
+            { key: 'bp', icon: 'heart-outline', title: 'Blood pressure', action: 'Add reading', empty: 'No reading yet' },
+            { key: 'weight', icon: 'body-outline', title: 'Weight', action: 'Add reading', empty: 'No reading yet' },
+          ] as const
+        ).map((row) => {
+          const last = latest[row.title];
+          return (
+            <Pressable key={row.key} accessibilityRole="button" accessibilityLabel={`${row.action}: ${row.title}`} onPress={() => openSheet(row.key)} style={styles.listRow}>
+              <View style={[styles.listIcon, { backgroundColor: p.accentSoft }]}>
+                <Ionicons name={row.icon} size={20} color={p.accent} />
+              </View>
+              <View style={styles.listText}>
+                <Text style={styles.cardTitle}>{row.title}</Text>
+                <Text style={styles.hint}>{last ? `${last.value}, ${last.day}` : row.empty}</Text>
+              </View>
+              <Ionicons name="add-circle-outline" size={24} color={p.accent} />
+            </Pressable>
+          );
+        })}
       </View>
-
-      <View style={styles.card}>
-        <View style={styles.cardHead}>
-          <Ionicons name="body-outline" size={20} color={p.accent} />
-          <Text style={styles.cardTitle}>Weight</Text>
-        </View>
-        <Field decimal label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
-        <Text style={[styles.hint, bad.weight && styles.hintBad]}>
-          {RANGE.weight.min} to {RANGE.weight.max} {RANGE.weight.unit}
-        </Text>
-        {error?.section === 'weight' ? <Text style={styles.error}>{error.message}</Text> : null}
-        {savedNote?.section === 'weight' && !error ? <Text style={styles.ok}>{savedNote.message}</Text> : null}
-        <Pressable accessibilityRole="button" onPress={saveWeight} disabled={save.isPending} style={styles.saveBtn}>
-          {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save weight</Text>}
-        </Pressable>
-      </View>
+      {savedNote && !sheet ? <Text style={styles.ok}>{savedNote.message}</Text> : null}
 
       <Text style={styles.sectionLabel}>Recent readings</Text>
       {recent.isPending ? <ActivityIndicator color={p.accent} /> : null}
@@ -179,6 +190,44 @@ export function MeasurementEntryScreen() {
         </View>
       ))}
     </ScrollView>
+
+    <BottomSheet visible={sheet !== null} onClose={() => setSheet(null)}>
+      {sheet === 'bp' ? (
+        <View style={styles.sheetBody}>
+          <View style={styles.cardHead}>
+            <Ionicons name="heart-outline" size={20} color={p.accent} />
+            <Text style={styles.cardTitle}>Blood pressure</Text>
+          </View>
+          <View style={styles.row}>
+            <Field label="Top (mmHg)" value={systolic} onChange={(v) => { setSystolic(v); setBad((b) => ({ ...b, sys: false })); }} styles={styles} min={RANGE.sys.min} max={RANGE.sys.max} invalid={bad.sys} />
+            <Field label="Bottom (mmHg)" value={diastolic} onChange={(v) => { setDiastolic(v); setBad((b) => ({ ...b, dia: false })); }} styles={styles} min={RANGE.dia.min} max={RANGE.dia.max} invalid={bad.dia} />
+          </View>
+          <Text style={[styles.hint, (bad.sys || bad.dia) && styles.hintBad]}>
+            Top {RANGE.sys.min} to {RANGE.sys.max}, bottom {RANGE.dia.min} to {RANGE.dia.max} {RANGE.sys.unit}
+          </Text>
+          {error?.section === 'bp' ? <Text style={styles.error}>{error.message}</Text> : null}
+          <Pressable accessibilityRole="button" onPress={saveBp} disabled={save.isPending} style={styles.saveBtn}>
+            {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save blood pressure</Text>}
+          </Pressable>
+        </View>
+      ) : null}
+      {sheet === 'weight' ? (
+        <View style={styles.sheetBody}>
+          <View style={styles.cardHead}>
+            <Ionicons name="body-outline" size={20} color={p.accent} />
+            <Text style={styles.cardTitle}>Weight</Text>
+          </View>
+          <Field decimal label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
+          <Text style={[styles.hint, bad.weight && styles.hintBad]}>
+            {RANGE.weight.min} to {RANGE.weight.max} {RANGE.weight.unit}
+          </Text>
+          {error?.section === 'weight' ? <Text style={styles.error}>{error.message}</Text> : null}
+          <Pressable accessibilityRole="button" onPress={saveWeight} disabled={save.isPending} style={styles.saveBtn}>
+            {save.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveText}>Save weight</Text>}
+          </Pressable>
+        </View>
+      ) : null}
+    </BottomSheet>
     </Animated.View>
   );
 }
@@ -316,6 +365,11 @@ function makeStyles(p: Palette) {
     title: { fontSize: 26, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     subtitle: { fontSize: 13, color: p.muted },
     card: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border, paddingTop: 20, paddingBottom: 4, gap: 14 },
+    list: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border },
+    listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: p.border },
+    listIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    listText: { flex: 1, gap: 2 },
+    sheetBody: { gap: 14, paddingBottom: 8 },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     cardTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     row: { flexDirection: 'row', gap: 12 },

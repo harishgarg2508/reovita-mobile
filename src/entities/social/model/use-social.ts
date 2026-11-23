@@ -41,7 +41,7 @@ const FRESH_LIST = { ...FRESH, gcTime: 0 } as const;
 
 const nextCursor = (page: { next_cursor: string | null }) => page.next_cursor ?? undefined;
 
-// scope for_you: public posts from other people. scope friends: the posts of my friends. Never my own posts.
+// scope for_you: public posts from everyone, my own included. scope friends: the posts of my friends.
 export function useSocialFeed(enabled = true, scope: FeedScope = 'friends', topic: string | null = null) {
   return useInfiniteQuery({
     queryKey: queryKeys.social.feedScope(scope, topic),
@@ -170,8 +170,8 @@ export function useSocialPicture(handle: string, kind: 'avatar' | 'cover', enabl
   return useQuery({ queryKey: queryKeys.social.picture(handle, kind), queryFn: () => fetchPicture(handle, kind), enabled: enabled && handle.length > 0, staleTime: 5 * 60 * 1000, retry: false });
 }
 
-export function usePostPhoto(postId: string, enabled: boolean) {
-  return useQuery({ queryKey: queryKeys.social.photo(postId), queryFn: () => fetchPostPhoto(postId), enabled, staleTime: Infinity, gcTime: 30 * 60 * 1000 });
+export function usePostPhoto(postId: string, enabled: boolean, position = 0) {
+  return useQuery({ queryKey: position > 0 ? [...queryKeys.social.photo(postId), position] : queryKeys.social.photo(postId), queryFn: () => fetchPostPhoto(postId, position), enabled, staleTime: Infinity, gcTime: 30 * 60 * 1000 });
 }
 
 // The friends of a person, a page at a time.

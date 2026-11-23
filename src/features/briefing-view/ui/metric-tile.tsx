@@ -104,18 +104,21 @@ interface Props {
   colors: BriefingColors;
   wide?: boolean;
   note?: string | null;
+  // In the evening the sun of the UV tile becomes a moon.
+  night?: boolean;
   // Which tile has its popover open is decided by the page, so only one is open at a time.
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
 }
 
-export function MetricTile({ label, icon, value, scale, raw, colors, wide, note, open, onToggle, onClose }: Props) {
+export function MetricTile({ label, icon, value, scale, raw, colors, wide, note, night = false, open, onToggle, onClose }: Props) {
   const band = place(SCALES[scale], raw).band;
   const visual = SCALE_VISUALS[scale];
-  const iconName = icon ?? visual.iconName;
-  const iconBg = visual.bg(colors.dark);
-  const iconColor = visual.color(colors.dark);
+  const moon = night && scale === 'uv';
+  const iconName = icon ?? (moon ? 'moon' : visual.iconName);
+  const iconBg = moon ? (colors.dark ? '#1D2140' : '#ECEEFA') : visual.bg(colors.dark);
+  const iconColor = moon ? (colors.dark ? '#A9B4F0' : '#6C77C9') : visual.color(colors.dark);
 
   // The popover fades and eases in when it opens and fades out when it closes. It stays on screen until the fade has finished.
   const [fade] = useState(() => new Animated.Value(0));

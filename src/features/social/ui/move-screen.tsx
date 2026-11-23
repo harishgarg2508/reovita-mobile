@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { tapSelection, useScrollToTopOnFocus } from '@shared/lib';
+import { tapSelection, USE_NATIVE_DRIVER, useScrollToTopOnFocus } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette } from '@shared/ui/theme';
 import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TOPICS, SOCIAL_TYPE, useJourneys, useMyHandle, useSocialPods, useSocialQuests, useTodayCheckIns } from '@entities/social';
 
 import { SOCIAL_HOME, socialRoute } from '../model/routes';
 import { useToggleCheckIn } from '../model/use-social-actions';
+import { HelpSheet, type HelpKey } from './feature-help';
 import { JoinPanel } from './join-panel';
 import { SOCIAL_DOCK_SPACE } from './social-dock';
 import { StepsBanner } from './steps-banner';
@@ -43,6 +44,7 @@ export function MoveScreen() {
   const pods = useSocialPods(me.joined);
   const quests = useSocialQuests(me.joined);
   const [habitsOpen, setHabitsOpen] = useState(false);
+  const [help, setHelp] = useState<HelpKey | null>(null);
 
   const streak = today.data?.streak ?? 0;
   const completed = today.data?.habits ?? [];
@@ -88,7 +90,12 @@ export function MoveScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + SOCIAL_DOCK_SPACE + 16 }]} showsVerticalScrollIndicator={false}>
-          <Text style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Move</Text>
+          <View style={styles.heading}>
+            <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Move</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="How Move works" onPress={() => setHelp('move')} hitSlop={10} style={styles.info}>
+              <Ionicons name="information-circle-outline" size={20} color={p.muted} />
+            </Pressable>
+          </View>
 
           {/* Today: the streak as the figure, the habits as marks, one action */}
           <View style={styles.today}>
@@ -100,6 +107,7 @@ export function MoveScreen() {
             <Text style={[SOCIAL_TYPE.body, { color: p.muted }]}>
               {completed.length} of {SOCIAL_TOPICS.length} habits checked in today
             </Text>
+            <Text style={[SOCIAL_TYPE.small, { color: p.muted }]}>Your streak counts calendar days, India time. Check in before midnight to keep it.</Text>
             <View style={styles.marks}>
               {SOCIAL_TOPICS.map((t) => (
                 <View key={t.value} style={[styles.mark, { backgroundColor: completed.includes(t.value) ? p.accent : p.border }]} />
@@ -134,6 +142,8 @@ export function MoveScreen() {
         </ScrollView>
       )}
 
+      <HelpSheet topic={help} onClose={() => setHelp(null)} />
+
       {/* The habits in a drawer. Tap a habit to check in, tap it again to take it back. */}
       <BottomSheet visible={habitsOpen} onClose={() => setHabitsOpen(false)}>
         <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Today&apos;s check-in</Text>
@@ -141,24 +151,21 @@ export function MoveScreen() {
           {completed.length} of {SOCIAL_TOPICS.length} habits today. Check in to the ones you did.
         </Text>
         <View style={[styles.habitGrid, { borderTopColor: p.border }]}>
-          {SOCIAL_TOPICS.map((t) => {
-            const done = completed.includes(t.value);
-            return (
-              <Pressable
-                key={t.value}
-                accessibilityRole="button"
-                accessibilityState={{ selected: done }}
-                disabled={checkIn.isPending || today.isPending}
-                onPress={() => {
-                  tapSelection();
-                  checkIn.mutate({ habit: t.value, on: !done });
-                }}
-                style={[styles.habitChip, { borderColor: done ? p.accent : p.border, backgroundColor: done ? p.accentSoft : 'transparent' }]}>
-                <Ionicons name={done ? 'checkmark' : (HABIT_ICONS[t.value] ?? 'checkmark-circle-outline')} size={15} color={done ? p.accent : p.muted} />
-                <Text style={[SOCIAL_TYPE.label, { color: done ? p.accent : p.text }]}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
+          {SOCIAL_TOPICS.map((t) => (
+            <HabitChip
+              key={t.value}
+              label={t.label}
+              icon={HABIT_ICONS[t.value] ?? 'checkmark-circle-outline'}
+              done={completed.includes(t.value)}
+              // The spinner shows on the habit being saved; the other habits wait until it is done.
+              saving={checkIn.isPending && checkIn.variables?.habit === t.value}
+              disabled={checkIn.isPending || today.isPending}
+              onPress={() => {
+                tapSelection();
+                checkIn.mutate({ habit: t.value, on: !completed.includes(t.value) });
+              }}
+            />
+          ))}
         </View>
       </BottomSheet>
 
@@ -166,14 +173,62 @@ export function MoveScreen() {
   );
 }
 
+// One habit in the check-in drawer. A tap presses it down and lets it spring back; while it is saving a spinner takes the place of its icon; when it
+// becomes checked the mark pops in.
+function HabitChip({ label, icon, done, saving, disabled, onPress }: { label: string; icon: keyof typeof Ionicons.glyphMap; done: boolean; saving: boolean; disabled: boolean; onPress: () => void }) {
+  const p = usePalette();
+  const [press] = useState(() => new Animated.Value(1));
+  const [pop] = useState(() => new Animated.Value(1));
+  const wasDone = useRef(done);
+
+  useEffect(() => {
+    if (done && !wasDone.current) {
+      pop.setValue(0.4);
+      Animated.spring(pop, { toValue: 1, friction: 4, tension: 160, useNativeDriver: USE_NATIVE_DRIVER }).start();
+    }
+    wasDone.current = done;
+  }, [done, pop]);
+
+  function pressed() {
+    Animated.sequence([
+      Animated.timing(press, { toValue: 0.9, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(press, { toValue: 1, friction: 4, tension: 180, useNativeDriver: USE_NATIVE_DRIVER }),
+    ]).start();
+    onPress();
+  }
+
+  return (
+    <Animated.View style={{ transform: [{ scale: press }], opacity: disabled && !saving ? 0.55 : 1 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={saving ? `${label}, saving` : label}
+        accessibilityState={{ selected: done, busy: saving }}
+        disabled={disabled}
+        onPress={pressed}
+        style={[styles.habitChip, { borderColor: done ? p.accent : p.border, backgroundColor: done ? p.accentSoft : 'transparent' }]}>
+        {saving ? (
+          <ActivityIndicator size="small" color={p.accent} style={styles.habitSpinner} />
+        ) : (
+          <Animated.View style={{ transform: [{ scale: pop }] }}>
+            <Ionicons name={done ? 'checkmark' : icon} size={15} color={done ? p.accent : p.muted} />
+          </Animated.View>
+        )}
+        <Text style={[SOCIAL_TYPE.label, { color: done ? p.accent : p.text }]}>{label}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
+  habitSpinner: { width: 15, height: 15, transform: [{ scale: 0.7 }] },
+  info: { padding: 2 },
   screen: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gutter: { flex: 1, paddingHorizontal: SOCIAL_SPACE.edge, paddingTop: SOCIAL_SPACE.inner },
   body: { paddingHorizontal: SOCIAL_SPACE.edge, gap: SOCIAL_SPACE.group },
   // The body puts 24 between its parts; the heading and today belong together, so the heading pulls the streak up to 8 below it.
-  heading: { marginBottom: -(SOCIAL_SPACE.group - 8) },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: -(SOCIAL_SPACE.group - 8) },
   today: { gap: SOCIAL_SPACE.inner },
   figureRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   marks: { flexDirection: 'row', gap: 6 },

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, AppState } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -169,6 +169,8 @@ export function BriefingPage() {
 
       <ScrollView ref={scrollRef}
         style={styles.scroll}
+        // Pulling down loads the briefing again.
+        refreshControl={<RefreshControl refreshing={today.isRefetching && !today.isPending} onRefresh={refresh} tintColor={colors.accent} colors={[colors.accent]} />}
         contentContainerStyle={[
           styles.container,
           { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 },
@@ -211,7 +213,7 @@ export function BriefingPage() {
         </View>
 
         {today.data?.location ? (
-          <AreaBanner name={place_.data?.name ?? 'Your area'} coords={formatCoords(today.data.location.lat, today.data.location.lng)} colors={colors} />
+          <AreaBanner name={place_.data?.name ?? 'Your area'} coords={formatCoords(today.data.location.lat, today.data.location.lng)} colors={colors} night={shownKind === 'night'} />
         ) : null}
 
         {today.isPending ? (
@@ -277,7 +279,7 @@ export function BriefingPage() {
             ) : null}
 
             <View style={styles.grid}>
-              {s.uv_index != null ? <MetricTile label="UV Index" value={fmt.uv(s.uv_index)} scale="uv" raw={s.uv_index} colors={colors} open={openTile === 'uv'} onToggle={() => toggleTile('uv')} onClose={closeTiles} /> : null}
+              {s.uv_index != null ? <MetricTile label="UV Index" value={fmt.uv(s.uv_index)} scale="uv" raw={s.uv_index} colors={colors} night={shownKind === 'night'} open={openTile === 'uv'} onToggle={() => toggleTile('uv')} onClose={closeTiles} /> : null}
               {s.temperature_c != null ? (
                 <MetricTile label="Temperature" value={fmt.celsius(s.temperature_c)} scale="temperature" raw={s.temperature_c} colors={colors} open={openTile === 'temperature'} onToggle={() => toggleTile('temperature')} onClose={closeTiles} />
               ) : null}

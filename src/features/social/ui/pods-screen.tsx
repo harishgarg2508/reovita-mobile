@@ -16,6 +16,7 @@ import { JoinPanel } from './join-panel';
 import { StepsPermissionOverlay } from './steps-permission-overlay';
 import { StepsBanner } from './steps-banner';
 import { StepsCard } from './steps-card';
+import { FeatureHelpButton } from './feature-help';
 
 // Accountability pods: small private groups with one weekly target for everyone and a shared streak (the weeks in a row in which every member
 // reached it). This screen lists the invitations waiting for an answer and the pods the person is in, and makes a new pod.
@@ -59,7 +60,10 @@ export function PodsScreen() {
         </Pressable>
         <View style={styles.iconBtn} />
       </View>
-      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Pods</Text>
+      <View style={[styles.heading, styles.headingRow]}>
+        <Text numberOfLines={2} style={[SOCIAL_TYPE.display, { color: p.text, flexShrink: 1 }]}>Pods</Text>
+        <FeatureHelpButton topic="pods" />
+      </View>
 
       <StepsBanner />
 
@@ -295,6 +299,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: 6 },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },

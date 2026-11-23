@@ -11,6 +11,7 @@ import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useMyHandle, useS
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { JoinPanel } from './join-panel';
 import { tapSelection, useScrollToTopOnFocus } from '@shared/lib';
+import { FeatureHelpButton } from './feature-help';
 
 function getQuestIcon(key: string): keyof typeof Ionicons.glyphMap {
   const lower = key.toLowerCase();
@@ -79,7 +80,10 @@ export function QuestsScreen() {
         <View style={styles.iconBtn} />
       </View>
       <View style={styles.heading}>
-        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Quests & Leaderboard</Text>
+        <View style={styles.headingRow}>
+          <Text style={[SOCIAL_TYPE.display, { color: p.text, flexShrink: 1 }]}>Quests & Leaderboard</Text>
+          <FeatureHelpButton topic="quests" />
+        </View>
       </View>
 
       {me.needsJoin ? (
@@ -233,6 +237,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SOCIAL_SPACE.inner },

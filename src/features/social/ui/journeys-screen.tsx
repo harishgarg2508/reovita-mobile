@@ -19,6 +19,7 @@ import { JourneyMap } from './journey-map';
 import { StepsPermissionOverlay } from './steps-permission-overlay';
 import { StepsBanner } from './steps-banner';
 import { StepsCard } from './steps-card';
+import { FeatureHelpButton } from './feature-help';
 
 const NO_MEMBERS: SocialJourneyMember[] = [];
 const LOOK_LABEL: Record<JourneyTheme, string> = { plains: 'Plains', mountain: 'Mountain', coast: 'Coast', backwaters: 'Backwaters' };
@@ -64,7 +65,10 @@ export function JourneysScreen() {
         </Pressable>
         <View style={styles.iconBtn} />
       </View>
-      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Journeys</Text>
+      <View style={[styles.heading, styles.headingRow]}>
+        <Text numberOfLines={2} style={[SOCIAL_TYPE.display, { color: p.text, flexShrink: 1 }]}>Journeys</Text>
+        <FeatureHelpButton topic="journeys" />
+      </View>
 
       <StepsBanner />
 
@@ -309,6 +313,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
