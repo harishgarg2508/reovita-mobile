@@ -15,7 +15,7 @@ import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 import { useScrollToTopOnFocus } from '@shared/lib';
 
 const STATUS_COLOR: Record<string, string> = {
-  Normal: '#3D5500',
+  Normal: '#1E6B45',
   Watch: '#8A6A12',
   High: '#C22F43',
   Low: '#C22F43',

@@ -32,11 +32,11 @@ export function MedicalHistoryScreen() {
 
       <View style={styles.toggle}>
         <Pressable accessibilityRole="button" onPress={() => setView('list')} style={[styles.toggleBtn, view === 'list' && styles.toggleOn]}>
-          <Ionicons name="list-outline" size={16} color={view === 'list' ? '#FFFFFF' : '#1F6F3F'} />
+          <Ionicons name="list-outline" size={16} color={view === 'list' ? '#FFFFFF' : p.accent} />
           <Text style={[styles.toggleText, view === 'list' && styles.toggleTextOn]}>List</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => setView('calendar')} style={[styles.toggleBtn, view === 'calendar' && styles.toggleOn]}>
-          <Ionicons name="calendar-outline" size={16} color={view === 'calendar' ? '#FFFFFF' : '#1F6F3F'} />
+          <Ionicons name="calendar-outline" size={16} color={view === 'calendar' ? '#FFFFFF' : p.accent} />
           <Text style={[styles.toggleText, view === 'calendar' && styles.toggleTextOn]}>Calendar</Text>
         </Pressable>
       </View>
@@ -59,8 +59,8 @@ function makeStyles(p: Palette) {
     cardTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     toggle: { flexDirection: 'row', gap: 8, backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 4 },
     toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 12 },
-    toggleOn: { backgroundColor: '#1F6F3F' },
-    toggleText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#1F6F3F' },
+    toggleOn: { backgroundColor: p.accent },
+    toggleText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: p.accent },
     toggleTextOn: { color: '#FFFFFF' },
   });
 }

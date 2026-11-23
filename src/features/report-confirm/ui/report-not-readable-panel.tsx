@@ -8,7 +8,6 @@ import { isApiError } from '@shared/api';
 import { ConfirmDialog } from '@shared/ui';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
-const VIOLET = '#1F6F3F';
 
 // Shown when OCR could not read the stored file. Runs OCR again on the same file (no new upload), or deletes it.
 export function ReportNotReadablePanel({ reportId }: { reportId: string }) {
@@ -88,7 +87,7 @@ const createStyles = (colors: FormColors) =>
   body: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   error: { fontSize: 13, color: colors.error, textAlign: 'center', marginBottom: 12 },
   button: {
-    backgroundColor: VIOLET,
+    backgroundColor: colors.accentFill,
     borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 28,

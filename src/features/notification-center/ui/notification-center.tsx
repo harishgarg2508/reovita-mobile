@@ -97,7 +97,7 @@ export function NotificationCenter() {
           list.isPending || list.isError ? undefined : <Text style={[styles.empty, { color: p.muted }]}>No notifications yet.</Text>
         }
         ListFooterComponent={
-          list.isFetchingNextPage ? <ActivityIndicator color="#1F6F3F" style={styles.footer} /> : undefined
+          list.isFetchingNextPage ? <ActivityIndicator color={p.accent} style={styles.footer} /> : undefined
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
@@ -132,16 +132,16 @@ const styles = StyleSheet.create({
   },
   allReadBtn: { minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: '#171717' },
-  markAll: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#1F6F3F' },
+  markAll: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#1B5E9E' },
   inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   disabled: { color: '#B8B3C7' },
   list: { paddingHorizontal: 16, paddingTop: 4 },
   separator: { height: 0 },
   // A notification is a row on a thin rule. Unread ones carry a green dot.
   card: { paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
-  cardUnread: { backgroundColor: '#F8F5FF', borderColor: '#DCD3F5' },
+  cardUnread: { backgroundColor: '#FBF8F3', borderColor: '#DCD3F5' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1F6F3F' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1B5E9E' },
   title: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: '#171717', flexShrink: 1 },
   body: { fontSize: 14, color: '#3C3A46' },
   when: { fontSize: 12, color: '#8A8694' },

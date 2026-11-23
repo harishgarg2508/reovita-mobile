@@ -4,15 +4,16 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { useEffect, type PropsWithChildren } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
-import { selectThemeMode } from '@entities/preferences';
+import { selectAccent, selectThemeMode } from '@entities/preferences';
 import { PALETTES } from '@shared/ui/theme/palette';
-import { ThemeSchemeProvider, type ResolvedScheme } from '@shared/ui/theme/theme-context';
+import { AccentProvider, ThemeSchemeProvider, type ResolvedScheme } from '@shared/ui/theme/theme-context';
 
 import { useAppSelector } from '../store';
 
 // Resolves the user's theme choice (system, light or dark) and provides it to navigation and shared UI.
 export function ThemeBridge({ children }: PropsWithChildren) {
   const mode = useAppSelector(selectThemeMode);
+  const accent = useAppSelector(selectAccent);
   const system = useColorScheme();
   const scheme: ResolvedScheme = mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode;
 
@@ -26,7 +27,9 @@ export function ThemeBridge({ children }: PropsWithChildren) {
 
   return (
     <ThemeSchemeProvider value={scheme}>
-      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>{children}</ThemeProvider>
+      <AccentProvider value={accent}>
+        <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>{children}</ThemeProvider>
+      </AccentProvider>
     </ThemeSchemeProvider>
   );
 }

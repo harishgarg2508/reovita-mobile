@@ -7,7 +7,6 @@ import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { usePalette } from '@shared/ui/theme';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
-const GREEN = '#1F6F3F';
 
 // Shown while the report is still being read. The event stream tells the screen when the observations are ready.
 export function ReportProcessingPanel({ onLater }: { onLater: () => void }) {
@@ -42,17 +41,17 @@ export function ReportProcessingPanel({ onLater }: { onLater: () => void }) {
       <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
         <View style={[styles.iconCircle, { backgroundColor: p.accentSoft }]}>
           <View style={styles.docClip}>
-            <Ionicons name="document-text-outline" size={64} color={GREEN} />
+            <Ionicons name="document-text-outline" size={64} color={colors.accent} />
             <Animated.View
               style={[styles.scanLine, { opacity: scanOpacity, transform: [{ translateY: scanY }] }]}
             />
           </View>
           <Animated.View style={[styles.clockBadge, { backgroundColor: p.card, transform: [{ rotate }] }]}>
-            <Ionicons name="time-outline" size={22} color={GREEN} />
+            <Ionicons name="time-outline" size={22} color={colors.accent} />
           </Animated.View>
         </View>
         <Text style={[styles.title, { color: p.text }]}>Your report is</Text>
-        <Text style={[styles.title, { color: GREEN }]}>being read</Text>
+        <Text style={[styles.title, { color: colors.accent }]}>being read</Text>
         <Text style={[styles.body, { color: p.muted }]}>
           This usually takes a minute or two. You can leave this screen. We will notify you when your observations are ready.
         </Text>
@@ -108,7 +107,7 @@ const createStyles = (colors: FormColors) =>
     height: 52,
     width: '100%',
     borderRadius: 26,
-    backgroundColor: GREEN,
+    backgroundColor: colors.accentFill,
     marginTop: 8,
   },
   buttonText: { fontSize: 15, fontWeight: '700', color: colors.onAccent },

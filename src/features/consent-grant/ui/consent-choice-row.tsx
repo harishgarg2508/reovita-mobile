@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
+import { usePalette } from '@shared/ui/theme';
 import type { ConsentChoice } from '../model/consent-choices';
 
 interface ConsentChoiceRowProps {
@@ -10,6 +11,7 @@ interface ConsentChoiceRowProps {
 
 // One consent type: its code name, what it is for, what happens without it, and a switch.
 export function ConsentChoiceRow({ choice, value, onChange }: ConsentChoiceRowProps) {
+  const accent = usePalette().accent;
   return (
     <View style={styles.row}>
       <View style={styles.text}>
@@ -22,7 +24,7 @@ export function ConsentChoiceRow({ choice, value, onChange }: ConsentChoiceRowPr
         value={value}
         disabled={choice.required}
         onValueChange={onChange}
-        trackColor={{ false: '#D1D5DB', true: '#1F6F3F' }}
+        trackColor={{ false: '#D1D5DB', true: accent }}
         thumbColor="#FFFFFF"
       />
     </View>

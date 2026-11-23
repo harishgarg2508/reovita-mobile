@@ -457,7 +457,7 @@ export function ScanScreen() {
         </View>
         <Text style={styles.heroTitle}>{denied ? 'Access denied' : 'Request ended'}</Text>
         <Text style={styles.heroSub}>{denied ? 'The subject denied this request. Scan their code again to ask once more.' : phase.text}</Text>
-        <Pressable accessibilityRole="button" onPress={resetToChoose} style={styles.fitBtn}>
+        <Pressable accessibilityRole="button" onPress={resetToChoose} style={[styles.fitBtn, { backgroundColor: p.accent }]}>
           <Ionicons name="refresh-outline" size={22} color="#FFFFFF" />
           <Text style={styles.fitBtnText} numberOfLines={1}>Scan again</Text>
         </Pressable>
@@ -747,7 +747,7 @@ function makeStyles(p: Palette) {
     permSecondaryText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: p.accent },
     primaryBtn: { height: 48, borderRadius: 16, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     primaryText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF' },
-    fitBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 26, paddingHorizontal: 28, backgroundColor: '#1F6F3F' },
+    fitBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 26, paddingHorizontal: 28, backgroundColor: '#1B5E9E' },
     fitBtnText: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF', flexShrink: 0 },
     secondaryBtn: { height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     secondaryText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', color: p.accent },

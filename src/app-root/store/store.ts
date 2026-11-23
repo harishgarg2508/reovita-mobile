@@ -73,12 +73,18 @@ const persistedConsentReducer = persistReducer(
   consentReducer,
 );
 
+// The person's theme choices (light, dark or system, and the colour theme) survive app restarts.
+const persistedPreferencesReducer = persistReducer(
+  { key: 'preferences', storage: AsyncStorage, version: 1 },
+  preferencesReducer,
+);
+
 // Root reducer. Each slice is owned by its FSD layer and reached only through its index.ts.
 const rootReducer = combineReducers({
   session: sessionReducer,
   pendingUploads: pendingUploadsReducer,
   interactionAlert: interactionAlertReducer,
-  preferences: preferencesReducer,
+  preferences: persistedPreferencesReducer,
   consent: persistedConsentReducer,
   onboarding: persistedOnboardingReducer,
 });

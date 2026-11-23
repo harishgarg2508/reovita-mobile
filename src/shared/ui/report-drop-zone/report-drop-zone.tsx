@@ -65,7 +65,7 @@ const createStyles = (colors: FormColors) =>
     height: 64,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D4FF3F',
+    borderColor: '#FFC4A8',
     backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',

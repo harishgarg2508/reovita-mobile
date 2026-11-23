@@ -1,4 +1,5 @@
 import { svgDataUri } from '@shared/lib';
+import { usePalette } from '../theme/palette';
 import { StyleSheet, Text, View, type ColorValue } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 
@@ -290,8 +291,9 @@ export function RetakeCameraGraphic({ width = 230, height = 160 }: { width?: num
  * Info Circular Badge with white lowercase "i" for Review Results (Image 1).
  */
 export function ReviewInfoIcon({ size = 34 }: { size?: number }) {
+  const accent = usePalette().accent;
   return (
-    <View style={[styles.infoBadge, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[styles.infoBadge, { backgroundColor: accent, shadowColor: accent, width: size, height: size, borderRadius: size / 2 }]}>
       <Text style={[styles.infoLetter, { fontSize: size * 0.65 }]}>i</Text>
     </View>
   );
@@ -301,14 +303,15 @@ export function ReviewInfoIcon({ size = 34 }: { size?: number }) {
  * Sparkles Halo Graphic for Claude AI Translating (Image 2).
  */
 export function SparklesHaloGraphic({ size = 110 }: { size?: number }) {
+  const accent = usePalette().accent;
   return (
     <View style={[styles.sparklesHalo, { width: size, height: size, borderRadius: size / 2 }]}>
       {/* Center Main Sparkle */}
-      <Text style={[styles.sparkleMain, { fontSize: size * 0.4 }]}>✦</Text>
+      <Text style={[styles.sparkleMain, { color: accent, fontSize: size * 0.4 }]}>✦</Text>
       {/* Orbiting Satellites */}
-      <Text style={[styles.sparkleSatellite, { top: 18, right: 22, fontSize: size * 0.18 }]}>✦</Text>
-      <Text style={[styles.sparkleSatellite, { top: 28, left: 18, fontSize: size * 0.14 }]}>✦</Text>
-      <Text style={[styles.sparkleSatellite, { bottom: 22, right: 26, fontSize: size * 0.15 }]}>✦</Text>
+      <Text style={[styles.sparkleSatellite, { color: accent, top: 18, right: 22, fontSize: size * 0.18 }]}>✦</Text>
+      <Text style={[styles.sparkleSatellite, { color: accent, top: 28, left: 18, fontSize: size * 0.14 }]}>✦</Text>
+      <Text style={[styles.sparkleSatellite, { color: accent, bottom: 22, right: 26, fontSize: size * 0.15 }]}>✦</Text>
     </View>
   );
 }
@@ -317,14 +320,15 @@ export function SparklesHaloGraphic({ size = 110 }: { size?: number }) {
  * Confetti Celebration Badge for Final Analysis (Image 3).
  */
 export function ConfettiCelebrationBadge({ size = 76 }: { size?: number }) {
+  const accent = usePalette().accent;
   return (
     <View style={styles.confettiContainer}>
       {/* Floating confetti flakes */}
       <View style={[styles.confettiFlake, { top: -8, left: 16, backgroundColor: '#84CC16', transform: [{ rotate: '25deg' }] }]} />
-      <View style={[styles.confettiFlake, { top: -14, left: 62, backgroundColor: '#1F6F3F', transform: [{ rotate: '-35deg' }] }]} />
+      <View style={[styles.confettiFlake, { top: -14, left: 62, backgroundColor: accent, transform: [{ rotate: '-35deg' }] }]} />
       <View style={[styles.confettiFlake, { top: 12, left: -14, backgroundColor: '#F59E0B', transform: [{ rotate: '45deg' }] }]} />
       <View style={[styles.confettiFlake, { top: 22, right: -16, backgroundColor: '#84CC16', transform: [{ rotate: '-20deg' }] }]} />
-      <View style={[styles.confettiFlake, { bottom: 6, left: -10, backgroundColor: '#1F6F3F', transform: [{ rotate: '30deg' }] }]} />
+      <View style={[styles.confettiFlake, { bottom: 6, left: -10, backgroundColor: accent, transform: [{ rotate: '30deg' }] }]} />
       <View style={[styles.confettiFlake, { bottom: 12, right: -12, backgroundColor: '#F59E0B', transform: [{ rotate: '-45deg' }] }]} />
       <View style={[styles.confettiFlake, { top: -6, right: 22, backgroundColor: '#06B6D4', transform: [{ rotate: '15deg' }] }]} />
       <View style={[styles.confettiFlake, { bottom: -10, left: 40, backgroundColor: '#84CC16', transform: [{ rotate: '-10deg' }] }]} />
@@ -364,7 +368,7 @@ export function SparklineGraphic({ width = 130, height = 50 }: { width?: number;
 /**
  * Tab Bar Icons matching Figma Screen 2.
  */
-export function TabHomeIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabHomeIcon({ color = '#1B5E9E', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'flex-end' }}>
       <View
@@ -397,7 +401,7 @@ export function TabHomeIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorVal
   );
 }
 
-export function TabReportsIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabReportsIcon({ color = '#1B5E9E', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View
@@ -418,7 +422,7 @@ export function TabReportsIcon({ color = '#1F6F3F', size = 20 }: { color?: Color
   );
 }
 
-export function TabInsightsIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabInsightsIcon({ color = '#1B5E9E', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
       <View style={{ width: 2, height: size * 0.5, backgroundColor: color, borderRadius: 1 }} />
@@ -429,7 +433,7 @@ export function TabInsightsIcon({ color = '#1F6F3F', size = 20 }: { color?: Colo
   );
 }
 
-export function TabProfileIcon({ color = '#1F6F3F', size = 20 }: { color?: ColorValue; size?: number }) {
+export function TabProfileIcon({ color = '#1B5E9E', size = 20 }: { color?: ColorValue; size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <View
@@ -467,7 +471,7 @@ const styles = StyleSheet.create({
     color: '#4285F4',
   },
   appleText: {
-    color: '#14121C',
+    color: '#0F1B2D',
   },
   mailBox: {
     borderWidth: 1.8,
@@ -690,10 +694,10 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   infoBadge: {
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#1B5E9E',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F6F3F',
+    shadowColor: '#1B5E9E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -711,11 +715,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   sparkleMain: {
-    color: '#1F6F3F',
+    color: '#1B5E9E',
   },
   sparkleSatellite: {
     position: 'absolute',
-    color: '#1F6F3F',
+    color: '#1B5E9E',
   },
   confettiContainer: {
     alignItems: 'center',

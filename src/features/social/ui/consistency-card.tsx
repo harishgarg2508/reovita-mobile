@@ -46,7 +46,7 @@ export function ConsistencyCard({ handle, canShare = false }: { handle: string; 
   if (!data) return null;
 
   const shade = (count: number) =>
-    count <= 0 ? (p.text === '#FFFFFF' ? '#222038' : '#E8E5F2') : count === 1 ? '#9ED9B8' : count === 2 ? '#4DB482' : '#1F7A4D';
+    count <= 0 ? (p.border === '#233252' ? '#1B2A47' : '#EAE4D9') : count === 1 ? '#9ED9B8' : count === 2 ? '#4DB482' : '#1F7A4D';
 
   return (
     <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>

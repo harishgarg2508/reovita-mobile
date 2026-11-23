@@ -65,7 +65,7 @@ export default function LoginRoute() {
                   setRecoverOpen(false);
                   runSignIn(true);
                 }}
-                style={styles.confirm}>
+                style={[styles.confirm, { backgroundColor: palette.accent }]}>
                 <Text style={styles.confirmText}>Reactivate</Text>
               </Pressable>
             </View>
@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
   cancel: { paddingHorizontal: 16, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   cancelText: { fontSize: 14, fontWeight: '600' },
-  confirm: { paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1F6F3F' },
+  confirm: { paddingHorizontal: 18, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1B5E9E' },
   confirmText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });

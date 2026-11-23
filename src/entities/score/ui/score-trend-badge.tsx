@@ -6,7 +6,7 @@ import type { ScoreTrend } from '../model/score.types';
 const LOOK: Record<ScoreTrend, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   Improving: { icon: 'trending-up', color: '#1F7A3E', bg: '#E6F2EA' },
   Declining: { icon: 'trending-down', color: '#C22F43', bg: '#FDEEF0' },
-  Stable: { icon: 'remove', color: '#6E6A82', bg: '#F1EFF8' },
+  Stable: { icon: 'remove', color: '#5F6B7C', bg: '#EFEAE0' },
 };
 
 // Small pill that says how a score moved compared with the one before it.

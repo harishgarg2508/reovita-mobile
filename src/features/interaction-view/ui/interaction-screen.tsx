@@ -46,6 +46,9 @@ export function InteractionScreen() {
         </View>
       </View>
 
+      {/* The action comes first. The result for the person's own active medicines is below it. */}
+      <MedicineLookup />
+
       {check.isLoading ? (
         <ActivityIndicator color={p.accent} style={styles.center} />
       ) : check.isError ? (
@@ -60,7 +63,6 @@ export function InteractionScreen() {
         <InteractionResult data={check.data} />
       ) : null}
 
-      <MedicineLookup />
     </ScrollView>
   );
 }

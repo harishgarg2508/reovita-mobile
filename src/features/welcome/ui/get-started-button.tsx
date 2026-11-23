@@ -25,7 +25,7 @@ const TRACK_HEIGHT = 64;
  * Reovita Action Pill ("Slide to Start").
  * Recreates the slidable capsule button from the Reovita Design System:
  * - Obsidian black track (#171717)
- * - Draggable Volt Lime circular thumb (#D4FF3F) with dark checkmark
+ * - Draggable Volt Lime circular thumb (#2CB1B8) with dark checkmark
  * - Centered "Get Started" label that fades as thumb advances
  * - End-cap chevrons (››)
  * - Tactile haptic feedback and spring snap
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: '#D4FF3F', // Reovita Volt Lime
+    backgroundColor: '#2CB1B8', // Reovita Volt Lime
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,

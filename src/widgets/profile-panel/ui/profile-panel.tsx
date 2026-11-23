@@ -11,6 +11,7 @@ import { useCurrentSubject } from '@entities/subject';
 import { useDeactivateAccount } from '@features/account-deactivate';
 import { ProfileDetailsCard } from '@features/profile-details';
 import { AddProfileSheet, ProfileMenu } from '@features/profile-switch';
+import { ThemePicker } from '@features/theme-choice';
 import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
 import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
@@ -213,6 +214,9 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
 
       {/* My details: the basics, history and lifestyle saved in onboarding, each with an Edit action. */}
       <ProfileDetailsCard />
+
+      {/* Appearance: light, dark or the phone's setting, and the colour theme. */}
+      <ThemePicker />
 
       {/* Permissions: toggles follow the consent records on the server. */}
       <View style={styles.section}>

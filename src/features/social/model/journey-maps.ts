@@ -87,7 +87,7 @@ export const THEMES: Record<JourneyTheme, ThemeColors> = {
     skyTop: '#A6DBC6', skyBottom: '#FFF4D6',
     grass: ['#6DBB6A', '#529A52', '#438544'], sand: ['#E9D9A0', '#CDBE86', '#B6A772'], water: ['#5BC0B5', '#3FA196', '#31897F'],
     rock: ['#A39C94', '#857E77', '#6F6962'], snow: ['#F4F8FB', '#D5DEE6', '#BAC6D0'], trail: ['#D8C28A', '#BBA573', '#A38F60'],
-    tree: '#2E8B57', trunk: '#7B5A38', cloud: '#FFFFFF',
+    tree: '#2B78C2', trunk: '#7B5A38', cloud: '#FFFFFF',
   },
 };
 

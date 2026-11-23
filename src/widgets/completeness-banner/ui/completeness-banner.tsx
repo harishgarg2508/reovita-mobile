@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
 import { ProfileAvatarBadge } from '@shared/ui';
+import { usePalette } from '@shared/ui/theme';
 import { ProgressBar } from '@shared/ui/progress-bar';
 
 const STEP_NUMBER: Record<OnboardingStepKey, OnboardingStepNumber> = {
@@ -23,6 +24,7 @@ const STEP_NUMBER: Record<OnboardingStepKey, OnboardingStepNumber> = {
  */
 export function CompletenessBanner({ percent }: { percent?: number }) {
   const router = useRouter();
+  const accent = usePalette().accent;
   const status = useProfileCompleteness();
   const nextStep = status.data?.next_step ?? 'basics';
 
@@ -48,7 +50,7 @@ export function CompletenessBanner({ percent }: { percent?: number }) {
       <Pressable
         accessibilityRole="button"
         onPress={onComplete}
-        style={styles.actionBtn}>
+        style={[styles.actionBtn, { backgroundColor: accent, shadowColor: accent }]}>
         <Text style={styles.actionBtnText}>Complete</Text>
       </Pressable>
     </View>
@@ -85,12 +87,12 @@ const styles = StyleSheet.create({
     color: '#60646C',
   },
   actionBtn: {
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#1B5E9E',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     marginLeft: 8,
-    shadowColor: '#1F6F3F',
+    shadowColor: '#1B5E9E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,

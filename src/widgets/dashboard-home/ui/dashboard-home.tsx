@@ -19,37 +19,39 @@ import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
 import { ProgressBar } from '@shared/ui/progress-bar';
 import { Skeleton } from '@shared/ui/skeleton';
-import { Gap, Rule, ThemeToggle, Type, useResolvedScheme } from '@shared/ui/theme';
+import { Gap, Rule, ThemeToggle, Type, usePalette, useResolvedScheme } from '@shared/ui/theme';
 import { PremiumBadge, useSubscription } from '@entities/subscription';
 
 // Colours for the two themes, taken from the dashboard designs.
 const DARK = {
-  bg: '#0B0A12',
-  card: '#16142A',
-  border: '#2B2846',
+  bg: '#0A1220',
+  card: '#142038',
+  border: '#233252',
   text: '#FFFFFF',
-  muted: '#A9A3C8',
-  iconBg: '#22203A',
-  purple: '#1F6F3F',
-  lime: '#D4FF3F',
+  muted: '#9DAAC0',
+  iconBg: '#17304F',
+  purple: '#1B5E9E',
+  teal: '#4CC9CF',
+  lime: '#FFC4A8',
   red: '#E34255',
-  redSoft: '#2E1624',
+  redSoft: '#34161E',
   redBorder: '#5A2440',
-  track: '#2B2846',
+  track: '#233252',
 };
 const LIGHT = {
-  bg: '#FFFFFF',
-  card: '#FFFFFF',
-  border: '#E8E6EF',
-  text: '#14121C',
-  muted: '#6E6A82',
-  iconBg: '#E6F2EA',
-  purple: '#1F6F3F',
-  lime: '#B8F000',
+  bg: '#FBF8F3',
+  card: '#FFFDF9',
+  border: '#E8E1D6',
+  text: '#0F1B2D',
+  muted: '#5F6B7C',
+  iconBg: '#DDF1F2',
+  purple: '#1B5E9E',
+  teal: '#177F86',
+  lime: '#F2745B',
   red: '#E34255',
   redSoft: '#FDEEF0',
   redBorder: '#F9CBD2',
-  track: '#EEECF6',
+  track: '#EDE7DC',
 };
 type Palette = typeof DARK;
 
@@ -63,7 +65,7 @@ function ListRow({ p, icon, title, text, right, onPress, label }: { p: Palette; 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.listRow, { borderBottomColor: p.border }]}>
       <View style={styles.listIcon}>
-        <Ionicons name={icon} size={22} color={p.purple} />
+        <Ionicons name={icon} size={22} color={p.teal} />
       </View>
       <View style={styles.flex}>
         <Text style={[Type.bodyStrong, { color: p.text }]}>{title}</Text>
@@ -107,7 +109,7 @@ function PulseDot({ color }: { color: string }) {
   );
 }
 
-const BRAND_GREEN = "#1F6F3F";
+const BRAND_GREEN = "#1B5E9E";
 
 // The three part cards. Each opens the step that adds its information (reports open the upload screen).
 const PART_CARDS: { key: 'lifestyle' | 'conditions' | 'reports'; label: string; icon: keyof typeof Ionicons.glyphMap; route: '/onboarding/step-3' | '/onboarding/step-2' | '/(app)/reports/upload' }[] = [
@@ -162,7 +164,8 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
   const recentItems = reportPages.data?.pages.flatMap((page) => page.items) ?? [];
   useNotificationStream();
   const scheme = useResolvedScheme();
-  const p = scheme === 'dark' ? DARK : LIGHT;
+  const accent = usePalette().accent;
+  const p = { ...(scheme === 'dark' ? DARK : LIGHT), purple: accent };
   const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
   // Coming back to Home always starts at the top.
   const scrollRef = useRef<ComponentRef<typeof ScrollView> | null>(null);
@@ -198,7 +201,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         <Card p={p}>
           <Text style={[styles.cardTitle, { color: p.text }]}>We could not load your home</Text>
           <Text style={[styles.cardText, { color: p.muted }]}>Check your connection and try again.</Text>
-          <Pressable accessibilityRole="button" onPress={() => void home.refetch()} style={styles.retry}>
+          <Pressable accessibilityRole="button" onPress={() => void home.refetch()} style={[styles.retry, { backgroundColor: p.purple }]}>
             <Text style={styles.retryText}>Try again</Text>
           </Pressable>
         </Card>
@@ -279,8 +282,8 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
               onPress={() => router.push('/(app)/health-score')}
               hitSlop={8}
               style={styles.historyLink}>
-              <Text style={[Type.label, { color: BRAND_GREEN }]}>History</Text>
-              <Ionicons name="chevron-forward" size={14} color={BRAND_GREEN} />
+              <Text style={[Type.label, { color: p.purple }]}>History</Text>
+              <Ionicons name="chevron-forward" size={14} color={p.purple} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
               <Ionicons name="information-circle-outline" size={22} color={p.muted} />
@@ -447,7 +450,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
               ))}
             </View>
             </ScrollView>
-            <Pressable accessibilityRole="button" onPress={() => setScoreInfoOpen(false)} style={styles.infoClose}>
+            <Pressable accessibilityRole="button" onPress={() => setScoreInfoOpen(false)} style={[styles.infoClose, { backgroundColor: p.purple }]}>
               <Text style={styles.infoCloseText}>Got it</Text>
             </Pressable>
           </Pressable>
@@ -524,7 +527,7 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
   infoHead: { fontSize: 14, fontWeight: '700', marginTop: 6 },
-  infoClose: { marginTop: 12, height: 46, borderRadius: 16, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' },
+  infoClose: { marginTop: 12, height: 46, borderRadius: 16, backgroundColor: '#1B5E9E', alignItems: 'center', justifyContent: 'center' },
   infoCloseText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   partGaugeCell: { alignItems: 'center', gap: 8 },
   partGaugeLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -544,7 +547,7 @@ const styles = StyleSheet.create({
   premiumHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   premiumTitle: { fontSize: 15, fontWeight: '800' },
   premiumHint: { fontSize: 12.5 },
-  retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
+  retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1B5E9E', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });
 

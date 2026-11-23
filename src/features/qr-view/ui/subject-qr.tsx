@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { usePalette } from '@shared/ui/theme';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +9,7 @@ import { tapConfirm } from '@shared/lib';
 
 // Shows the subject's codename as a QR code, with the code text, a copy button and a share button.
 export function SubjectQr({ codename }: { codename: string }) {
+  const accent = usePalette().accent;
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -42,11 +44,11 @@ export function SubjectQr({ codename }: { codename: string }) {
           accessibilityLabel="Copy code"
           onPress={copyCode}
           style={styles.iconBtn}>
-          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color="#1F6F3F" />
+          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={accent} />
         </Pressable>
       </View>
 
-      <Pressable accessibilityRole="button" onPress={shareCode} style={styles.shareBtn}>
+      <Pressable accessibilityRole="button" onPress={shareCode} style={[styles.shareBtn, { backgroundColor: accent }]}>
         <Ionicons name="share-outline" size={18} color="#FFFFFF" />
         <Text style={styles.shareText}>Share code</Text>
       </Pressable>
@@ -95,7 +97,7 @@ const styles = StyleSheet.create({
     height: 46,
     paddingHorizontal: 22,
     borderRadius: 999,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#1B5E9E',
   },
   shareText: {
     fontSize: 14,

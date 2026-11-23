@@ -14,7 +14,6 @@ import { usePalette } from '@shared/ui/theme';
 import { AccessRequestPrompt } from '@features/access-approve';
 import { StepTracker } from '@features/social';
 
-const ACCENT = '#1F6F3F';
 
 // Screens that exist only as pushed detail pages. They stay out of the side menu.
 const HIDDEN_FROM_MENU = {
@@ -76,7 +75,7 @@ export default function AppLayout() {
         headerTintColor: p.text,
         drawerStyle: { backgroundColor: p.bg },
         sceneStyle: { backgroundColor: p.bg },
-        drawerActiveTintColor: ACCENT,
+        drawerActiveTintColor: p.accent,
         drawerLabelStyle: { fontWeight: '600' },
       }}>
       {/* Bottom-dock tabs draw their own chrome. */}

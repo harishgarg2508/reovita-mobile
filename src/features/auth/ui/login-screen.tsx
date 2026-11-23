@@ -1,5 +1,6 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
-import { useEffect, useState } from 'react';
+import { usePalette } from '@shared/ui/theme';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -29,8 +30,7 @@ interface LoginScreenProps {
   onRecover?: () => void;
 }
 
-const ROYAL_PURPLE = '#1F6F3F';
-const INK_DARK = '#14121C';
+const INK_DARK = '#0F1B2D';
 const TEXT_MUTED = '#60646C';
 
 /**
@@ -48,6 +48,8 @@ const TEXT_MUTED = '#60646C';
  * - Staggered cascade entrance and tactile spring press animations
  */
 export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRecover }: LoginScreenProps) {
+  const accent = usePalette().accent;
+  const styles = useMemo(() => makeStyles(accent), [accent]);
   const insets = useSafeAreaInsets();
 
   // Entrance animations
@@ -226,7 +228,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRe
             style={styles.googlePillButton}>
             {pending ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={ROYAL_PURPLE} />
+                <ActivityIndicator size="small" color={accent} />
                 <Text style={styles.loadingText}>Signing in...</Text>
               </View>
             ) : (
@@ -251,7 +253,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRe
           ) : null}
           {showRecover && onRecover ? (
             <Pressable accessibilityRole="button" onPress={onRecover} disabled={pending} style={{ marginTop: 12, alignSelf: 'center', padding: 8 }}>
-              <Text style={{ color: '#1F6F3F', fontWeight: '700', fontSize: 15 }}>Recover my account</Text>
+              <Text style={{ color: accent, fontWeight: '700', fontSize: 15 }}>Recover my account</Text>
             </Pressable>
           ) : null}
         </Animated.View>
@@ -260,7 +262,7 @@ export function LoginScreen({ onSignIn, pending, errorMessage, showRecover, onRe
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (ROYAL_PURPLE: string) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -295,7 +297,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   purpleText: {
-    color: "#1F6F3F",
+    color: ROYAL_PURPLE,
     fontFamily: Font.semibold,
     fontWeight: '600',
   },

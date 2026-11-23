@@ -17,18 +17,19 @@ import {
 
 import { tapConfirm, tapSelection } from '@shared/lib';
 import { useResolvedScheme } from '@shared/ui/theme';
+import { usePalette } from '@shared/ui/theme/palette';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 type TabRoute = BottomTabBarProps['state']['routes'][number];
 
 const CREST_SVG = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#FFFFFF" />
-  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#EDE8F5" stroke-width="1.2" fill="none" />
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#FFFDF9" />
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#E8E1D6" stroke-width="1.2" fill="none" />
 </svg>`;
 const CREST_SVG_DARK = `<svg viewBox="0 0 104 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#16142A" />
-  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#2B2846" stroke-width="1.2" fill="none" />
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20 L 104 28 L 0 28 Z" fill="#142038" />
+  <path d="M 0 20 C 24 20 30 3 52 3 C 74 3 80 20 104 20" stroke="#233252" stroke-width="1.2" fill="none" />
 </svg>`;
 
 const CREST_URI = svgDataUri(CREST_SVG);
@@ -153,12 +154,13 @@ function AnimatedTabItem({ item }: { item: DockItem }) {
 
   const scheme = useResolvedScheme();
   const dark = scheme === 'dark';
-  const color = isFocused ? (dark ? '#6FD08C' : '#1F6F3F') : dark ? '#9A96B0' : '#8E8B99';
+  const accentColor = usePalette().accent;
+  const color = isFocused ? accentColor : dark ? '#9DAAC0' : '#7F8A9B';
 
   if (item.plain) {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={item.accessibilityLabel ?? item.label} onPress={item.onPress} style={styles.uploadItem}>
-        {item.renderIcon('#9185AA', false)}
+        {item.renderIcon('#8D96A5', false)}
         <Text style={styles.uploadLabel}>{item.label}</Text>
       </Pressable>
     );
@@ -225,6 +227,7 @@ export function AnimatedDock({
   bottomInset?: number;
 }) {
   const dockScheme = useResolvedScheme();
+  const dockAccent = usePalette().accent;
   const dockDark = dockScheme === 'dark';
   // Lift the dock above the phone's bottom bar or gesture area. Take the larger of the given inset and the live one.
   const liveInsets = useSafeAreaInsets();
@@ -318,6 +321,7 @@ export function AnimatedDock({
           style={[
             styles.slidingIndicator,
             {
+              backgroundColor: dockAccent,
               opacity: activeIndex < 0 ? 0 : 1,
               transform: [
                 { translateX: indicatorX },
@@ -410,7 +414,7 @@ export function BottomDock({ state, emitter, navigateToTab, insets }: BottomTabB
     key: 'qr',
     label: 'QR',
     accessibilityLabel: 'Scan a QR code',
-    renderIcon: () => <Ionicons name="qr-code-outline" size={21} color="#9185AA" />,
+    renderIcon: () => <Ionicons name="qr-code-outline" size={21} color="#8D96A5" />,
     focused: false,
     plain: true,
     onPress: () => {
@@ -445,8 +449,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dockSurfaceDark: {
-    backgroundColor: '#16142A',
-    borderColor: '#2B2846',
+    backgroundColor: '#142038',
+    borderColor: '#233252',
     shadowColor: '#000',
     shadowOpacity: 0.4,
   },
@@ -454,14 +458,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDF9',
     borderWidth: 1,
-    borderColor: '#EDE8F5',
+    borderColor: '#E8E1D6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 6,
-    shadowColor: '#1B152B',
+    shadowColor: '#0F1B2D',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -488,14 +492,14 @@ const styles = StyleSheet.create({
     width: INDICATOR_WIDTH,
     height: 2.5,
     borderRadius: 2,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#1B5E9E',
     zIndex: 5,
   },
   // The red badge above an icon, like a new-likes badge: a small heart and the number.
   badge: { position: 'absolute', top: -20, left: -4, minWidth: 34, height: 22, borderRadius: 8, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: '#FF3040' },
   badgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   uploadItem: { alignItems: 'center', justifyContent: 'center', gap: 3, flex: 1, height: '100%' },
-  uploadLabel: { fontSize: 11, color: '#9185AA', fontWeight: '500' },
+  uploadLabel: { fontSize: 11, color: '#8D96A5', fontWeight: '500' },
   halfTabs: {
     flex: 1,
     flexDirection: 'row',
@@ -545,10 +549,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#1F6F3F',
+    backgroundColor: '#F2745B',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F6F3F',
+    shadowColor: '#F2745B',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 10,

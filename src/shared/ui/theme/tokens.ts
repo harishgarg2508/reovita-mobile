@@ -122,10 +122,10 @@ export const Rule = StyleSheet.hairlineWidth;
 export const Gap = { edge: 16, group: 24, inner: 12, tight: 6 } as const;
 
 export const Brand = {
-  primary: '#1F6F3F',
-  accent: '#D4FF3F',
-  ink: '#171717',
-  muted: '#60646C',
-  surface: '#FBFAFF',
-  line: '#E0E1E6',
+  primary: '#1B5E9E',
+  accent: '#FFC4A8',
+  ink: '#0F1B2D',
+  muted: '#5F6B7C',
+  surface: '#FBF8F3',
+  line: '#E8E1D6',
 } as const;

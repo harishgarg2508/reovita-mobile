@@ -35,7 +35,7 @@ export function ErrorBoundary({ retry }: { error: Error; retry: () => void }) {
       <Pressable
         accessibilityRole="button"
         onPress={retry}
-        style={{ marginTop: 20, height: 46, paddingHorizontal: 24, borderRadius: 14, backgroundColor: '#1F6F3F', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ marginTop: 20, height: 46, paddingHorizontal: 24, borderRadius: 14, backgroundColor: '#1B5E9E', alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Try again</Text>
       </Pressable>
     </View>

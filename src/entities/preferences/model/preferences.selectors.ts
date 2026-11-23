@@ -5,3 +5,4 @@ interface PreferencesRootState {
 }
 
 export const selectThemeMode = (state: PreferencesRootState) => state.preferences.themeMode;
+export const selectAccent = (state: PreferencesRootState) => state.preferences.accent ?? 'blue';

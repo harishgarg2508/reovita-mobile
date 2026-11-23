@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { usePalette } from '@shared/ui/theme';
 import { useRouter } from 'expo-router';
-import { useEffect, useState, useRef, type ComponentRef } from 'react';
+import { useEffect, useMemo, useState, useRef, type ComponentRef } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInLeft, FadeInRight, FadeOutLeft, FadeOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +12,6 @@ import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 
 import { useConsentFlow } from '../model/use-consent-flow';
 
-const VIOLET = '#1F6F3F';
 const INK = '#242032';
 const INK_SECONDARY = '#655f74';
 const INK_TERTIARY = '#6b7280';
@@ -21,6 +21,8 @@ const SURFACE = '#fbfaff';
 // /consent?ai_consent_screen=true), then Redux drives every change. Slides for consents that are already
 // granted (GET /v1/consents, granted_at set) are left out.
 export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: ConsentScreenId }) {
+  const accent = usePalette().accent;
+  const styles = useMemo(() => makeStyles(accent), [accent]);
   // Back at the top each time the screen is opened again.
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   useScrollToTopOnFocus(scrollRef);
@@ -139,7 +141,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
           {slideIndex === 0 ? (
             <Image source={require('../../../shared/assets/images/reovita-logo.webp')} style={styles.navLogo} resizeMode="contain" />
           ) : (
-            <Ionicons name="arrow-back" size={20} color={VIOLET} />
+            <Ionicons name="arrow-back" size={20} color={accent} />
           )}
         </Pressable>
         <View style={styles.dotsCenter}>
@@ -207,7 +209,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
               <View style={styles.trustList}>
                 {['Encrypted at rest', 'Never sold', 'Delete anytime'].map((line) => (
                   <View key={line} style={styles.trustRow}>
-                    <Ionicons name="shield-checkmark-outline" size={15} color={VIOLET} />
+                    <Ionicons name="shield-checkmark-outline" size={15} color={accent} />
                     <Text style={styles.trustText}>{line}</Text>
                   </View>
                 ))}
@@ -265,7 +267,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
               <View style={styles.trustList}>
                 {['Processed only on your request', 'Not used for model training'].map((line) => (
                   <View key={line} style={styles.trustRow}>
-                    <Ionicons name="shield-checkmark-outline" size={15} color={VIOLET} />
+                    <Ionicons name="shield-checkmark-outline" size={15} color={accent} />
                     <Text style={styles.trustText}>{line}</Text>
                   </View>
                 ))}
@@ -350,7 +352,7 @@ export function ConsentScreen({ startScreen = 'welcome' }: { startScreen?: Conse
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (VIOLET: string) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: SURFACE, paddingHorizontal: 24 },
   flex: { flex: 1 },
 

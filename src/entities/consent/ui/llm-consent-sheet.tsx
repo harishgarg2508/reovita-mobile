@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { usePalette } from '@shared/ui/theme';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { Button } from '@shared/ui/button';
 
@@ -15,6 +16,7 @@ export function LlmConsentSheet({
   onAllow: () => void;
   onDecline: () => void;
 }) {
+  const accent = usePalette().accent;
   return (
     <BottomSheet visible={visible} onClose={onDecline}>
       <View style={styles.content}>
@@ -26,7 +28,7 @@ export function LlmConsentSheet({
       </View>
       <Button label={pending ? 'Saving...' : 'Allow'} disabled={pending} onPress={onAllow} />
       <Pressable accessibilityRole="button" onPress={onDecline} disabled={pending} style={styles.later}>
-        <Text style={styles.laterText}>Not now</Text>
+        <Text style={[styles.laterText, { color: accent }]}>Not now</Text>
       </Pressable>
     </BottomSheet>
   );
@@ -37,5 +39,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '800', color: '#171717' },
   body: { fontSize: 14, lineHeight: 20, color: '#60646C' },
   later: { alignItems: 'center', paddingVertical: 8 },
-  laterText: { fontSize: 14, fontWeight: '600', color: '#1F6F3F' },
+  laterText: { fontSize: 14, fontWeight: '600', color: '#1B5E9E' },
 });

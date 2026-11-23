@@ -198,7 +198,7 @@ const createStyles = (colors: FormColors) =>
     backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1F6F3F',
+    shadowColor: colors.accentFill,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

@@ -4,6 +4,7 @@ import { Animated, Easing, Pressable, StyleSheet, type GestureResponderEvent } f
 
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 
+import { usePalette } from './palette';
 import type { ResolvedScheme } from './theme-context';
 
 // Where the press happened on the screen, so the theme change can start from the button.
@@ -21,6 +22,7 @@ interface ThemeToggleProps {
 // changes. Icons from @expo/vector-icons.
 export function ThemeToggle({ scheme, onToggle }: ThemeToggleProps) {
   const toDark = scheme === 'light';
+  const accent = usePalette().accent;
   const [spin] = useState(() => new Animated.Value(0));
 
   function press(event: GestureResponderEvent) {
@@ -41,7 +43,7 @@ export function ThemeToggle({ scheme, onToggle }: ThemeToggleProps) {
       hitSlop={8}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
       <Animated.View style={{ transform: [{ rotate }, { scale: pop }] }}>
-        <Ionicons name={toDark ? 'moon' : 'sunny'} size={19} color="#1F6F3F" />
+        <Ionicons name={toDark ? 'moon' : 'sunny'} size={19} color={accent} />
       </Animated.View>
     </Pressable>
   );

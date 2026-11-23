@@ -118,9 +118,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 8,
   },
+  // The mark and the name sit close, like one logo.
   rowContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 4,
   },
   emblemWrapper: {
     position: 'relative',

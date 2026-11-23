@@ -157,7 +157,7 @@ export function StepIdentityForm({
           </View>
           {category ? (
             <View style={styles.chip}>
-              <Ionicons name="checkmark" size={14} color="#3D5500" />
+              <Ionicons name="checkmark" size={14} color="#1E6B45" />
               <Text style={styles.chipText}>{category === 'Healthy' ? 'Healthy' : category}</Text>
             </View>
           ) : null}
@@ -223,9 +223,9 @@ const createStyles = (colors: FormColors) =>
   bmiValue: { fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 38, color: colors.text },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 999, backgroundColor: '#D4FF3F',
+    borderRadius: 999, backgroundColor: '#DDF3E4',
   },
-  chipText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#3D5500' },
+  chipText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#1E6B45' },
   bmiBands: { flexDirection: 'row', gap: 4 },
   band: { flex: 1, alignItems: 'center', gap: 4 },
   bandBar: { height: 4, alignSelf: 'stretch', borderRadius: 999, backgroundColor: colors.border },
