@@ -123,7 +123,9 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
           </View>
         ) : (
           <>
-            <Text style={[styles.title, { color: p.text }]}>Comments{post ? ` · ${post.comments_count}` : ''}</Text>
+            <Text style={[styles.title, { color: p.text }]}>
+              Comments{post ? <Text style={{ color: p.muted, fontFamily: 'Poppins_400Regular' }}>{`  ${post.comments_count}`}</Text> : null}
+            </Text>
 
             {replyTo ? (
               <View style={[styles.replyingTo, { backgroundColor: p.accentSoft }]}>
@@ -291,7 +293,7 @@ function Replies({ commentId, ...actions }: RowActions & { commentId: string }) 
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 17, fontWeight: '800', marginBottom: 10 },
+  title: { fontFamily: 'Poppins_600SemiBold', fontSize: 19, lineHeight: 25, letterSpacing: -0.2, marginBottom: 10 },
   replyingTo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 },
   replyingText: { flex: 1, fontSize: 13 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderRadius: 18, paddingLeft: 14, paddingRight: 6, paddingVertical: 6 },

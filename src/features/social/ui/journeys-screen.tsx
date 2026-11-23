@@ -9,7 +9,7 @@ import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { NumberWheel } from '@shared/ui/number-wheel';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { SocialAvatar, useJourneyInvites, useJourneyMaps, useJourneys, useMyHandle, type SocialJourneyMember } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useJourneyInvites, useJourneyMaps, useJourneys, useMyHandle, type SocialJourneyMember } from '@entities/social';
 
 import { THEMES, type JourneyTheme } from '../model/journey-maps';
 import { SOCIAL_HOME, socialJourneyHref } from '../model/routes';
@@ -57,14 +57,14 @@ export function JourneysScreen() {
   const ended = (journeys.data ?? []).filter((j) => j.status === 'ended');
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Journeys</Text>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
       </View>
+      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Journeys</Text>
 
       <StepsBanner />
 
@@ -74,7 +74,7 @@ export function JourneysScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
-          <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
+          <View style={styles.hero}>
             <View style={styles.heroTop}>
               <View style={[styles.heroIcon, { backgroundColor: p.accentSoft }]}>
                 <Ionicons name="map-outline" size={22} color={p.accent} />
@@ -100,9 +100,9 @@ export function JourneysScreen() {
 
           {invites.data && invites.data.length > 0 ? (
             <View style={styles.block}>
-              <Text style={[styles.section, { color: p.text }]}>Invitations</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Invitations</Text>
               {invites.data.map((invite) => (
-                <View key={invite.id} style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+                <View key={invite.id} style={[styles.card, { borderBottomColor: p.border }]}>
                   <View style={styles.row}>
                     <SocialAvatar handle={invite.from.handle} hasAvatar={invite.from.has_avatar} size={42} />
                     <View style={styles.flex}>
@@ -134,7 +134,7 @@ export function JourneysScreen() {
           ) : null}
 
           <View style={styles.block}>
-            <Text style={[styles.section, { color: p.text }]}>On the road</Text>
+            <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>On the road</Text>
             {journeys.isPending ? <ActivityIndicator color={p.accent} style={{ marginVertical: 20 }} /> : null}
             {journeys.isError ? <Text style={[styles.note, { color: p.muted }]}>Could not load your journeys. Try again in a moment.</Text> : null}
             {journeys.data && running.length === 0 ? (
@@ -151,7 +151,7 @@ export function JourneysScreen() {
 
           {ended.length > 0 ? (
             <View style={styles.block}>
-              <Text style={[styles.section, { color: p.text }]}>Finished</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Finished</Text>
               {ended.map((journey) => (
                 <JourneyRow key={journey.id} journey={journey} onOpen={() => router.push(socialJourneyHref(journey.id))} />
               ))}
@@ -271,7 +271,7 @@ function JourneyRow({ journey, onOpen }: { journey: { title: string; theme?: str
   const pct = Math.round(journey.my_percent);
   const look = THEMES[(journey.theme && journey.theme in THEMES ? journey.theme : 'plains') as JourneyTheme];
   return (
-    <Pressable accessibilityRole="button" onPress={onOpen} style={[styles.card, { backgroundColor: p.card, borderColor: journey.finished ? p.accent : p.border }]}>
+    <Pressable accessibilityRole="button" onPress={onOpen} style={[styles.card, { borderBottomColor: p.border }]}>
       <View style={styles.row}>
         <View style={[styles.thumb, { backgroundColor: look.skyTop }]}>
           <View style={[styles.thumbLand, { backgroundColor: look.grass[0] }]} />
@@ -306,13 +306,15 @@ function JourneyRow({ journey, onOpen }: { journey: { title: string; theme?: str
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1, minWidth: 0, gap: 2 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
-  hero: { borderWidth: 1, borderRadius: 22, padding: 14, gap: 14 },
+  hero: { gap: 14, paddingBottom: 4 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   startBtn: { height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   startText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
@@ -323,7 +325,7 @@ const styles = StyleSheet.create({
   heroTitle: { fontSize: 15, fontWeight: '800' },
   block: { gap: 10 },
   section: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  card: { borderWidth: 1.5, borderRadius: 20, padding: 14, gap: 10 },
+  card: { borderBottomWidth: SOCIAL_RULE, paddingVertical: 16, gap: 12 },
   cardTitle: { fontSize: 15.5, fontWeight: '800' },
   hint: { fontSize: 12.5, lineHeight: 17, fontWeight: '500' },
   note: { fontSize: 13, textAlign: 'center', marginVertical: 8 },

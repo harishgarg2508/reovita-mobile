@@ -7,6 +7,7 @@ import { usePalette } from '@shared/ui/theme';
 
 import { usePostPhoto } from '../model/use-social';
 import { topicLabel } from '../model/social-topics';
+import { SOCIAL_RADIUS, SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE } from '../model/social-system';
 import { SocialAvatar } from './social-avatar';
 import type { SocialPost } from '../model/social.types';
 
@@ -51,6 +52,7 @@ export const PostCard = memo(function PostCard({
   onComments,
   onOpenProfile,
   flush = false,
+  bleed = false,
 }: {
   post: SocialPost;
   onKudos: (post: SocialPost) => void;
@@ -64,6 +66,8 @@ export const PostCard = memo(function PostCard({
   onOpenProfile?: (handle: string) => void;
   // true: the card touches both sides of the screen, with no side border and square side corners.
   flush?: boolean;
+  // true: the picture runs edge to edge with square corners and the card has no rule under it (a post shown whole in a drawer).
+  bleed?: boolean;
 }) {
   const p = usePalette();
   const photo = usePostPhoto(post.id, post.has_photo);
@@ -109,18 +113,17 @@ export const PostCard = memo(function PostCard({
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, flush && styles.flush]}>
+    <View style={[styles.card, { backgroundColor: p.card, borderBottomColor: p.border }, bleed && styles.cardBleed]}>
       {/* Author row */}
       <View style={styles.head}>
         <Pressable accessibilityRole="button" disabled={!onOpenProfile} onPress={() => onOpenProfile?.(post.handle)} style={styles.authorRow}>
           <SocialAvatar handle={post.handle} hasAvatar={post.has_avatar} size={40} />
           <View style={styles.names}>
-            <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{name}</Text>
-            <Text numberOfLines={1} accessibilityLabel={`@${post.handle}, ${fullDate(post.created_at)}`} style={[styles.sub, { color: p.muted }]}>
-              @{post.handle} · {postAge(post.created_at)}
-            </Text>
+            <Text numberOfLines={1} style={[SOCIAL_TYPE.bodyStrong, { color: p.text }]}>{name}</Text>
+            <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: p.muted }]}>@{post.handle}</Text>
           </View>
         </Pressable>
+        <Text accessibilityLabel={fullDate(post.created_at)} style={[SOCIAL_TYPE.small, { color: p.muted }]}>{postAge(post.created_at)}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="More options" hitSlop={10} onPress={openMenu} style={styles.moreBtn}>
           <Ionicons name="ellipsis-horizontal" size={20} color={p.muted} />
         </Pressable>
@@ -128,7 +131,7 @@ export const PostCard = memo(function PostCard({
 
       {/* The post */}
       {post.has_photo ? (
-        <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={[styles.photoBox, { backgroundColor: p.surface }]}>
+        <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={[styles.photoBox, { backgroundColor: p.surface }, bleed && styles.photoBleed]}>
           {photo.data ? (
             <Image source={{ uri: photo.data }} style={styles.photo} resizeMode="cover" accessibilityLabel="Photo in post" />
           ) : photo.isError ? (
@@ -147,7 +150,7 @@ export const PostCard = memo(function PostCard({
         </Pressable>
       ) : post.body ? (
         <Pressable accessible={false} onPress={onPostTap} onLongPress={openMenu} delayLongPress={400} style={styles.textBox}>
-          <Text style={[styles.textBody, { color: p.text }]}>{post.body}</Text>
+          <Text style={[SOCIAL_TYPE.body, styles.textBody, { color: p.text }]}>{post.body}</Text>
           <Animated.View pointerEvents="none" style={[styles.bigHeart, heartStyle]}>
             <Ionicons name="heart" size={72} color="#E34255" />
           </Animated.View>
@@ -158,7 +161,7 @@ export const PostCard = memo(function PostCard({
       <View style={styles.actions}>
         <Pressable accessibilityRole="button" accessibilityLabel={post.kudoed ? 'Remove kudos' : 'Give kudos'} onPress={handleLike} onLongPress={handleKudosList} hitSlop={6} style={styles.action}>
           <Ionicons name={post.kudoed ? 'heart' : 'heart-outline'} size={24} color={post.kudoed ? '#E34255' : p.text} />
-          <Text style={[styles.count, { color: post.kudoed ? '#E34255' : p.text }]}>{formatSocialCount(post.kudos_count)}</Text>
+          <Text style={[SOCIAL_TYPE.label, { color: post.kudoed ? '#E34255' : p.text }]}>{formatSocialCount(post.kudos_count)}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -170,7 +173,7 @@ export const PostCard = memo(function PostCard({
           hitSlop={6}
           style={styles.action}>
           <Ionicons name="chatbubble-outline" size={22} color={p.text} />
-          <Text style={[styles.count, { color: p.text }]}>{formatSocialCount(post.comments_count)}</Text>
+          <Text style={[SOCIAL_TYPE.label, { color: p.text }]}>{formatSocialCount(post.comments_count)}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -201,7 +204,7 @@ export const PostCard = memo(function PostCard({
 
       {/* The caption of a photo post */}
       {post.has_photo && post.body ? (
-        <Text style={[styles.caption, { color: p.text }]}>
+        <Text style={[SOCIAL_TYPE.body, styles.caption, { color: p.text }]}>
           <Text style={styles.captionHandle} onPress={() => onOpenProfile?.(post.handle)}>
             @{post.handle}{' '}
           </Text>
@@ -213,17 +216,13 @@ export const PostCard = memo(function PostCard({
       {post.stamp || topic ? (
         <View style={styles.tags}>
           {post.stamp ? (
-            <View style={[styles.tag, { backgroundColor: '#FEF3EB' }]}>
-              <Ionicons name="flame" size={13} color="#E8762B" />
-              <Text style={[styles.tagText, { color: '#B4530F' }]}>
-                {post.stamp.streak}-day streak · {topicLabel(post.stamp.habit) ?? 'Habit'}
-              </Text>
+            <View style={styles.tag}>
+              <Ionicons name="flame" size={14} color="#E8762B" />
+              <Text style={[SOCIAL_TYPE.label, { color: p.text }]}>{post.stamp.streak}-day streak on {(topicLabel(post.stamp.habit) ?? 'a habit').toLowerCase()}</Text>
             </View>
           ) : null}
           {topic ? (
-            <View style={[styles.tag, { backgroundColor: p.accentSoft }]}>
-              <Text style={[styles.tagText, { color: p.accent }]}>#{topic}</Text>
-            </View>
+            <Text style={[SOCIAL_TYPE.label, { color: p.accent }]}>#{topic.toLowerCase()}</Text>
           ) : null}
         </View>
       ) : null}
@@ -232,28 +231,28 @@ export const PostCard = memo(function PostCard({
 });
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingTop: 14, paddingBottom: 12, gap: 12 },
-  flush: { borderRadius: 0, borderLeftWidth: 0, borderRightWidth: 0 },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14 },
+  card: { borderBottomWidth: SOCIAL_RULE, paddingTop: SOCIAL_SPACE.inner + 4, paddingBottom: SOCIAL_SPACE.inner + 4, gap: SOCIAL_SPACE.inner },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SOCIAL_SPACE.edge },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1, minWidth: 0 },
   names: { flex: 1, minWidth: 0, gap: 1 },
   name: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
   sub: { fontSize: 12.5, fontWeight: '500' },
   moreBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  photoBox: { marginHorizontal: 12, borderRadius: 18, overflow: 'hidden', aspectRatio: 4 / 4.6, position: 'relative' },
+  cardBleed: { borderBottomWidth: 0, paddingTop: 4, paddingBottom: 16 },
+  photoBleed: { marginHorizontal: 0, borderRadius: 0 },
+  photoBox: { marginHorizontal: SOCIAL_SPACE.edge, borderRadius: SOCIAL_RADIUS.media, overflow: 'hidden', aspectRatio: 4 / 4.6, position: 'relative' },
   photo: { width: '100%', height: '100%' },
   photoState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   stateText: { fontSize: 13 },
   bigHeart: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
-  textBox: { paddingHorizontal: 16, paddingVertical: 4, position: 'relative' },
-  textBody: { fontSize: 17, lineHeight: 25, letterSpacing: -0.1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12 },
+  textBox: { paddingHorizontal: SOCIAL_SPACE.edge, position: 'relative' },
+  textBody: { fontSize: 17, lineHeight: 26 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SOCIAL_SPACE.edge - 6 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 6 },
   count: { fontSize: 14, fontWeight: '700' },
   grow: { flex: 1 },
-  caption: { fontSize: 14.5, lineHeight: 21, paddingHorizontal: 16 },
+  caption: { paddingHorizontal: SOCIAL_SPACE.edge },
   captionHandle: { fontWeight: '800' },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 14 },
-  tag: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 26, borderRadius: 13 },
-  tagText: { fontSize: 12, fontWeight: '800' },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, paddingHorizontal: SOCIAL_SPACE.edge },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

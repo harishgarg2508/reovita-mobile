@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useReceivedKudos, type SocialReceivedKudos, SocialAvatar } from '@entities/social';
+import { SOCIAL_SPACE, SOCIAL_TYPE, useMyHandle, useReceivedKudos, type SocialReceivedKudos, SocialAvatar } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
@@ -65,16 +65,16 @@ export function KudosScreen() {
   const total = list.data?.pages[0]?.total ?? 0;
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => router.replace(SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => router.replace(SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <View style={styles.titleBox}>
-          <Text style={[styles.title, { color: p.text }]}>Kudos</Text>
-          <Text style={[styles.sub, { color: p.muted }]}>{total} {total === 1 ? 'kudos' : 'kudos'} on your posts</Text>
-        </View>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
+      </View>
+      <View style={styles.heading}>
+        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Kudos</Text>
+        <Text style={[SOCIAL_TYPE.body, { color: p.muted }]}>{total} {total === 1 ? 'kudos' : 'kudos'} on your posts</Text>
       </View>
 
       {me.needsJoin ? (
@@ -150,7 +150,9 @@ function KudosRow({ item, busy, onOpen, onFriend }: { item: SocialReceivedKudos;
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   // Keeps the title in the middle without drawing anything on the right.
   spacer: { width: 40, height: 40 },

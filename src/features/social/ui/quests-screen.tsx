@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { SocialAvatar, useMyHandle, useSocialLeaderboard, useSocialQuests } from '@entities/social';
+import { SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useMyHandle, useSocialLeaderboard, useSocialQuests } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { JoinPanel } from './join-panel';
@@ -71,13 +71,15 @@ export function QuestsScreen() {
   const board = useSocialLeaderboard(period, me.joined);
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Quests & Leaderboard</Text>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
+      </View>
+      <View style={styles.heading}>
+        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Quests & Leaderboard</Text>
       </View>
 
       {me.needsJoin ? (
@@ -89,7 +91,7 @@ export function QuestsScreen() {
           {/* Monthly Quests Section */}
           <View style={styles.sectionHead}>
             <View>
-              <Text style={[styles.section, { color: p.text }]}>Monthly Quests</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Monthly Quests</Text>
               <Text style={[styles.sectionSub, { color: p.muted }]}>Build lifelong consistency</Text>
             </View>
             {quests.data ? (
@@ -151,7 +153,7 @@ export function QuestsScreen() {
           {/* Friends Leaderboard Section */}
           <View style={[styles.sectionHead, { marginTop: 20 }]}>
             <View>
-              <Text style={[styles.section, { color: p.text }]}>Friends Leaderboard</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Friends Leaderboard</Text>
               <Text style={[styles.sectionSub, { color: p.muted }]}>Ranked by active check-in days</Text>
             </View>
             <View style={[styles.switch, { backgroundColor: p.surface, borderColor: p.border }]}>
@@ -255,7 +257,9 @@ export function QuestsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },

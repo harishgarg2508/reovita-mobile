@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useScrollToTopOnFocus } from '@shared/lib';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useSocialSearch, type SocialPerson, SocialAvatar, useSocialExplore } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, useMyHandle, useSocialSearch, type SocialPerson, SocialAvatar, useSocialExplore } from '@entities/social';
 
 import { socialProfileHref } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
@@ -46,10 +46,10 @@ export function SearchScreen() {
   const waiting = ready && (typed !== debounced || results.isPending);
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 12 }]}>
       <View style={styles.heading}>
-        <Text style={[styles.title, { color: p.text }]}>Explore</Text>
-        <Text style={[styles.subtitle, { color: p.muted }]}>Find people, and see what others are sharing</Text>
+        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Explore</Text>
+        <Text style={[SOCIAL_TYPE.body, { color: p.muted }]}>Find people, and see what others are sharing</Text>
       </View>
 
       {me.needsJoin ? (
@@ -86,7 +86,7 @@ export function SearchScreen() {
               keyExtractor={(person) => person.handle}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + SOCIAL_DOCK_SPACE + 16 }]}
-              ListHeaderComponent={!waiting && people.length > 0 ? <Text style={[styles.sectionLabel, { color: p.muted }]}>People</Text> : undefined}
+              ListHeaderComponent={!waiting && people.length > 0 ? <Text style={[SOCIAL_TYPE.label, styles.sectionLabel, { color: p.muted }]}>People</Text> : undefined}
               ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: p.border }]} />}
               onEndReachedThreshold={0.4}
               onEndReached={() => {
@@ -115,7 +115,7 @@ export function SearchScreen() {
             // Explore: nothing (or too little) typed yet, so a random mix of posts from many people shows instead, ten at a time with infinite scroll.
             // Tapping a tile opens the post in the swipe-down drawer.
             <View style={styles.explore}>
-              <Text style={[styles.sectionLabel, styles.exploreLabel, { color: p.muted }]}>Fresh posts</Text>
+              <Text style={[SOCIAL_TYPE.label, styles.sectionLabel, styles.exploreLabel, { color: p.muted }]}>Latest posts</Text>
               <PostFeed
                 query={explore}
                 layout="grid"
@@ -141,8 +141,8 @@ function SuggestionRow({ person, busy, onOpen, onToggle }: { person: SocialPerso
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
         <SocialAvatar handle={person.handle} hasAvatar={person.has_avatar} size={46} />
         <View style={styles.names}>
-          <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{person.display_name || `@${person.handle}`}</Text>
-          <Text numberOfLines={1} style={[styles.handle, { color: p.muted }]}>@{person.handle}</Text>
+          <Text numberOfLines={1} style={[SOCIAL_TYPE.bodyStrong, { color: p.text }]}>{person.display_name || `@${person.handle}`}</Text>
+          <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: p.muted }]}>@{person.handle}</Text>
         </View>
       </Pressable>
       <Pressable
@@ -162,11 +162,9 @@ function SuggestionRow({ person, busy, onOpen, onToggle }: { person: SocialPerso
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  heading: { paddingHorizontal: 16, paddingBottom: 12, gap: 2 },
-  title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.6 },
-  subtitle: { fontSize: 13.5 },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   minHint: { fontSize: 12.5, marginHorizontal: 20, marginTop: -4, marginBottom: 8 },
-  sectionLabel: { fontSize: 12.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  sectionLabel: { marginBottom: 8 },
   exploreLabel: { marginHorizontal: 16 },
   explore: { flex: 1 },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, padding: 0, height: '100%' },
   body: { paddingHorizontal: 16, gap: 14 },
   list: { paddingHorizontal: 16, flexGrow: 1 },
-  sep: { height: StyleSheet.hairlineWidth },
+  sep: { height: SOCIAL_RULE },
   hint: { fontSize: 13.5, lineHeight: 20, textAlign: 'center', paddingHorizontal: 12, marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },

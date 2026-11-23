@@ -34,6 +34,7 @@ export {
   usePostPhoto,
   useSocialPicture,
 } from './model/use-social';
+export { SOCIAL_RADIUS, SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE } from './model/social-system';
 export { PostCard, formatSocialCount } from './ui/post-card';
 export { SocialAvatar } from './ui/social-avatar';
 export { SOCIAL_TOPICS, topicLabel } from './model/social-topics';

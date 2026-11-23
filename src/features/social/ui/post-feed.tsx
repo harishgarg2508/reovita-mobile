@@ -63,12 +63,26 @@ export function PostFeed({
   const [blocking, setBlocking] = useState<SocialPost | null>(null);
   // The post open in the drawer (grid layout), and how wide the list is, so the squares fill the row exactly.
   const [openId, setOpenId] = useState<string | null>(null);
+  // The post to bring back when the comments, the kudos list or the share card opened from its drawer is closed. One drawer cannot open on top of another on every
+  // phone, so the post drawer closes first and comes back after, and the person never loses their place.
+  const [reopenId, setReopenId] = useState<string | null>(null);
+  // Opening a profile from the comments or the kudos list leaves the post behind: it is not brought back over the profile.
+  const leaveToProfile = (handle: string) => {
+    setOpenId(null);
+    setReopenId(null);
+    onOpenProfile?.(handle);
+  };
+  const reopenPost = () => {
+    if (reopenId) setOpenId(reopenId);
+    setReopenId(null);
+  };
   const [listWidth, setListWidth] = useState(0);
 
   // Share opens a card of the post (the handle, the words, the photo, the topic and the stamp) to share as a picture. The drawer closes first, because
   // one drawer cannot open on top of another on every phone.
   const [sharing, setSharing] = useState<SocialPost | null>(null);
   const sharePost = (post: SocialPost) => {
+    setReopenId(openId === post.id ? post.id : null);
     setOpenId(null);
     setSharing(post);
   };
@@ -157,13 +171,15 @@ export function PostFeed({
       />
 
       {/* Grid layout: the tapped post, as a full card in the swipe-down drawer. Its kudos, share and menu work as in the feed. */}
-      <BottomSheet visible={tiled && openPost !== null} onClose={() => setOpenId(null)} dragHandleOnly>
+      <BottomSheet visible={tiled && openPost !== null} onClose={() => setOpenId(null)} dragHandleOnly flush>
         <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
           {openPost ? (
             <PostCard
+              bleed
               post={openPost}
               onSave={toggleSaved}
               onComments={(post) => {
+                setReopenId(post.id);
                 setOpenId(null);
                 setCommentsId(post.id);
               }}
@@ -171,6 +187,7 @@ export function PostFeed({
               onShare={sharePost}
               // A second drawer or dialog cannot open on top of this one on every phone, so this one closes first.
               onKudosList={(post) => {
+                setReopenId(post.id);
                 setOpenId(null);
                 setKudosPost(post);
               }}
@@ -187,9 +204,29 @@ export function PostFeed({
         </ScrollView>
       </BottomSheet>
 
-      <ShareCardSheet card={sharing ? { kind: 'post', post: sharing } : null} onClose={() => setSharing(null)} />
-      <CommentsSheet post={commentsPost} onClose={() => setCommentsId(null)} onOpenProfile={onOpenProfile} />
-      <KudosSheet post={kudosPost} onClose={() => setKudosPost(null)} onOpenProfile={onOpenProfile} />
+      <ShareCardSheet
+        card={sharing ? { kind: 'post', post: sharing } : null}
+        onClose={() => {
+          setSharing(null);
+          reopenPost();
+        }}
+      />
+      <CommentsSheet
+        post={commentsPost}
+        onClose={() => {
+          setCommentsId(null);
+          reopenPost();
+        }}
+        onOpenProfile={leaveToProfile}
+      />
+      <KudosSheet
+        post={kudosPost}
+        onClose={() => {
+          setKudosPost(null);
+          reopenPost();
+        }}
+        onOpenProfile={leaveToProfile}
+      />
       <PostMenu
         post={menuPost}
         onClose={() => setMenuPost(null)}

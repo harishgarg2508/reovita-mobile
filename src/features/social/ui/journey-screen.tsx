@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@shared/ui';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { SocialAvatar, useJourney, useMyHandle, useSocialPeople } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useJourney, useMyHandle, useSocialPeople } from '@entities/social';
 
 import { socialProfileHref, socialRoute } from '../model/routes';
 import { useInviteToJourney, useLeaveJourney } from '../model/use-social-actions';
@@ -17,19 +17,6 @@ import { JoinPanel } from './join-panel';
 import { StepsBanner } from './steps-banner';
 import { StepsPermissionOverlay } from './steps-permission-overlay';
 import { JourneyMap } from './journey-map';
-
-function getThemeIcon(theme: string): keyof typeof Ionicons.glyphMap {
-  switch (theme) {
-    case 'backwaters':
-      return 'water-outline';
-    case 'coast':
-      return 'boat-outline';
-    case 'mountain':
-      return 'trail-sign-outline';
-    default:
-      return 'sunny-outline';
-  }
-}
 
 function getRankBadge(rank: number, p: ReturnType<typeof usePalette>) {
   if (rank === 1) {
@@ -90,30 +77,15 @@ export function JourneyScreen({ id }: { id: string }) {
   const leader = data?.members[0];
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       {/* Top Bar */}
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={back} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={back} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-
-        <View style={styles.titleContainer}>
-          <Ionicons name={getThemeIcon(data?.theme ?? 'plains')} size={18} color={p.accent} />
-          <Text numberOfLines={1} style={[styles.title, { color: p.text }]}>{data?.title ?? 'Journey'}</Text>
-        </View>
-
-        <View style={styles.barRight}>
-          {data ? (
-            <View style={[styles.statusPill, { backgroundColor: data.status === 'active' ? p.accentSoft : p.surface, borderColor: p.border }]}>
-              <Text style={[styles.statusText, { color: data.status === 'active' ? p.accent : p.muted }]}>
-                {data.status === 'active' ? 'Active' : 'Ended'}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.spacer} />
-          )}
-        </View>
+        {data ? <Text style={[SOCIAL_TYPE.label, { color: data.status === 'active' ? p.accent : p.muted }]}>{data.status === 'active' ? 'Active' : 'Ended'}</Text> : <View style={styles.iconBtn} />}
       </View>
+      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>{data?.title ?? 'Journey'}</Text>
 
       <StepsBanner />
 
@@ -154,7 +126,7 @@ export function JourneyScreen({ id }: { id: string }) {
           </View>
 
           {/* Primary Journey Progress Card */}
-          <View style={[styles.progressCard, { backgroundColor: p.card, borderColor: data.finished ? p.accent : p.border }]}>
+          <View style={styles.progressCard}>
             <View style={styles.cardHeaderRow}>
               <View>
                 <View style={styles.kmRow}>
@@ -232,7 +204,7 @@ export function JourneyScreen({ id }: { id: string }) {
           {/* Ranking Section */}
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={[styles.sectionTitle, { color: p.text }]}>Ranking</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Ranking</Text>
               <Text style={[styles.sectionSubtitle, { color: p.muted }]}>Furthest first</Text>
             </View>
             <View style={styles.headRight}>
@@ -265,13 +237,7 @@ export function JourneyScreen({ id }: { id: string }) {
                 key={member.handle}
                 accessibilityRole="button"
                 onPress={() => router.push(socialProfileHref(member.handle))}
-                style={[
-                  styles.memberCard,
-                  {
-                    backgroundColor: member.is_me ? p.accentSoft : p.card,
-                    borderColor: member.is_me ? p.accent : p.border,
-                  },
-                ]}>
+                style={[styles.memberCard, { borderBottomColor: p.border, backgroundColor: member.is_me ? p.accentSoft : 'transparent' }]}>
                 {/* Rank Badge */}
                 <View
                   style={[
@@ -423,7 +389,9 @@ export function JourneyScreen({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   titleContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
@@ -474,17 +442,7 @@ const styles = StyleSheet.create({
   taglineBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: -2 },
   tagline: { fontSize: 13.5, fontStyle: 'italic', fontWeight: '500' },
   // Progress Card
-  progressCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-    gap: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
+  progressCard: { gap: 14 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   kmRow: { flexDirection: 'row', alignItems: 'baseline' },
   myKmValue: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
@@ -494,7 +452,7 @@ const styles = StyleSheet.create({
   pctText: { fontSize: 12.5, fontWeight: '800' },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
-  metricsStrip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 8 },
+  metricsStrip: { flexDirection: 'row', alignItems: 'center', borderTopWidth: SOCIAL_RULE, borderBottomWidth: SOCIAL_RULE, paddingVertical: 14 },
   metricItem: { flex: 1, alignItems: 'center', gap: 3 },
   metricTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metricValue: { fontSize: 15, fontWeight: '800' },
@@ -519,7 +477,7 @@ const styles = StyleSheet.create({
   memberCountPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
   memberCountText: { fontSize: 12, fontWeight: '700' },
   // Member Card
-  memberCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 12 },
+  memberCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: SOCIAL_RULE, paddingHorizontal: 4, paddingVertical: 14 },
   rankBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   rankBadgeMedal: { borderWidth: 1 },
   rankNumber: { fontSize: 14, fontWeight: '800' },

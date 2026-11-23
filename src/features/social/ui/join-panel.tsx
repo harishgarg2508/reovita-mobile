@@ -60,7 +60,7 @@ export function JoinPanel() {
   return (
     <View style={styles.wrap}>
     <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+      <View style={styles.card}>
         <Text style={[styles.title, { color: p.text }]}>{returning ? 'The social terms changed' : (terms.data?.title ?? 'Create your social account')}</Text>
 
         {terms.isPending ? (
@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollBody: { paddingBottom: 16 },
   footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, gap: 10 },
-  card: { borderWidth: 1, borderRadius: 24, padding: 20, gap: 10 },
-  title: { fontSize: 20, fontWeight: '800' },
+  card: { paddingVertical: 8, gap: 12 },
+  title: { fontFamily: 'Poppins_600SemiBold', fontSize: 24, lineHeight: 30, letterSpacing: -0.4 },
   body: { fontSize: 14, lineHeight: 20 },
   points: { gap: 8, marginVertical: 4 },
   point: { borderRadius: 14, padding: 12, gap: 3 },

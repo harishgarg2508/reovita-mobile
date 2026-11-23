@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@shared/ui';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useBlockedProfiles, useMyHandle, useReportedProfiles, type SocialBlockedProfile, type SocialReportedProfile, SocialAvatar } from '@entities/social';
+import { SOCIAL_SPACE, SOCIAL_TYPE, useBlockedProfiles, useMyHandle, useReportedProfiles, type SocialBlockedProfile, type SocialReportedProfile, SocialAvatar } from '@entities/social';
 
 import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { useBlockHandle, useUnreport } from '../model/use-social-actions';
@@ -61,16 +61,16 @@ export function BlockedScreen() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <View style={styles.titleBox}>
-          <Text style={[styles.title, { color: p.text }]}>Blocked & reported</Text>
-          <Text style={[styles.sub, { color: p.muted }]}>Only you can see these lists</Text>
-        </View>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
+      </View>
+      <View style={styles.heading}>
+        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Blocked & reported</Text>
+        <Text style={[SOCIAL_TYPE.body, { color: p.muted }]}>Only you can see these lists</Text>
       </View>
 
       {me.needsJoin ? (
@@ -188,7 +188,9 @@ export function BlockedScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   titleBox: { flex: 1, alignItems: 'center' },

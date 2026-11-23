@@ -200,7 +200,7 @@ export function ComposeScreen() {
                 <View style={styles.shutterInner} />
               )}
             </Pressable>
-            <Text style={styles.postModeText}>POST</Text>
+            <Text style={styles.postModeText}>Post</Text>
           </View>
 
           {/* Camera Reverse / Flip Button */}
@@ -627,10 +627,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   postModeText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
     color: '#FFFFFF',
-    letterSpacing: 2,
   },
   permissionBox: {
     flex: 1,

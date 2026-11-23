@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConfirmDialog } from '@shared/ui';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { useMyHandle, useSocialProfile, useSocialUnread } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, useMyHandle, useSocialProfile, useSocialUnread } from '@entities/social';
 
 import { SOCIAL_HOME, socialRoute } from '../model/routes';
 import { useLeaveSocial } from '../model/use-social-actions';
@@ -45,13 +45,15 @@ export function SocialSettingsScreen() {
   ];
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Settings</Text>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
+      </View>
+      <View style={styles.heading}>
+        <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Settings</Text>
       </View>
 
       {me.needsJoin ? (
@@ -60,13 +62,13 @@ export function SocialSettingsScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
-          <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+          <View style={[styles.card, { borderTopColor: p.border }]}>
             {rows.map((row, index) => (
               <Pressable
                 key={row.label}
                 accessibilityRole="button"
                 onPress={() => router.push(row.href)}
-                style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border }]}>
+                style={[styles.row, { borderBottomWidth: SOCIAL_RULE, borderBottomColor: p.border }]}>
                 <View style={[styles.iconBox, { backgroundColor: p.accentSoft }]}>
                   <Ionicons name={row.icon} size={19} color={p.accent} />
                 </View>
@@ -84,7 +86,7 @@ export function SocialSettingsScreen() {
             ))}
           </View>
 
-          <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+          <View style={[styles.card, { borderTopColor: p.border }]}>
             <Pressable accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.row}>
               <View style={[styles.iconBox, { backgroundColor: p.redSoft }]}>
                 <Ionicons name="trash-outline" size={19} color={p.red} />
@@ -113,14 +115,16 @@ export function SocialSettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   // Keeps the title in the middle without drawing anything on the right.
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
-  card: { borderWidth: 1, borderRadius: 20, overflow: 'hidden' },
+  card: { borderTopWidth: SOCIAL_RULE },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13 },
   iconBox: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1, minWidth: 0, gap: 1 },

@@ -8,7 +8,7 @@ import { tapConfirm, tapSelection, useScrollToTopOnFocus } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { SocialAvatar, useMyHandle, useSocialPodInvites, useSocialPods } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useMyHandle, useSocialPodInvites, useSocialPods } from '@entities/social';
 
 import { SOCIAL_HOME, socialPodHref } from '../model/routes';
 import { useAnswerPodInvite, useCreatePod } from '../model/use-social-actions';
@@ -52,14 +52,14 @@ export function PodsScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => goBackOr(router, SOCIAL_HOME)} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <Text style={[styles.title, { color: p.text }]}>Accountability Pods</Text>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
       </View>
+      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Pods</Text>
 
       <StepsBanner />
 
@@ -70,13 +70,13 @@ export function PodsScreen() {
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {/* Athletic Squad Hero Card */}
-          <View style={[styles.heroCard, { backgroundColor: p.card, borderColor: p.border }]}>
+          <View style={styles.heroCard}>
             <View style={styles.heroTop}>
               <View style={[styles.heroIconBox, { backgroundColor: p.accentSoft }]}>
                 <Ionicons name="people" size={22} color={p.accent} />
               </View>
               <View style={styles.heroText}>
-                <Text style={[styles.heroTitle, { color: p.text }]}>Squad accountability</Text>
+                <Text style={[SOCIAL_TYPE.bodyStrong, { color: p.text }]}>Squad accountability</Text>
                 <Text style={[styles.heroBody, { color: p.muted }]}>
                   A private circle of up to 5 friends with one weekly target. A day counts at 5,000 steps, and the streak grows while everyone reaches it.
                 </Text>
@@ -101,14 +101,14 @@ export function PodsScreen() {
           {invites.data && invites.data.length > 0 ? (
             <View style={styles.block}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.section, { color: p.text }]}>Invitations</Text>
+                <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Invitations</Text>
                 <View style={[styles.badgePill, { backgroundColor: p.accent }]}>
                   <Text style={styles.badgePillText}>{invites.data.length}</Text>
                 </View>
               </View>
 
               {invites.data.map((invite) => (
-                <View key={invite.id} style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+                <View key={invite.id} style={[styles.card, { borderBottomColor: p.border }]}>
                   <View style={styles.inviteTop}>
                     <SocialAvatar handle={invite.from.handle} hasAvatar={invite.from.has_avatar} size={42} />
                     <View style={styles.inviteText}>
@@ -156,7 +156,7 @@ export function PodsScreen() {
           {/* Your Pods */}
           <View style={styles.block}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.section, { color: p.text }]}>Your Pods</Text>
+              <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Your Pods</Text>
               {pods.data ? (
                 <Text style={[styles.sectionSub, { color: p.muted }]}>{pods.data.length} active</Text>
               ) : null}
@@ -178,8 +178,7 @@ export function PodsScreen() {
                 accessibilityRole="button"
                 onPress={() => router.push(socialPodHref(pod.id))}
                 style={[
-                  styles.card,
-                  { backgroundColor: p.card, borderColor: pod.week_complete ? p.accent : p.border },
+                  styles.card, { borderBottomColor: p.border },
                 ]}>
                 <View style={styles.podTop}>
                   <View style={styles.podTitleRow}>
@@ -293,13 +292,15 @@ export function PodsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
-  heroCard: { borderWidth: 1, borderRadius: 22, padding: 14, gap: 14 },
+  heroCard: { gap: 14, paddingBottom: 4 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   heroIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1, minWidth: 0, gap: 2 },
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
   emptyBox: { borderWidth: 1, borderRadius: 18, padding: 24, alignItems: 'center', gap: 6, marginVertical: 4 },
   emptyTitle: { fontSize: 15, fontWeight: '800', marginTop: 2 },
   emptySubtitle: { fontSize: 13, textAlign: 'center' },
-  card: { borderWidth: 1, borderRadius: 20, padding: 14, gap: 12 },
+  card: { borderBottomWidth: SOCIAL_RULE, paddingVertical: 16, gap: 12 },
   cardTitle: { fontSize: 15.5, fontWeight: '800' },
   cardHint: { fontSize: 12.5, fontWeight: '500' },
   podTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

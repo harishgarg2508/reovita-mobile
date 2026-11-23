@@ -326,7 +326,7 @@ function ProfileHeader({
   }
 
   return (
-    <View style={[styles.profileCard, { backgroundColor: p.card, borderColor: p.border }]}>
+    <View style={[styles.profileCard, { backgroundColor: p.bg }]}>
       {/* Avatar */}
       <View style={styles.avatarStatsRow} pointerEvents="box-none">
         {/* The avatar overlaps the cover */}
@@ -382,7 +382,7 @@ function ProfileHeader({
       </View>
 
       {/* Numbers: posts, friends and the streak (it opens the Activity tab) */}
-      <View style={[styles.statsStrip, { backgroundColor: p.surface, borderColor: p.border }]}>
+      <View style={[styles.statsStrip, { borderColor: p.border }]}>
         <View style={styles.statCell}>
           <Text style={[styles.statNumber, { color: p.text }]}>{formatSocialCount(profile.posts_count)}</Text>
           <Text style={[styles.statName, { color: p.muted }]}>Posts</Text>
@@ -639,19 +639,12 @@ const styles = StyleSheet.create({
   },
   // Overlapping Profile Card
   profileCard: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     marginTop: -38,
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 16,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
   },
   avatarStatsRow: {
     flexDirection: 'row',
@@ -702,11 +695,11 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: '100%', height: '100%' },
   avatarEdit: { position: 'absolute', right: 0, bottom: 2, width: 30, height: 30, borderRadius: 15, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  statsStrip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: 16, borderWidth: 1, borderRadius: 18, paddingVertical: 12 },
+  statsStrip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: 14 },
   statCell: { flex: 1, alignItems: 'center', gap: 2 },
   statDivider: { width: 1, height: 28 },
-  statNumber: { fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
-  statName: { fontSize: 12, fontWeight: '700' },
+  statNumber: { fontFamily: 'Poppins_600SemiBold', fontSize: 22, lineHeight: 28, letterSpacing: -0.4 },
+  statName: { fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },
   streakNumber: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   coverMenu: { gap: 2 },
   coverMenuRow: { height: 52, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -730,9 +723,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   displayName: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.5,
   },
   bioText: {
     fontSize: 14,
@@ -758,8 +752,9 @@ const styles = StyleSheet.create({
     color: '#8E8BA6',
   },
   handleSubtext: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: -2,
   },
   streakBadge: {

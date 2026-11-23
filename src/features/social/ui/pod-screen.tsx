@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@shared/ui';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
-import { SocialAvatar, useMyHandle, useSocialPeople, useSocialPod } from '@entities/social';
+import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SocialAvatar, useMyHandle, useSocialPeople, useSocialPod } from '@entities/social';
 
 import { socialProfileHref, socialRoute } from '../model/routes';
 import { useDeletePod, useInviteToPod, useLeavePod } from '../model/use-social-actions';
@@ -42,17 +42,14 @@ export function PodScreen({ id }: { id: string }) {
   const back = () => goBackOr(router, socialRoute('/social/pods'));
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={back} style={[styles.round, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={back} style={styles.iconBtn}>
+          <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        <View style={styles.titleContainer}>
-          <Ionicons name="shield-checkmark" size={17} color={p.accent} />
-          <Text numberOfLines={1} style={[styles.title, { color: p.text }]}>{data?.name ?? 'Pod'}</Text>
-        </View>
-        <View style={styles.spacer} />
+        <View style={styles.iconBtn} />
       </View>
+      <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>{data?.name ?? 'Pod'}</Text>
 
       <StepsBanner />
 
@@ -67,7 +64,7 @@ export function PodScreen({ id }: { id: string }) {
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
           {/* Summary Metric Strip */}
-          <View style={[styles.summary, { backgroundColor: p.card, borderColor: data.week_complete ? p.accent : p.border }]}>
+          <View style={[styles.summary, { borderColor: p.border }]}>
             <View style={styles.summaryItem}>
               <View style={styles.summaryTop}>
                 <Ionicons name="flame" size={18} color={data.streak_weeks > 0 ? '#E8762B' : p.muted} />
@@ -107,7 +104,7 @@ export function PodScreen({ id }: { id: string }) {
 
           {/* Members List */}
           <View style={styles.sectionHead}>
-            <Text style={[styles.section, { color: p.text }]}>Members</Text>
+            <Text style={[SOCIAL_TYPE.title, { color: p.text }]}>Members</Text>
             <View style={styles.headRight}>
               <View style={[styles.memberCountBadge, { backgroundColor: p.surface, borderColor: p.border }]}>
                 <Ionicons name="people-outline" size={13} color={p.muted} />
@@ -133,7 +130,7 @@ export function PodScreen({ id }: { id: string }) {
               key={member.handle}
               accessibilityRole="button"
               onPress={() => router.push(socialProfileHref(member.handle))}
-              style={[styles.member, { backgroundColor: p.card, borderColor: member.met_goal ? p.accent : p.border }]}>
+              style={[styles.member, { borderBottomColor: p.border }]}>
               <SocialAvatar handle={member.handle} hasAvatar={member.has_avatar} size={42} />
 
               <View style={styles.memberText}>
@@ -197,7 +194,7 @@ export function PodScreen({ id }: { id: string }) {
 
           {/* Pending Invites */}
           {data.pending_invites.map((waiting) => (
-            <View key={waiting.handle} style={[styles.member, { borderColor: p.border, borderStyle: 'dashed' }]}>
+            <View key={waiting.handle} style={[styles.member, { borderBottomColor: p.border }]}>
               <SocialAvatar handle={waiting.handle} hasAvatar={false} size={42} />
               <View style={styles.memberText}>
                 <Text numberOfLines={1} style={[styles.memberName, { color: p.muted }]}>{waiting.display_name || `@${waiting.handle}`}</Text>
@@ -282,7 +279,9 @@ export function PodScreen({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   titleContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
@@ -290,7 +289,7 @@ const styles = StyleSheet.create({
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   note: { fontSize: 13, textAlign: 'center', marginTop: 24, paddingHorizontal: 24 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
-  summary: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 8 },
+  summary: { flexDirection: 'row', alignItems: 'center', borderTopWidth: SOCIAL_RULE, borderBottomWidth: SOCIAL_RULE, paddingVertical: 14 },
   summaryItem: { flex: 1, alignItems: 'center', gap: 3 },
   summaryDivider: { width: 1, height: 28 },
   summaryTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -304,7 +303,7 @@ const styles = StyleSheet.create({
   section: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
   memberCountBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
   memberCountText: { fontSize: 11.5, fontWeight: '700' },
-  member: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
+  member: { flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: SOCIAL_RULE, paddingVertical: 14 },
   memberText: { flex: 1, minWidth: 0, gap: 6 },
   memberNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   memberName: { fontSize: 15, fontWeight: '700' },
