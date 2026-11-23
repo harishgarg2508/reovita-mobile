@@ -77,7 +77,7 @@ export function JourneyScreen({ id }: { id: string }) {
   const leader = data?.members[0];
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: insets.top }]}>
       {/* Top Bar */}
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={back} style={styles.iconBtn}>

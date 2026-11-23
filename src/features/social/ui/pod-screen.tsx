@@ -42,7 +42,7 @@ export function PodScreen({ id }: { id: string }) {
   const back = () => goBackOr(router, socialRoute('/social/pods'));
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: insets.top }]}>
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={back} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={24} color={p.text} />

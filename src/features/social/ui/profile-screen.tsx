@@ -134,7 +134,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
         ) : null}
 
         {/* Floating Top Bar on Banner */}
-        <View style={[styles.floatingBar, { top: Math.max(insets.top, 16) + 4 }]}>
+        <View style={[styles.floatingBar, { top: insets.top + 8 }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} hitSlop={8} style={styles.circleNavBtn}>
             <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
           </Pressable>

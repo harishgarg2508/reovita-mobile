@@ -19,7 +19,7 @@ export function StepsPermissionOverlay() {
   // On the web the blur is a real blur of what is behind; on a phone it is a strong tint.
   const blur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } as unknown as ViewStyle) : null;
   return (
-    <View style={[styles.cover, { top: Math.max(insets.top, 20) + 60, backgroundColor: Platform.OS === 'web' ? `${p.bg}CC` : `${p.bg}F2` }, blur]}>
+    <View style={[styles.cover, { top: insets.top + 52, backgroundColor: Platform.OS === 'web' ? `${p.bg}CC` : `${p.bg}F2` }, blur]}>
       <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
         <View style={[styles.icon, { backgroundColor: p.accentSoft }]}>
           <Ionicons name="footsteps" size={26} color={p.accent} />

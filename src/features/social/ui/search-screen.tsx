@@ -46,7 +46,7 @@ export function SearchScreen() {
   const waiting = ready && (typed !== debounced || results.isPending);
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 12 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: insets.top + 12 }]}>
       <View style={styles.heading}>
         <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Explore</Text>
         <Text style={[SOCIAL_TYPE.body, { color: p.muted }]}>Find people, and see what others are sharing</Text>

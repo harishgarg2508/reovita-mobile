@@ -60,7 +60,7 @@ export function RequestsScreen() {
   const totalOutgoing = outgoing.data?.pages[0]?.total ?? 0;
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 4 }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: insets.top }]}>
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={24} color={p.text} />
