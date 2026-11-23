@@ -15,6 +15,7 @@ import { SOCIAL_HOME } from '@features/social';
 import { SCORE_ZONES } from '@entities/score';
 import { ScoreGauge } from './score-gauge';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
+import { useMyHandle, useSocialUnread } from '@entities/social';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
 import { ProgressBar } from '@shared/ui/progress-bar';
@@ -59,7 +60,7 @@ function Card({ p, children, style }: { p: Palette; children: React.ReactNode; s
 
 
 // One row of a list: a plain icon, the title, one line, and a chevron (or a badge). Rows sit on thin rules; there is no box and no tinted tile.
-function ListRow({ p, icon, title, text, right, onPress, label }: { p: Palette; icon: keyof typeof Ionicons.glyphMap; title: string; text: string; right?: React.ReactNode; onPress: () => void; label?: string }) {
+function ListRow({ p, icon, title, text, right, badge, onPress, label }: { p: Palette; icon: keyof typeof Ionicons.glyphMap; title: string; text: string; right?: React.ReactNode; badge?: number; onPress: () => void; label?: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.listRow, { borderBottomColor: p.border }]}>
       <View style={styles.listIcon}>
@@ -69,6 +70,11 @@ function ListRow({ p, icon, title, text, right, onPress, label }: { p: Palette; 
         <Text style={[Type.bodyStrong, { color: p.text }]}>{title}</Text>
         <Text numberOfLines={2} style={[Type.small, { color: p.muted }]}>{text}</Text>
       </View>
+      {badge ? (
+        <View accessibilityLabel={`${badge} new`} style={[styles.rowBadge, { backgroundColor: p.red }]}>
+          <Text style={styles.rowBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+        </View>
+      ) : null}
       {right ?? <Ionicons name="chevron-forward" size={18} color={p.muted} />}
     </Pressable>
   );
@@ -157,6 +163,10 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
   const nextStep = useProfileCompleteness().data?.next_step ?? null;
   const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
   const unread = useUnreadCount().data ?? 0;
+  // The notices of Social (kudos, comments, friend requests, invitations), shown on the Social row. Asked for only when there is a Social account.
+  const socialMe = useMyHandle();
+  const socialUnread = useSocialUnread(socialMe.joined).data;
+  const socialNew = (socialUnread?.unread ?? 0) + (socialUnread?.requests ?? 0);
   // The newest reports: the dashboard shows the top three.
   const reportPages = useReportList();
   const recentItems = reportPages.data?.pages.flatMap((page) => page.items) ?? [];
@@ -343,7 +353,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
 
       <ListRow p={p} icon="medkit-outline" title="Medication check" text="See if your medicines interact. Scan a pack or check any two." onPress={() => router.push('/(app)/medication-interactions')} />
 
-      <ListRow p={p} icon="people-outline" title="Social" text="Share your progress and cheer others on." onPress={() => router.push(SOCIAL_HOME)} />
+      <ListRow p={p} icon="people-outline" title="Social" text={socialNew > 0 ? `${socialNew} new: kudos, comments and requests` : 'Share your progress and cheer others on.'} badge={socialNew} onPress={() => router.push(SOCIAL_HOME)} />
       </View>
 
       <View style={styles.block}>
@@ -477,6 +487,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  rowBadge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  rowBadgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   unreadDot: {
     position: 'absolute',
     top: 9,

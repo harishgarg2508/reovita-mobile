@@ -18,6 +18,7 @@ import Svg, { Circle, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'r
 
 import { isApiError, queryKeys } from '@shared/api';
 import { tapConfirm, tapSelection, useScrollToTopOnFocus } from '@shared/lib';
+import { ConfirmDialog } from '@shared/ui';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
@@ -306,6 +307,10 @@ function ProfileHeader({
   const [bioOpen, setBioOpen] = useState(false);
   const avatarPicture = useSocialPicture(profile.handle, 'avatar', profile.has_avatar);
   const setAvatar = useSetPicture('avatar');
+  const coverPicture = useSocialPicture(profile.handle, 'cover', profile.has_cover);
+  const setCover = useSetPicture('cover');
+  // Which photo is waiting for "Are you sure?" before it is removed. The edit drawer stays open under the question.
+  const [removing, setRemoving] = useState<'avatar' | 'cover' | null>(null);
   const [pictureError, setPictureError] = useState<string | null>(null);
   // Tapping the round photo asks what to do: see it, or change it (my own). The viewer shows the whole picture.
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -319,6 +324,16 @@ function ProfileHeader({
   }
   const hasAvatarPhoto = profile.has_avatar && !!avatarPicture.data;
   const canTapAvatar = hasAvatarPhoto || profile.is_me;
+
+  async function changeCover() {
+    setPictureError(null);
+    try {
+      const picked = await pickPicture();
+      if (picked) setCover.set.mutate({ handle: profile.handle, photo: picked });
+    } catch (err) {
+      setPictureError((err as Error).message);
+    }
+  }
 
   async function changeAvatar() {
     setPictureError(null);
@@ -511,7 +526,46 @@ function ProfileHeader({
 
       {/* Edit profile: the name, the line about you and the photos, in a drawer that swipes down to close. */}
       <BottomSheet visible={editing} onClose={() => setEditing(false)}>
-      <View style={styles.editSection}>
+        <View style={styles.editSection}>
+          <View style={styles.editTitleRow}>
+            <Ionicons name="create-outline" size={20} color={p.accent} />
+            <Text style={[styles.editTitle, { color: p.text }]}>Edit profile</Text>
+          </View>
+
+          {/* The cover, with its own change and remove buttons, and the profile picture over its lower edge. */}
+          <View style={[styles.editCover, { backgroundColor: p.accentSoft }]}>
+            {coverPicture.data && profile.has_cover ? <Image source={{ uri: coverPicture.data }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Cover" /> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Change cover" disabled={setCover.set.isPending} onPress={() => void changeCover()} style={styles.coverButton}>
+              {setCover.set.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="image-outline" size={15} color="#FFFFFF" />}
+              <Text style={styles.coverButtonText}>Change cover</Text>
+            </Pressable>
+            {profile.has_cover ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Remove cover" disabled={setCover.remove.isPending} onPress={() => setRemoving('cover')} style={styles.coverTrash}>
+                {setCover.remove.isPending ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="trash-outline" size={17} color="#FFFFFF" />}
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={styles.editAvatarRow}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Change profile picture" disabled={setAvatar.set.isPending} onPress={() => void changeAvatar()} style={[styles.editAvatar, { borderColor: p.bg, backgroundColor: p.accentSoft }]}>
+              {hasAvatarPhoto ? (
+                <Image source={{ uri: avatarPicture.data }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Profile picture" />
+              ) : (
+                <Text style={[styles.editAvatarLetter, { color: p.accent }]}>{profile.handle.slice(0, 1).toUpperCase()}</Text>
+              )}
+            </Pressable>
+            <Pressable accessibilityRole="button" disabled={setAvatar.set.isPending} onPress={() => void changeAvatar()} style={[styles.changePicture, { backgroundColor: p.accentSoft }]}>
+              <Ionicons name="camera-outline" size={16} color={p.accent} />
+              <Text style={[styles.changePictureText, { color: p.accent }]}>Change picture</Text>
+            </Pressable>
+            {profile.has_avatar ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Remove profile picture" disabled={setAvatar.remove.isPending} onPress={() => setRemoving('avatar')} style={[styles.pictureTrash, { backgroundColor: p.redSoft }]}>
+                {setAvatar.remove.isPending ? <ActivityIndicator size="small" color={p.red} /> : <Ionicons name="trash-outline" size={17} color={p.red} />}
+              </Pressable>
+            ) : null}
+          </View>
+          {pictureError ? <Text style={styles.pictureError}>{pictureError}</Text> : null}
+
+          <Text style={[styles.editLabel, { color: p.text }]}>Name</Text>
           <TextInput
             value={name}
             onChangeText={setName}
@@ -521,17 +575,21 @@ function ProfileHeader({
             style={[styles.inputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
             accessibilityLabel="Display name"
           />
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            maxLength={160}
-            multiline
-            placeholder="A line about you..."
-            placeholderTextColor={p.muted}
-            style={[styles.inputField, styles.bioInputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
-            accessibilityLabel="Bio"
-          />
-          {pictureError ? <Text style={styles.pictureError}>{pictureError}</Text> : null}
+          <Text style={[styles.editLabel, { color: p.text }]}>Bio</Text>
+          <View>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              maxLength={160}
+              multiline
+              placeholder="A line about you..."
+              placeholderTextColor={p.muted}
+              style={[styles.inputField, styles.bioInputField, { color: p.text, borderColor: p.border, backgroundColor: p.input }]}
+              accessibilityLabel="Bio"
+            />
+            <Text style={[styles.bioCount, { color: p.muted }]}>{bio.length} / 160</Text>
+          </View>
+
           <View style={styles.actionsRow}>
             <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={[styles.actionPillBtn, { borderColor: p.border, borderWidth: 1 }]}>
               <Text style={[styles.actionPillText, { color: p.text }]}>Cancel</Text>
@@ -544,10 +602,19 @@ function ProfileHeader({
                 update.mutate({ displayName: name, bio }, { onSuccess: () => setEditing(false) });
               }}
               style={[styles.actionPillBtn, { backgroundColor: p.accent }]}>
-              {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save</Text>}
+              {update.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.actionPillText, { color: '#FFFFFF' }]}>Save changes</Text>}
             </Pressable>
           </View>
         </View>
+        <ConfirmDialog
+          visible={removing !== null}
+          title={removing === 'cover' ? 'Remove cover?' : 'Remove profile picture?'}
+          message={removing === 'cover' ? 'Your cover picture is removed from your profile.' : 'Your profile picture is removed. Your profile shows the default picture again.'}
+          confirmLabel="Remove"
+          busy={setAvatar.remove.isPending || setCover.remove.isPending}
+          onConfirm={() => (removing === 'cover' ? setCover.remove : setAvatar.remove).mutate(profile.handle, { onSettled: () => setRemoving(null) })}
+          onCancel={() => setRemoving(null)}
+        />
       </BottomSheet>
 
       <BottomSheet visible={avatarMenuOpen} onClose={() => setAvatarMenuOpen(false)}>
@@ -800,8 +867,21 @@ const styles = StyleSheet.create({
   editSection: {
     alignSelf: 'stretch',
     gap: 10,
-    marginTop: 14,
   },
+  editTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  editTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 18 },
+  editCover: { height: 120, borderRadius: 16, overflow: 'hidden' },
+  coverButton: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 16, backgroundColor: 'rgba(15,27,45,0.62)' },
+  coverButtonText: { color: '#FFFFFF', fontSize: 12.5, fontFamily: 'Poppins_600SemiBold' },
+  coverTrash: { position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15,27,45,0.62)' },
+  editAvatarRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: -44, paddingHorizontal: 12 },
+  editAvatar: { width: 88, height: 88, borderRadius: 44, borderWidth: 4, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  editAvatarLetter: { fontFamily: 'Poppins_700Bold', fontSize: 34 },
+  pictureTrash: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  changePicture: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 18, marginBottom: 6 },
+  changePictureText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  editLabel: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, marginTop: 4 },
+  bioCount: { position: 'absolute', right: 12, bottom: 8, fontSize: 11.5 },
   inputField: {
     borderWidth: 1,
     borderRadius: 14,
