@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '@shared/ui/theme';
@@ -7,12 +8,16 @@ import type { FridgeScanResult } from '../model/food-scan.types';
 
 // The answer of Scan My Fridge: the food that was seen, what to eat first, a few simple meals made from it (and the few things each one still needs),
 // and a hint or two for the next shop. The model cannot know allergies, so the note and the disclaimer say to check for yourself.
-export function FridgeResultView({ result }: { result: FridgeScanResult }) {
+// thumb is the small photo of the fridge, shown at the right of the first title.
+export function FridgeResultView({ result, thumb }: { result: FridgeScanResult; thumb?: ReactNode }) {
   const p = usePalette();
   return (
     <View style={styles.wrap}>
       <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
-        <Text style={[styles.section, { color: p.text }]}>What I can see</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.section, styles.titleText, { color: p.text }]}>What I can see</Text>
+          {thumb ? <View style={styles.thumb}>{thumb}</View> : null}
+        </View>
         <View style={styles.chips}>
           {result.ingredients.map((item, index) => (
             <View key={`${item.name}-${index}`} style={[styles.chip, { backgroundColor: p.accentSoft }]}>
@@ -56,6 +61,9 @@ export function FridgeResultView({ result }: { result: FridgeScanResult }) {
 }
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  titleText: { flex: 1 },
+  thumb: { width: 72, height: 72, borderRadius: 16, overflow: 'hidden' },
   wrap: { gap: 12 },
   card: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 8 },
   section: { fontSize: 16, fontWeight: '800' },

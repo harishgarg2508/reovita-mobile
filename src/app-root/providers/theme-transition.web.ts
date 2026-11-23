@@ -64,3 +64,8 @@ const play: Play = (_next, origin, apply) => {
 export function useThemeTransition(): Play {
   return play;
 }
+
+// The web draws the change with the browser's View Transitions, so it needs no overlay.
+export function ThemeTransitionOverlay(): null {
+  return null;
+}

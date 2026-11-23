@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '@shared/ui/theme';
@@ -10,15 +11,19 @@ const CONFIDENCE_LABELS: Record<MealScanResult['confidence'], string> = { low: '
 
 // The answer of Scan My Meal: the dish, an estimate of its calories and protein, carbohydrate and fat, what is on the plate, how it sits in the day, and a
 // few small tips. The amounts are estimates from a photo, and the note and the disclaimer say so.
-export function MealResultView({ result }: { result: MealScanResult }) {
+// thumb is the small photo of the meal, shown at the right of the dish name.
+export function MealResultView({ result, thumb }: { result: MealScanResult; thumb?: ReactNode }) {
   const p = usePalette();
   return (
     <View style={styles.wrap}>
-      <View style={styles.head}>
-        <Text style={[styles.dish, { color: p.text }]}>{result.dish_name}</Text>
-        <View style={[styles.chip, { backgroundColor: p.accentSoft }]}>
-          <Text style={[styles.chipText, { color: p.accent }]}>{CONFIDENCE_LABELS[result.confidence]}</Text>
+      <View style={styles.headRow}>
+        <View style={styles.head}>
+          <Text style={[styles.dish, { color: p.text }]}>{result.dish_name}</Text>
+          <View style={[styles.chip, { backgroundColor: p.accentSoft }]}>
+            <Text style={[styles.chipText, { color: p.accent }]}>{CONFIDENCE_LABELS[result.confidence]}</Text>
+          </View>
         </View>
+        {thumb ? <View style={styles.thumb}>{thumb}</View> : null}
       </View>
 
       <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
@@ -82,7 +87,10 @@ function Macro({ label, value }: { label: string; value: number }) {
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  head: { gap: 8 },
+  // The name and its chip on the left, the small photo on the right, 16 apart.
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  head: { flex: 1, minWidth: 0, gap: 8, alignItems: 'flex-start' },
+  thumb: { width: 84, height: 84, borderRadius: 18, overflow: 'hidden' },
   dish: { fontSize: 22, fontWeight: '800' },
   chip: { alignSelf: 'flex-start', paddingHorizontal: 10, height: 24, borderRadius: 12, justifyContent: 'center' },
   chipText: { fontSize: 12, fontWeight: '700' },

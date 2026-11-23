@@ -204,7 +204,7 @@ export function ScanScreen({ kind }: { kind: FoodScanKind }) {
                 <Pressable accessibilityRole="button" onPress={() => { scan.reset(); setScanning(photo); setChosen(null); scan.scan(photo); }} style={[styles.primary, { backgroundColor: p.accent }]}>
                   <Text style={styles.primaryText}>{copy.cta}</Text>
                 </Pressable>
-                <Pressable accessibilityRole="button" onPress={() => { scan.reset(); setScanning(null); setChosen(null); }} style={[styles.secondary, { borderColor: p.border }]}>
+                <Pressable accessibilityRole="button" onPress={() => { scan.reset(); setScanning(null); setChosen(null); }} style={[styles.secondary, { borderColor: p.accent, borderWidth: 1.5 }]}>
                   <Text style={[styles.secondaryText, { color: p.text }]}>Use a different photo</Text>
                 </Pressable>
               </>
@@ -214,7 +214,7 @@ export function ScanScreen({ kind }: { kind: FoodScanKind }) {
                   <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
                   <Text style={styles.primaryText}>Take a photo</Text>
                 </Pressable>
-                <Pressable accessibilityRole="button" onPress={() => void choose()} style={[styles.secondary, { borderColor: p.border }]}>
+                <Pressable accessibilityRole="button" onPress={() => void choose()} style={[styles.secondary, { borderColor: p.accent, borderWidth: 1.5 }]}>
                   <Ionicons name="image-outline" size={18} color={p.text} />
                   <Text style={[styles.secondaryText, { color: p.text }]}>Choose a photo</Text>
                 </Pressable>

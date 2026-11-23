@@ -43,8 +43,11 @@ export function ScanResultScreen({ id }: { id: string }) {
       {scan.isError ? <Text style={[styles.note, { color: p.muted }]}>This scan is not available. It may have been deleted.</Text> : null}
       {scan.data ? (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
-          {scan.data.has_photo ? <ScanPhoto id={id} /> : null}
-          {scan.data.kind === 'fridge' ? <FridgeResultView result={scan.data.result as FridgeScanResult} /> : <MealResultView result={scan.data.result as MealScanResult} />}
+          {scan.data.kind === 'fridge' ? (
+            <FridgeResultView result={scan.data.result as FridgeScanResult} thumb={scan.data.has_photo ? <ScanPhoto id={id} /> : undefined} />
+          ) : (
+            <MealResultView result={scan.data.result as MealScanResult} thumb={scan.data.has_photo ? <ScanPhoto id={id} /> : undefined} />
+          )}
         </ScrollView>
       ) : null}
 
@@ -61,19 +64,19 @@ export function ScanResultScreen({ id }: { id: string }) {
   );
 }
 
-// The photo that was scanned, above the answer. A grey box with a spinner holds its place while it loads.
+// The photo that was scanned, as a small picture next to the name in the answer. A grey box with a spinner holds its place while it loads.
 function ScanPhoto({ id }: { id: string }) {
   const p = usePalette();
   const photo = useFoodScanPhoto(id, true);
   return (
-    <View style={[styles.photoBox, { backgroundColor: p.surface, borderColor: p.border }]}>
+    <View style={[styles.photoBox, { backgroundColor: p.surface }]}>
       {photo.data ? <Image source={{ uri: photo.data }} style={styles.photo} resizeMode="cover" accessibilityLabel="The photo you scanned" /> : photo.isError ? null : <ActivityIndicator color={p.accent} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  photoBox: { width: '100%', height: 220, borderRadius: 18, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  photoBox: { width: '100%', height: '100%', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   photo: { width: '100%', height: '100%' },
   screen: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },

@@ -7,7 +7,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isApiError } from '@shared/api';
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 
 import {
   createMedicalHistory,
@@ -21,6 +21,50 @@ import {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// What a field may hold. The same limits are checked here before anything is sent.
+const TITLE_MIN = 2;
+const TITLE_MAX = 80;
+const NAME_MAX = 80;
+const DOSE_MAX = 30;
+const MAX_MEDICINES = 10;
+const MAX_FILES = 10;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const EARLIEST_YEAR = 1900;
+
+// The message under each field that failed. A field with no message is fine.
+interface FieldErrors {
+  title?: string;
+  date?: string;
+  time?: string;
+  medicines?: string;
+}
+
+// Checks the whole entry. A date is a real calendar day, not before 1900 and not in the future; a time is a real clock time, and not in the future when the
+// date is today; a medicine has a name when it has a dose, and a name appears once.
+function checkEntry(input: { title: string; date: string; time: string; medicines: { name: string; dose: string }[] }, now: Date): FieldErrors {
+  const errors: FieldErrors = {};
+  const title = input.title.trim();
+  if (title.length < TITLE_MIN) errors.title = `Give the entry a title of at least ${TITLE_MIN} characters.`;
+  else if (title.length > TITLE_MAX) errors.title = `Keep the title under ${TITLE_MAX} characters.`;
+
+  const today = isoOf(now);
+  if (!DATE.test(input.date) || Number.isNaN(dateFrom(input.date).getTime()) || isoOf(dateFrom(input.date)) !== input.date) errors.date = 'Choose a real date.';
+  else if (Number(input.date.slice(0, 4)) < EARLIEST_YEAR) errors.date = `The date cannot be before ${EARLIEST_YEAR}.`;
+  else if (input.date > today) errors.date = 'The date cannot be in the future.';
+
+  if (input.time) {
+    if (!TIME.test(input.time)) errors.time = 'Enter the time as hours and minutes.';
+    else if (input.date === today && input.time > clockOf(now)) errors.time = 'The time cannot be in the future.';
+  }
+
+  const named = input.medicines.filter((m) => m.name.trim());
+  if (input.medicines.some((m) => !m.name.trim() && m.dose.trim())) errors.medicines = 'A dose needs the name of the medicine.';
+  else if (new Set(named.map((m) => m.name.trim().toLowerCase())).size !== named.length) errors.medicines = 'Each medicine is listed once.';
+  else if (named.length > MAX_MEDICINES) errors.medicines = `Add up to ${MAX_MEDICINES} medicines.`;
+  return errors;
+}
 
 // Local calendar date as YYYY-MM-DD (no UTC shift).
 function isoOf(d: Date): string {
@@ -87,8 +131,8 @@ export function MedicalHistoryForm({
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Required fields that are still empty, shown with a red border.
-  const [invalid, setInvalid] = useState<{ title?: boolean; date?: boolean }>({});
+  // The fields that failed a check, each with its message under it and a red border.
+  const [invalid, setInvalid] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
 
   function onDateChange(event: DateTimePickerEvent, selected?: Date) {
@@ -110,7 +154,24 @@ export function MedicalHistoryForm({
     });
     if (picked.canceled || picked.assets.length === 0) return;
     const asset = picked.assets[0];
-    setPending((all) => [...all, { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/octet-stream', kind }]);
+    const type = asset.mimeType ?? 'application/octet-stream';
+    if (!FILE_TYPES.includes(type)) {
+      setError('Only PDF, JPEG or PNG files can be added.');
+      return;
+    }
+    if (asset.size && asset.size > MAX_FILE_BYTES) {
+      setError('That file is over 20 MB. Choose a smaller one.');
+      return;
+    }
+    if (files.length + pending.length >= MAX_FILES) {
+      setError(`Add up to ${MAX_FILES} files to one entry.`);
+      return;
+    }
+    if (pending.some((f) => f.name === asset.name) || files.some((f) => f.name === asset.name)) {
+      setError('A file with that name is already added.');
+      return;
+    }
+    setPending((all) => [...all, { uri: asset.uri, name: asset.name, type, kind }]);
   }
 
   // Puts the text fields back to what was saved (or blank for a new entry). Files already saved are kept,
@@ -139,10 +200,10 @@ export function MedicalHistoryForm({
 
   async function save() {
     setError(null);
-    // Required fields are outlined in red instead of a message at the bottom.
-    const missing = { title: !title.trim(), date: !DATE.test(date) };
-    setInvalid(missing);
-    if (missing.title || missing.date) return;
+    // Each failed field gets a red border and its message under it.
+    const problems = checkEntry({ title, date, time, medicines }, new Date());
+    setInvalid(problems);
+    if (Object.keys(problems).length > 0) return;
     const body = {
       title: title.trim(),
       occurred_on: date,
@@ -188,13 +249,16 @@ export function MedicalHistoryForm({
           <TextInput
             value={title}
             onChangeText={(v) => {
-              setTitle(v);
-              if (invalid.title) setInvalid((s) => ({ ...s, title: false }));
+              setTitle(v.slice(0, TITLE_MAX));
+              if (invalid.title) setInvalid((s) => ({ ...s, title: undefined }));
             }}
-            placeholder="Fever"
+            maxLength={TITLE_MAX}
+            placeholder="What happened, for example a check-up or a fever"
             placeholderTextColor={p.muted}
-            style={[styles.input, invalid.title && styles.inputError]}
+            accessibilityLabel="Title"
+            style={[styles.input, invalid.title ? styles.inputError : null]}
           />
+          <FieldMessage text={invalid.title} styles={styles} />
 
           <Text style={styles.label}>Date</Text>
           {Platform.OS === 'web' ? (
@@ -204,16 +268,21 @@ export function MedicalHistoryForm({
               aria-label="Date"
               value={date}
               max={isoOf(new Date())}
-              onChange={(e) => setDate(e.target.value)}
+              min={`${EARLIEST_YEAR}-01-01`}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (invalid.date) setInvalid((s) => ({ ...s, date: undefined }));
+              }}
               onClick={openWebPicker}
-              style={webField(p, invalid.date)}
+              style={webField(p, !!invalid.date)}
             />
           ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel="Choose date" onPress={() => setShowDate((open) => !open)} style={[styles.input, styles.row, invalid.date && styles.inputError]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Choose date" onPress={() => setShowDate((open) => !open)} style={[styles.input, styles.row, invalid.date ? styles.inputError : null]}>
             <Text style={styles.valueText}>{displayDate(date)}</Text>
             <Ionicons name="calendar-outline" size={18} color={p.accent} />
           </Pressable>
           )}
+          <FieldMessage text={invalid.date} styles={styles} />
           {Platform.OS !== 'web' && showDate ? (
             <DateTimePicker
               value={dateFrom(date)}
@@ -226,12 +295,22 @@ export function MedicalHistoryForm({
 
           <View style={styles.labelRow}>
             <Text style={styles.label}>Time</Text>
-            <Text style={styles.optional}>Optional</Text>
+            <Text style={styles.optional}>optional</Text>
           </View>
           {Platform.OS === 'web' ? (
-            <input type="time" aria-label="Time" value={time} onChange={(e) => setTime(e.target.value)} onClick={openWebPicker} style={webField(p, false)} />
+            <input
+              type="time"
+              aria-label="Time"
+              value={time}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (invalid.time) setInvalid((s) => ({ ...s, time: undefined }));
+              }}
+              onClick={openWebPicker}
+              style={webField(p, !!invalid.time)}
+            />
           ) : (
-          <View style={[styles.input, styles.row]}>
+          <View style={[styles.input, styles.row, invalid.time ? styles.inputError : null]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Choose time" onPress={() => setShowTime((open) => !open)} style={styles.rowGrow}>
               <Text style={time ? styles.valueText : styles.placeholderText}>{time || 'Add a time'}</Text>
             </Pressable>
@@ -244,39 +323,51 @@ export function MedicalHistoryForm({
             )}
           </View>
           )}
+          <FieldMessage text={invalid.time} styles={styles} />
           {Platform.OS !== 'web' && showTime ? (
             <DateTimePicker value={timeFrom(time)} mode="time" is24Hour display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onTimeChange} />
           ) : null}
 
           <View style={styles.labelRow}>
             <Text style={styles.label}>Medicines</Text>
-            <Text style={styles.optional}>Optional</Text>
+            <Text style={styles.optional}>optional</Text>
           </View>
           {medicines.map((m, i) => (
             <View key={i} style={styles.medRow}>
               <TextInput
                 value={m.name}
-                onChangeText={(v) => setMedicines((all) => all.map((x, j) => (j === i ? { ...x, name: v } : x)))}
+                onChangeText={(v) => {
+                  setMedicines((all) => all.map((x, j) => (j === i ? { ...x, name: v.slice(0, NAME_MAX) } : x)));
+                  if (invalid.medicines) setInvalid((s) => ({ ...s, medicines: undefined }));
+                }}
+                maxLength={NAME_MAX}
                 placeholder="Name"
                 placeholderTextColor={p.muted}
                 style={[styles.input, styles.flex]}
               />
               <TextInput
                 value={m.dose}
-                onChangeText={(v) => setMedicines((all) => all.map((x, j) => (j === i ? { ...x, dose: v } : x)))}
+                onChangeText={(v) => {
+                  setMedicines((all) => all.map((x, j) => (j === i ? { ...x, dose: v.slice(0, DOSE_MAX) } : x)));
+                  if (invalid.medicines) setInvalid((s) => ({ ...s, medicines: undefined }));
+                }}
+                maxLength={DOSE_MAX}
                 placeholder="Dose"
                 placeholderTextColor={p.muted}
                 style={[styles.input, styles.doseInput]}
               />
             </View>
           ))}
-          <Pressable accessibilityRole="button" onPress={() => setMedicines((all) => [...all, { name: '', dose: '' }])} style={styles.linkBtn}>
-            <Text style={styles.linkText}>+ Add another medicine</Text>
-          </Pressable>
+          <FieldMessage text={invalid.medicines} styles={styles} />
+          {medicines.length < MAX_MEDICINES ? (
+            <Pressable accessibilityRole="button" onPress={() => setMedicines((all) => [...all, { name: '', dose: '' }])} style={styles.linkBtn}>
+              <Text style={styles.linkText}>Add another medicine</Text>
+            </Pressable>
+          ) : null}
 
           <View style={styles.labelRow}>
             <Text style={styles.label}>Reports and prescriptions</Text>
-            <Text style={styles.optional}>Optional</Text>
+            <Text style={styles.optional}>optional</Text>
           </View>
           {files.map((file) => (
             <View key={file.id} style={styles.fileRow}>
@@ -284,7 +375,7 @@ export function MedicalHistoryForm({
               <Text style={[styles.fileName, styles.flex]} numberOfLines={1}>
                 {file.name}
               </Text>
-              <Text style={styles.kindPill}>{file.kind === 'report' ? 'Report' : 'Medicine'}</Text>
+              <Text style={styles.kindPill}>{file.kind === 'report' ? 'Report' : 'Prescription'}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${file.name}`} onPress={() => void removeSavedFile(file)} hitSlop={8}>
                 <Ionicons name="trash-outline" size={16} color={p.red} />
               </Pressable>
@@ -296,7 +387,7 @@ export function MedicalHistoryForm({
               <Text style={[styles.fileName, styles.flex]} numberOfLines={1}>
                 {file.name}
               </Text>
-              <Text style={styles.kindPill}>{file.kind === 'report' ? 'Report' : 'Medicine'}</Text>
+              <Text style={styles.kindPill}>{file.kind === 'report' ? 'Report' : 'Prescription'}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${file.name}`}
@@ -316,7 +407,7 @@ export function MedicalHistoryForm({
               <Text style={styles.fileBtnText}>Add prescription</Text>
             </Pressable>
           </View>
-          <Text style={styles.hint}>PDF, JPEG or PNG, up to 20 MB each. Files are uploaded when you save.</Text>
+          <Text style={styles.hint}>PDF, JPEG or PNG, up to 20 MB each and {MAX_FILES} files. Files are uploaded when you save.</Text>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
@@ -334,6 +425,15 @@ export function MedicalHistoryForm({
   );
 }
 
+// The reason a field failed, under it. Nothing shows when the field is fine.
+function FieldMessage({ text, styles }: { text?: string; styles: ReturnType<typeof makeStyles> }) {
+  return text ? (
+    <Text accessibilityRole="alert" style={styles.fieldError}>
+      {text}
+    </Text>
+  ) : null;
+}
+
 // Opens the browser's calendar or clock when the field itself is clicked, not only its icon.
 // showPicker is supported in current Chromium, Edge, Firefox and Safari; older browsers keep the icon behaviour.
 function openWebPicker(e: { currentTarget: HTMLInputElement }) {
@@ -347,13 +447,13 @@ function openWebPicker(e: { currentTarget: HTMLInputElement }) {
 // Plain browser input styled like the app's inputs. Used on web, where the native date and time pickers do not exist.
 function webField(p: Palette, invalid: boolean | undefined): CSSProperties {
   return {
-    height: 44,
+    height: 50,
     width: '100%',
     boxSizing: 'border-box',
-    borderRadius: 12,
+    borderRadius: 14,
     border: `${invalid ? 1.5 : 1}px solid ${invalid ? p.red : p.border}`,
-    background: p.surface,
-    padding: '0 12px',
+    background: p.bg,
+    padding: '0 14px',
     fontSize: 15,
     color: p.textStrong,
     fontFamily: 'inherit',
@@ -364,57 +464,41 @@ function makeStyles(p: Palette) {
   return StyleSheet.create({
     dialog: { flex: 1, backgroundColor: p.bg },
     scroll: { flex: 1 },
-    dialogContent: { padding: 18, gap: 14 },
+    dialogContent: { padding: Gap.edge, gap: Gap.group },
     dialogHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    headActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    dialogTitle: { fontSize: 22, fontWeight: '800', color: p.textStrong },
-    closeText: { fontSize: 14, fontWeight: '700', color: p.accent },
-    form: { backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 14, gap: 8 },
-    label: { fontSize: 12.5, color: p.muted },
-    labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-    optional: {
-      fontSize: 10.5,
-      fontWeight: '700',
-      color: p.muted,
-      backgroundColor: p.surface,
-      borderWidth: 1,
-      borderColor: p.border,
-      paddingHorizontal: 7,
-      paddingVertical: 1,
-      borderRadius: 8,
-      overflow: 'hidden',
-    },
-    input: { height: 44, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: p.surface, paddingHorizontal: 12, fontSize: 15, color: p.textStrong },
+    headActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+    dialogTitle: { ...Type.display, fontSize: 26, lineHeight: 32, color: p.textStrong },
+    closeText: { ...Type.label, color: p.accent },
+    // The form is the page: no frame around it. Fields are spaced, and each label sits over its field.
+    form: { gap: 6 },
+    label: { ...Type.label, color: p.textStrong },
+    labelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: Gap.inner },
+    optional: { ...Type.small, color: p.muted },
+    input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.bg, paddingHorizontal: 14, ...Type.body, color: p.textStrong },
     inputError: { borderColor: p.red, borderWidth: 1.5 },
+    fieldError: { ...Type.small, color: p.red },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     rowGrow: { flex: 1, justifyContent: 'center' },
-    valueText: { fontSize: 15, color: p.textStrong },
-    placeholderText: { fontSize: 15, color: p.muted },
+    valueText: { ...Type.body, color: p.textStrong },
+    placeholderText: { ...Type.body, color: p.muted },
     medRow: { flexDirection: 'row', gap: 8 },
     flex: { flex: 1 },
-    doseInput: { width: 96 },
-    linkBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
-    linkText: { fontSize: 13, fontWeight: '700', color: p.accent },
-    fileRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: p.surface, borderWidth: 1, borderColor: p.border },
-    fileName: { fontSize: 13.5, color: p.textStrong },
-    kindPill: { fontSize: 11, fontWeight: '700', color: p.accent, backgroundColor: p.accentSoft, paddingHorizontal: 7, paddingVertical: 1, borderRadius: 8, overflow: 'hidden' },
-    fileButtons: { flexDirection: 'row', gap: 8, marginTop: 4 },
-    fileBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: p.accent },
-    fileBtnText: { fontSize: 13, fontWeight: '700', color: p.accent },
-    hint: { fontSize: 12, color: p.muted },
-    error: { fontSize: 13, color: p.red },
-    footer: {
-      flexDirection: 'row',
-      gap: 10,
-      paddingHorizontal: 18,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: p.border,
-      backgroundColor: p.card,
-    },
-    cancelBtn: { flex: 1, height: 46, borderRadius: 14, borderWidth: 1, borderColor: p.border, alignItems: 'center', justifyContent: 'center' },
-    cancelText: { fontSize: 15, fontWeight: '600', color: p.textStrong },
-    saveBtn: { flex: 1, height: 46, borderRadius: 14, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
-    saveText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+    doseInput: { width: 104 },
+    linkBtn: { alignSelf: 'flex-start', paddingVertical: 6 },
+    linkText: { ...Type.label, color: p.accent },
+    // A file is a row on a rule, with its kind as plain text.
+    fileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: Rule, borderBottomColor: p.border },
+    fileName: { ...Type.body, color: p.textStrong },
+    kindPill: { ...Type.small, color: p.muted },
+    fileButtons: { flexDirection: 'row', gap: 10, marginTop: 6 },
+    fileBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 23, borderWidth: 1.5, borderColor: p.accent },
+    fileBtnText: { ...Type.label, color: p.accent },
+    hint: { ...Type.small, color: p.muted, marginTop: 4 },
+    error: { ...Type.small, color: p.red },
+    footer: { flexDirection: 'row', gap: 10, paddingHorizontal: Gap.edge, paddingTop: 12, borderTopWidth: Rule, borderTopColor: p.border, backgroundColor: p.bg },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center' },
+    cancelText: { ...Type.bodyStrong, color: p.accent },
+    saveBtn: { flex: 1, height: 52, borderRadius: 26, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
+    saveText: { ...Type.bodyStrong, color: '#FFFFFF' },
   });
 }

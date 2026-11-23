@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { tapConfirm, tapSelection } from '@shared/lib';
-import { AnimatedDock, type DockItem } from '@shared/ui/bottom-dock';
+import { tapConfirm, tapSelection, useKeyboardVisible } from '@shared/lib';
+import { AnimatedDock, type BottomTabBarProps, type DockItem } from '@shared/ui/bottom-dock';
 import { useMyHandle } from '@entities/social';
 
-import { SOCIAL_HOME, socialProfileHref, socialRoute } from '../model/routes';
+import { socialRoute } from '../model/routes';
 
 // The icon of a dock item: the outline when closed, the filled one when its screen is open.
 function iconFor(name: keyof typeof Ionicons.glyphMap, filled: keyof typeof Ionicons.glyphMap): DockItem['renderIcon'] {
@@ -15,43 +15,41 @@ function iconFor(name: keyof typeof Ionicons.glyphMap, filled: keyof typeof Ioni
   };
 }
 
-export type SocialDockItem = 'home' | 'search' | 'move' | 'profile';
-
 // Height the dock takes at the bottom of a screen, so a list can leave room under its last item.
 export const SOCIAL_DOCK_SPACE = 96;
 
-// The bottom dock of Social: Home, Search, [Post], Move, Profile. It is the same dock as the main tabs (the same shared dock, so the same
-// look, crest, sliding indicator and button animation), with Post as the centre button. Switching between Home, Search, Move and Profile
-// replaces the screen instead of stacking a new one, so Back always leaves Social. Post opens the composer on top. It is not shown to a person
-// who has not created a social account yet: there is nothing to go to.
-export function SocialDock({ active }: { active?: SocialDockItem }) {
+// The names of the tab screens, in the order of the dock: two left of the centre button, two right of it.
+const TABS = ['index', 'search', 'move', 'me'] as const;
+
+// The one bottom dock of Social: Home, Search, [Post], Move, Profile. It is the tab bar of the Social tabs (app/(app)/social/(tabs)), so it is drawn once, by
+// the layout, and stays in place while the screens change under it. It is the same shared dock as the main tabs (the same look, crest, sliding indicator and
+// button animation), with Post as the centre button. It is not shown to a person who has not created a social account yet, nor while the keyboard is open.
+export function SocialTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMyHandle();
-  // No dock until the person has agreed to the terms (no account yet, or the terms changed and must be agreed to again).
-  if (!me.joined || me.needsJoin) return null;
-  const handle = me.data?.handle ?? '';
+  const keyboard = useKeyboardVisible();
+  if (!me.joined || me.needsJoin || keyboard) return null;
 
-  const go = (item: SocialDockItem) => {
-    if (item === active) return;
+  const activeName = state.routes[state.index]?.name ?? 'index';
+  const go = (name: (typeof TABS)[number]) => {
+    if (name === activeName) return;
     tapSelection();
-    if (item === 'home') router.replace(SOCIAL_HOME);
-    else if (item === 'search') router.replace(socialRoute('/social/search'));
-    else if (item === 'move') router.replace(socialRoute('/social/move'));
-    else router.replace(socialProfileHref(handle));
+    const route = state.routes.find((r: { name: string }) => r.name === name);
+    if (!route) return;
+    const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) navigateToTab(route.key);
   };
 
   const left: DockItem[] = [
-    { key: 'home', label: 'Home', renderIcon: iconFor('home-outline', 'home'), focused: active === 'home', onPress: () => go('home') },
-    { key: 'search', label: 'Search', renderIcon: iconFor('search-outline', 'search'), focused: active === 'search', onPress: () => go('search') },
+    { key: 'home', label: 'Home', renderIcon: iconFor('home-outline', 'home'), focused: activeName === 'index', onPress: () => go('index') },
+    { key: 'search', label: 'Search', renderIcon: iconFor('search-outline', 'search'), focused: activeName === 'search', onPress: () => go('search') },
   ];
   const right: DockItem[] = [
-    { key: 'move', label: 'Move', renderIcon: iconFor('walk-outline', 'walk'), focused: active === 'move', onPress: () => go('move') },
-    { key: 'profile', label: 'Profile', renderIcon: iconFor('person-outline', 'person'), focused: active === 'profile', onPress: () => go('profile') },
+    { key: 'move', label: 'Move', renderIcon: iconFor('walk-outline', 'walk'), focused: activeName === 'move', onPress: () => go('move') },
+    { key: 'profile', label: 'Profile', renderIcon: iconFor('person-outline', 'person'), focused: activeName === 'me', onPress: () => go('me') },
   ];
-  // The slot of the active item: 0 and 1 left of the centre button, 2 and 3 right of it. None active (another person's page): no indicator.
-  const order: SocialDockItem[] = ['home', 'search', 'move', 'profile'];
-  const activeIndex = active ? order.indexOf(active) : -1;
+  const activeIndex = TABS.indexOf(activeName as (typeof TABS)[number]);
 
   return (
     <AnimatedDock

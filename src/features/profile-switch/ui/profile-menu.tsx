@@ -18,7 +18,7 @@ import {
 
 // The list that opens from the profile card: the profiles of this account, the one in use ticked, and an "Add profile" row.
 // Choosing another profile switches to it. It shows the nickname (or "You") and the codename, never a real name.
-// onAdd opens the add-profile sheet, which the page keeps (this list closes first).
+// onAdd opens the add-profile sheet on top of this list, which stays open under it.
 export function ProfileMenu({
   onClose,
   onAdd,
@@ -71,7 +71,6 @@ export function ProfileMenu({
       <Pressable
         accessibilityRole="button"
         onPress={() => {
-          onClose();
           onAdd();
         }}
         style={[styles.row, styles.addRow]}

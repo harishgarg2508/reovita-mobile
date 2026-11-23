@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { useFormColors, type FormColors } from '../theme/form-colors';
+import { Type } from '../theme/tokens';
 
 interface ChipProps {
   label: string;
@@ -26,8 +27,8 @@ export function Chip({ label, selected, onPress }: ChipProps) {
 
 const createStyles = (colors: FormColors) =>
   StyleSheet.create({
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+    chip: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
     selected: { backgroundColor: colors.accentFill, borderColor: colors.accentFill },
-    label: { fontSize: 14, color: colors.text },
-    selectedLabel: { color: colors.onAccent, fontWeight: '600' },
+    label: { ...Type.label, color: colors.text },
+    selectedLabel: { color: colors.onAccent },
   });

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
@@ -46,6 +46,8 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
   const [reporting, setReporting] = useState<SocialComment | null>(null);
   // The comment waiting for "Are you sure?" before it is deleted.
   const [deleting, setDeleting] = useState<SocialComment | null>(null);
+  // The comment whose actions are open: a long press on it shows Report or Delete in the drawer.
+  const [acting, setActing] = useState<SocialComment | null>(null);
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
   // The threads that are open (by the id of the comment at their top).
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -56,6 +58,7 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
   function close() {
     setReporting(null);
     setDeleting(null);
+    setActing(null);
     setReplyTo(null);
     setOpen(new Set());
     setText('');
@@ -97,32 +100,12 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
     setReplyTo({ id: comment.id, rootId: comment.parent_id ?? comment.id, handle: comment.handle });
   }
 
-  const actions = { onOpenProfile: visit, onReply: answer, onReport: setReporting, onDelete: setDeleting, onLike: toggleLike };
+  const actions = { onOpenProfile: visit, onReply: answer, onActions: setActing, onLike: toggleLike };
 
   return (
     <>
-      <BottomSheet visible={post !== null && deleting === null} onClose={close} dragHandleOnly>
-        {reporting ? (
-          <View>
-            <Text style={[styles.title, { color: p.text }]}>Why are you reporting this comment?</Text>
-            {REPORT_REASONS.map((reason) => (
-              <Pressable
-                key={reason.value}
-                accessibilityRole="button"
-                onPress={() => {
-                  report.mutate({ id: reporting.id, reason: reason.value });
-                  setReporting(null);
-                }}
-                style={styles.reasonRow}>
-                <Text style={[styles.reasonText, { color: p.text }]}>{reason.label}</Text>
-              </Pressable>
-            ))}
-            <Pressable accessibilityRole="button" onPress={() => setReporting(null)} style={styles.reasonRow}>
-              <Text style={[styles.reasonText, { color: p.muted }]}>Cancel</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <>
+      <BottomSheet visible={post !== null} onClose={close} dragHandleOnly>
+        <>
             <Text style={[styles.title, { color: p.text }]}>
               Comments{post ? <Text style={{ color: p.muted, fontFamily: 'Poppins_400Regular' }}>{`  ${post.comments_count}`}</Text> : null}
             </Text>
@@ -147,6 +130,17 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
                 }}
                 maxLength={MAX_CHARS}
                 multiline
+                // Enter posts the comment. On a phone the return key is a send key; in a browser Shift and Enter still make a new line.
+                returnKeyType="send"
+                submitBehavior="submit"
+                onSubmitEditing={send}
+                onKeyPress={(e) => {
+                  const key = e.nativeEvent as unknown as { key: string; shiftKey?: boolean };
+                  if (Platform.OS === 'web' && key.key === 'Enter' && !key.shiftKey) {
+                    (e as unknown as { preventDefault?: () => void }).preventDefault?.();
+                    send();
+                  }
+                }}
                 placeholder={replyTo ? `Reply to @${replyTo.handle}` : 'Add a comment'}
                 placeholderTextColor={p.muted}
                 style={[styles.input, { color: p.text }]}
@@ -201,20 +195,77 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
               ListFooterComponent={list.isFetchingNextPage ? <ActivityIndicator color={p.accent} style={{ marginVertical: 12 }} /> : undefined}
             />
           </>
-        )}
+
+        {/* The drawers that open from a comment stack on top of the comments, which stay where they are: its actions, then the reasons for a report, then the
+            question before a delete. Each is a child of the drawer under it, which every phone can show. */}
+        <BottomSheet visible={acting !== null} onClose={() => setActing(null)}>
+          {acting ? (
+            <View>
+              <Text style={[styles.title, { color: p.text }]}>Comment by @{acting.handle}</Text>
+              {acting.is_mine ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setReporting(acting);
+                    setActing(null);
+                  }}
+                  style={styles.reasonRow}>
+                  <Text style={[styles.reasonText, { color: p.text }]}>Report comment</Text>
+                </Pressable>
+              )}
+              {acting.can_delete ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setDeleting(acting);
+                    setActing(null);
+                  }}
+                  style={styles.reasonRow}>
+                  <Text style={[styles.reasonText, { color: p.red }]}>Delete comment</Text>
+                </Pressable>
+              ) : null}
+              <Pressable accessibilityRole="button" onPress={() => setActing(null)} style={styles.reasonRow}>
+                <Text style={[styles.reasonText, { color: p.muted }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </BottomSheet>
+
+        <BottomSheet visible={reporting !== null} onClose={() => setReporting(null)}>
+          {reporting ? (
+            <View>
+              <Text style={[styles.title, { color: p.text }]}>Why are you reporting this comment?</Text>
+              {REPORT_REASONS.map((reason) => (
+                <Pressable
+                  key={reason.value}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    report.mutate({ id: reporting.id, reason: reason.value });
+                    setReporting(null);
+                  }}
+                  style={styles.reasonRow}>
+                  <Text style={[styles.reasonText, { color: p.text }]}>{reason.label}</Text>
+                </Pressable>
+              ))}
+              <Pressable accessibilityRole="button" onPress={() => setReporting(null)} style={styles.reasonRow}>
+                <Text style={[styles.reasonText, { color: p.muted }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </BottomSheet>
+
+        <ConfirmDialog
+          visible={deleting !== null}
+          title="Delete this comment?"
+          message={deleting && deleting.replies_count > 0 ? `This also deletes its ${deleting.replies_count} ${deleting.replies_count === 1 ? 'reply' : 'replies'}. This cannot be undone.` : 'This cannot be undone.'}
+          confirmLabel="Delete"
+          busy={remove.isPending}
+          onConfirm={() => {
+            if (deleting) remove.mutate({ id: deleting.id, removed: 1 + (deleting.parent_id ? 0 : deleting.replies_count) }, { onSettled: () => setDeleting(null) });
+          }}
+          onCancel={() => setDeleting(null)}
+        />
       </BottomSheet>
-      {/* Outside the drawer: the drawer hides while the question shows, because one pop-up cannot open on top of another on every phone. */}
-      <ConfirmDialog
-        visible={deleting !== null}
-        title="Delete this comment?"
-        message={deleting && deleting.replies_count > 0 ? `This also deletes its ${deleting.replies_count} ${deleting.replies_count === 1 ? 'reply' : 'replies'}. This cannot be undone.` : 'This cannot be undone.'}
-        confirmLabel="Delete"
-        busy={remove.isPending}
-        onConfirm={() => {
-          if (deleting) remove.mutate({ id: deleting.id, removed: 1 + (deleting.parent_id ? 0 : deleting.replies_count) }, { onSettled: () => setDeleting(null) });
-        }}
-        onCancel={() => setDeleting(null)}
-      />
     </>
   );
 }
@@ -222,17 +273,17 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
 interface RowActions {
   onOpenProfile: (comment: SocialComment) => void;
   onReply: (comment: SocialComment) => void;
-  onReport: (comment: SocialComment) => void;
-  onDelete: (comment: SocialComment) => void;
+  // A long press on the comment: its actions (report or delete) open.
+  onActions: (comment: SocialComment) => void;
   onLike: (comment: SocialComment) => void;
 }
 
-// One comment or reply: avatar, name and time, the text, then Reply, and the report or delete buttons at the end. A reply is smaller and sits
+// One comment or reply: avatar, name and time, the text, then Like and Reply. Report and delete are not shown as buttons: a long press on the comment opens them. A reply is smaller and sits
 // under its comment, set in from the left.
-function CommentRow({ comment, isReply = false, onOpenProfile, onReply, onReport, onDelete, onLike }: RowActions & { comment: SocialComment; isReply?: boolean }) {
+function CommentRow({ comment, isReply = false, onOpenProfile, onReply, onActions, onLike }: RowActions & { comment: SocialComment; isReply?: boolean }) {
   const p = usePalette();
   return (
-    <View style={[styles.row, isReply && styles.replyRow]}>
+    <Pressable accessible={false} onLongPress={() => (comment.is_mine && !comment.can_delete ? undefined : onActions(comment))} delayLongPress={350} style={[styles.row, isReply && styles.replyRow]}>
       <Pressable accessibilityRole="button" onPress={() => onOpenProfile(comment)}>
         <SocialAvatar handle={comment.handle} hasAvatar={comment.has_avatar} size={isReply ? 26 : 34} />
       </Pressable>
@@ -257,17 +308,12 @@ function CommentRow({ comment, isReply = false, onOpenProfile, onReply, onReport
           </Pressable>
         </View>
       </View>
-      {comment.is_mine ? null : (
-        <Pressable accessibilityRole="button" accessibilityLabel="Report comment" onPress={() => onReport(comment)} hitSlop={8}>
-          <Ionicons name="flag-outline" size={16} color={p.muted} />
+      {comment.is_mine && !comment.can_delete ? null : (
+        <Pressable accessibilityRole="button" accessibilityLabel="More options for this comment" onPress={() => onActions(comment)} hitSlop={10} style={styles.moreBtn}>
+          <Ionicons name="ellipsis-horizontal" size={18} color={p.muted} />
         </Pressable>
       )}
-      {comment.can_delete ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Delete comment" onPress={() => onDelete(comment)} hitSlop={8}>
-          <Ionicons name="trash-outline" size={17} color={p.muted} />
-        </Pressable>
-      ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -309,6 +355,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12 },
   name: { fontSize: 13.5, fontWeight: '800' },
   text: { fontSize: 14.5, lineHeight: 20 },
+  moreBtn: { padding: 4 },
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 4 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionCount: { fontSize: 12.5, fontWeight: '700' },

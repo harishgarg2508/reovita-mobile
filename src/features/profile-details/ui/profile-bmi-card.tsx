@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Skeleton } from '@shared/ui/skeleton';
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 
 import { bmi } from '../model/profile-details.format';
 import { useProfileStepSaved } from '../model/use-profile-details';
@@ -31,45 +31,35 @@ export function ProfileBmiCard() {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Body mass index. Open basic details"
-      onPress={() => router.push({ pathname: '/onboarding/step-1', params: { edit: 'true' } })}>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.iconBox}>
-            <Ionicons name="body-outline" size={22} color={p.accent} />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.title}>BMI</Text>
-            {basics.isLoading ? (
-              <Skeleton height={22} style={{ width: '50%' }} />
-            ) : numeric !== null ? (
-              <Text style={styles.text}>
-                {value} · {bmiBand(numeric)}
-              </Text>
-            ) : (
-              <Text style={styles.text}>Add your height and weight to see your BMI.</Text>
-            )}
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={p.accent} />
-        </View>
+      onPress={() => router.push({ pathname: '/onboarding/step-1', params: { edit: 'true' } })}
+      style={styles.row}>
+      <View style={styles.icon}>
+        <Ionicons name="body-outline" size={22} color={p.accent} />
       </View>
+      <View style={styles.flex}>
+        <Text style={styles.title}>BMI</Text>
+        {basics.isLoading ? (
+          <Skeleton height={18} style={{ width: '50%' }} />
+        ) : numeric !== null ? (
+          <Text style={styles.text}>{bmiBand(numeric)}</Text>
+        ) : (
+          <Text style={styles.text}>Add your height and weight to see your BMI.</Text>
+        )}
+      </View>
+      {numeric !== null ? <Text style={styles.value}>{value}</Text> : null}
+      <Ionicons name="chevron-forward" size={18} color={p.muted} />
     </Pressable>
   );
 }
 
+// A row of the dashboard list: it sits on a thin rule, like the rows under it.
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    card: { padding: 18, borderRadius: 22, borderWidth: 1, borderColor: p.border, backgroundColor: p.card },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    flex: { flex: 1, gap: 4 },
-    iconBox: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-      backgroundColor: p.accentSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    title: { fontSize: 17, fontWeight: '700', color: p.textStrong },
-    text: { fontSize: 14, lineHeight: 20, color: p.muted },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: Rule, borderBottomColor: p.border },
+    icon: { width: 28, alignItems: 'center' },
+    flex: { flex: 1, gap: 1 },
+    title: { ...Type.bodyStrong, color: p.textStrong },
+    text: { ...Type.small, color: p.muted },
+    value: { ...Type.title, color: p.textStrong },
   });
 }

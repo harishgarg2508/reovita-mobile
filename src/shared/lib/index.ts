@@ -7,3 +7,4 @@ export { newId } from './new-id';
 export { bytesToDataUri } from './bytes-to-data-uri';
 export { useScrollToTopOnFocus } from './use-scroll-to-top-on-focus';
 export { stepCounterAvailable, stepPermission, askStepPermission, stepsSince, watchSteps, type StepPermission } from './step-counter';
+export { useKeyboardVisible } from './use-keyboard-visible';

@@ -45,7 +45,7 @@ import { pickPicture } from '../model/pick-picture';
 import { ConsistencyCard } from './consistency-card';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
-import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
+import { SOCIAL_DOCK_SPACE } from './social-dock';
 
 // A bio longer than this shows one line with "...more" (about one line of the card's width).
 const BIO_PREVIEW_CHARS = 34;
@@ -278,7 +278,6 @@ export function ProfileScreen({ handle }: { handle: string }) {
         </Pressable>
       </Modal>
 
-      <SocialDock active={profile.data?.is_me ? 'profile' : undefined} />
     </View>
   );
 }

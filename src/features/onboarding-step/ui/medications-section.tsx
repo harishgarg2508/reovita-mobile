@@ -15,17 +15,14 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 // The medicine list of step 2. A matched medicine shows "checked": it takes part in the interaction check.
 // One without ingredients shows "not matched — won't be checked": it is kept, and left out of the check.
 // The list lives in memory only; removing a row here removes it from the next save.
-export function MedicationsSection({ medications, onChange }: { medications: MedicationDraft[]; onChange: (next: MedicationDraft[]) => void }) {
+export function MedicationsSection({ medications, none, onChange, onNoneChange }: { medications: MedicationDraft[]; none: boolean; onChange: (next: MedicationDraft[]) => void; onNoneChange: (none: boolean) => void }) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [adding, setAdding] = useState(false);
-  // "I don't take any medicines": the list is empty on purpose, so the section says so instead of looking unfilled.
-  const [none, setNone] = useState(false);
-
   const add = (med: NewMedication) => {
     onChange([...medications, { id: newId(), name: med.name, dose: med.dose, schedule_times: [], ingredient_ids: med.ingredient_ids }]);
     setAdding(false);
-    setNone(false);
+    onNoneChange(false);
   };
   const remove = (id: string) => {
     tapSelection();
@@ -95,12 +92,13 @@ export function MedicationsSection({ medications, onChange }: { medications: Med
       ) : (
         <Pressable
           accessibilityRole="button"
+          disabled={none}
           onPress={() => {
             tapSelection();
             setAdding(true);
-            setNone(false);
+            onNoneChange(false);
           }}
-          style={styles.addButton}>
+          style={[styles.addButton, none && { opacity: 0.4 }]}>
           <Ionicons name="add" size={16} color={colors.accent} />
           <Text style={styles.addButtonText}>Add a medicine</Text>
         </Pressable>
@@ -112,7 +110,7 @@ export function MedicationsSection({ medications, onChange }: { medications: Med
           accessibilityState={{ checked: none }}
           onPress={() => {
             tapSelection();
-            setNone((v) => !v);
+            onNoneChange(!none);
           }}
           style={styles.noneRow}>
           <Ionicons name={none ? 'checkbox' : 'square-outline'} size={20} color={colors.accent} />

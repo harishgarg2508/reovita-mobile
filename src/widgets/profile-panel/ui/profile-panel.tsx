@@ -13,7 +13,7 @@ import { ProfileDetailsCard } from '@features/profile-details';
 import { AddProfileSheet, ProfileMenu } from '@features/profile-switch';
 import { tapConfirm, useScrollToTopOnFocus } from '@shared/lib';
 import { ConfirmDialog } from '@shared/ui';
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 import { Skeleton } from '@shared/ui/skeleton';
 import { PlanCard } from '@features/subscription';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
@@ -146,7 +146,7 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
     <ScrollView
       ref={scrollRef}
       style={styles.scroll}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + Gap.group, paddingBottom: insets.bottom + 120 }]}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>Profile</Text>
@@ -165,22 +165,23 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
         <ProfileMenu
           onClose={() => setProfilesOpen(false)}
           onAdd={() => {
-            // The drawer closes first, and then the next screen opens (one pop-up cannot open on top of another on every phone).
+            // A free account is taken to the plan screen. Otherwise the sheet for the new profile opens on top of this drawer, which stays where it is.
             if (plan.locked) {
+              setProfilesOpen(false);
               setTimeout(() => router.push('/(app)/subscription' as never), 250);
             } else {
-              setTimeout(() => setAddingProfile(true), 250);
+              setAddingProfile(true);
             }
           }}
         />
+        <AddProfileSheet visible={addingProfile} onClose={() => setAddingProfile(false)} />
       </BottomSheet>
-      <AddProfileSheet visible={addingProfile} onClose={() => setAddingProfile(false)} />
 
       {/* The plan: Free or Premium */}
       <PlanCard />
 
       {/* Code card: QR on the left, code and actions on the right, log out below. */}
-      <View style={[styles.card, styles.codeCard]}>
+      <View style={styles.codeSection}>
         {subject.isLoading ? (
           <Skeleton height={150} />
         ) : (
@@ -192,20 +193,17 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
             </View>
           ) : null}
           <View style={styles.codeSide}>
-            <View style={styles.codeLabelRow}>
-              <Ionicons name="qr-code-outline" size={16} color={p.accent} />
-              <Text style={styles.codeLabel}>Your Unique Code</Text>
-            </View>
+            <Text style={styles.codeLabel}>Your unique code</Text>
             <Text selectable style={styles.code}>
               {codename ?? '-'}
             </Text>
             <Pressable accessibilityRole="button" onPress={copyCode} disabled={!codename} style={styles.outlineBtn}>
               <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color={p.accent} />
-              <Text style={styles.outlineBtnText}>{copied ? 'Copied' : 'Copy Code'}</Text>
+              <Text style={styles.outlineBtnText}>{copied ? 'Copied' : 'Copy code'}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={shareCode} disabled={!codename} style={styles.solidBtn}>
               <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.solidBtnText}>Share Code</Text>
+              <Text style={styles.solidBtnText}>Share code</Text>
             </Pressable>
           </View>
         </View>
@@ -216,41 +214,36 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
       {/* My details: the basics, history and lifestyle saved in onboarding, each with an Edit action. */}
       <ProfileDetailsCard />
 
-      {/* Permissions card: toggles follow the consent records on the server. */}
-      <View style={styles.card}>
-        <View style={styles.permHeader}>
-          <View style={styles.lockBubble}>
-            <Ionicons name="lock-closed-outline" size={22} color={p.accent} />
-          </View>
-          <View style={styles.permHeaderText}>
-            <Text style={styles.permTitle}>Permissions</Text>
-            <Text style={styles.permSubtitle}>You can control what data and features are accessible to this application.</Text>
-          </View>
-        </View>
+      {/* Permissions: toggles follow the consent records on the server. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Permissions</Text>
+        <Text style={styles.sectionLine}>You can control what data and features are accessible to this application.</Text>
 
         {consents.isLoading ? <Skeleton height={72} /> : null}
-        {PERMISSIONS.map((item) => {
-          const granted = consents.granted.has(item.type);
-          return (
-            <View key={item.type} style={styles.permRow}>
-              <View style={styles.permIcon}>
-                <Ionicons name={item.icon} size={20} color={p.accent} />
+        <View style={styles.permList}>
+          {PERMISSIONS.map((item) => {
+            const granted = consents.granted.has(item.type);
+            return (
+              <View key={item.type} style={styles.permRow}>
+                <View style={styles.permIcon}>
+                  <Ionicons name={item.icon} size={22} color={p.accent} />
+                </View>
+                <View style={styles.permText}>
+                  <Text style={styles.permRowTitle}>{item.title}</Text>
+                  <Text style={styles.permRowBody}>{item.body}</Text>
+                </View>
+                <Switch
+                  accessibilityLabel={item.title}
+                  value={granted}
+                  disabled={grant.isPending || revoke.isPending}
+                  onValueChange={() => togglePermission(item.type, granted)}
+                  trackColor={{ false: p.border, true: p.accent }}
+                  thumbColor="#FFFFFF"
+                />
               </View>
-              <View style={styles.permText}>
-                <Text style={styles.permRowTitle}>{item.title}</Text>
-                <Text style={styles.permRowBody}>{item.body}</Text>
-              </View>
-              <Switch
-                accessibilityLabel={item.title}
-                value={granted}
-                disabled={grant.isPending || revoke.isPending}
-                onValueChange={() => togglePermission(item.type, granted)}
-                trackColor={{ false: p.border, true: p.accent }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
         {consents.isError ? <Text style={styles.error}>Could not load your permissions.</Text> : null}
       </View>
 
@@ -272,7 +265,7 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
       </Pressable>
 
       {/* Danger zone: deactivating hides the account. It is recoverable, so nothing is deleted. */}
-      <View style={styles.dangerCard}>
+      <View style={styles.dangerSection}>
         <Text style={styles.dangerTitle}>Danger zone</Text>
         <Text style={styles.dangerBody}>
           Deactivating hides your account and health data from the app. Nothing is deleted, and you can recover it anytime by
@@ -303,126 +296,41 @@ export function ProfilePanel({ onSignOut, signingOut = false }: { onSignOut: () 
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    scroll: { flex: 1, backgroundColor: p.surface },
-    container: { paddingHorizontal: 18, gap: 16 },
+    scroll: { flex: 1, backgroundColor: p.bg },
+    container: { paddingHorizontal: Gap.edge, gap: Gap.group },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerText: { flex: 1, gap: 4 },
-    groupBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 40, paddingHorizontal: 10, borderRadius: 20, backgroundColor: p.accentSoft },
-    title: { fontSize: 28, fontWeight: '800', color: p.textStrong },
-    subtitle: { fontSize: 13, color: p.accent },
-    bell: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: p.card,
-      borderWidth: 1,
-      borderColor: p.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    // The code card has a straight, full-width green top edge: square top corners, a 5 px green border across the whole top.
-    codeCard: { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTopWidth: 5, borderTopColor: p.accent },
-    card: {
-      backgroundColor: p.card,
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: p.border,
-      padding: 18,
-      gap: 16,
-    },
-    codeRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    qrBox: {
-      padding: 12,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: p.border,
-      backgroundColor: '#FFFFFF',
-    },
+    groupBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 44, paddingHorizontal: 8 },
+    title: { ...Type.display, color: p.textStrong },
+    subtitle: { ...Type.body, color: p.muted },
+    // The QR and the code: no frame around them. The QR keeps a thin frame because it is a picture.
+    codeSection: { gap: Gap.inner },
+    codeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    qrBox: { padding: 12, borderRadius: 16, borderWidth: Rule, borderColor: p.border, backgroundColor: '#FFFFFF' },
     codeSide: { flex: 1, gap: 10 },
-    codeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    codeLabel: { fontSize: 13, color: p.accent },
-    code: { fontSize: 24, fontWeight: '800', color: p.textStrong, letterSpacing: 0.5 },
-    outlineBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: p.accent,
-    },
-    outlineBtnText: { fontSize: 14, fontWeight: '600', color: p.accent },
-    solidBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: p.accent,
-    },
-    solidBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-    logout: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: p.redSoft,
-    },
-    logoutBelow: { marginTop: 4 },
-    logoutText: { fontSize: 15, fontWeight: '700', color: p.red },
-    permHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    lockBubble: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      backgroundColor: p.accentSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    permHeaderText: { flex: 1, gap: 4 },
-    permTitle: { fontSize: 18, fontWeight: '800', color: p.textStrong },
-    permSubtitle: { fontSize: 12.5, lineHeight: 17, color: p.muted },
-    permRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      padding: 14,
-      borderRadius: 18,
-      backgroundColor: p.surface,
-    },
-    permIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: p.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
+    codeLabel: { ...Type.small, color: p.muted },
+    code: { ...Type.title, color: p.textStrong },
+    outlineBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: p.accent },
+    outlineBtnText: { ...Type.label, color: p.accent },
+    solidBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 44, borderRadius: 22, backgroundColor: p.accent },
+    solidBtnText: { ...Type.label, color: '#FFFFFF' },
+    section: { gap: 4 },
+    sectionTitle: { ...Type.title, color: p.textStrong },
+    sectionLine: { ...Type.small, color: p.muted },
+    permList: { marginTop: Gap.inner, borderTopWidth: Rule, borderTopColor: p.border },
+    permRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: Rule, borderBottomColor: p.border },
+    permIcon: { width: 28, alignItems: 'center' },
     permText: { flex: 1, gap: 2 },
-    permRowTitle: { fontSize: 14.5, fontWeight: '700', color: p.textStrong },
-    permRowBody: { fontSize: 12.5, lineHeight: 17, color: p.muted },
-    error: { fontSize: 13, color: p.red },
-    dangerCard: {
-      backgroundColor: p.card,
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: p.red,
-      padding: 18,
-      gap: 12,
-    },
-    dangerTitle: { fontSize: 18, fontWeight: '800', color: p.red },
-    dangerBody: { fontSize: 12.5, lineHeight: 17, color: p.muted },
-    dangerBtn: {
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: p.red,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dangerBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+    permRowTitle: { ...Type.bodyStrong, color: p.textStrong },
+    permRowBody: { ...Type.small, color: p.muted },
+    // Log out: an outline in the danger colour, not a pink slab.
+    logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 26, borderWidth: 1, borderColor: p.red },
+    logoutText: { ...Type.bodyStrong, color: p.red },
+    error: { ...Type.small, color: p.red },
+    dangerSection: { borderTopWidth: Rule, borderTopColor: p.border, paddingTop: Gap.group, gap: Gap.inner },
+    dangerTitle: { ...Type.title, color: p.red },
+    dangerBody: { ...Type.small, color: p.muted },
+    dangerBtn: { height: 48, borderRadius: 24, backgroundColor: p.red, alignItems: 'center', justifyContent: 'center' },
+    dangerBtnText: { ...Type.bodyStrong, color: '#FFFFFF' },
   });
 }

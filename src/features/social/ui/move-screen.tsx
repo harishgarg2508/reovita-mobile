@@ -12,7 +12,7 @@ import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TOPICS, SOCIAL_TYPE, useJourneys, use
 import { SOCIAL_HOME, socialRoute } from '../model/routes';
 import { useToggleCheckIn } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
-import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
+import { SOCIAL_DOCK_SPACE } from './social-dock';
 import { StepsBanner } from './steps-banner';
 import { StepsCard } from './steps-card';
 
@@ -162,7 +162,6 @@ export function MoveScreen() {
         </View>
       </BottomSheet>
 
-      <SocialDock active="move" />
     </View>
   );
 }

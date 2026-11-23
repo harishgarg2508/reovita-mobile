@@ -174,7 +174,7 @@ function makeStyles(p: Palette) {
     parts: { fontSize: 12.5, color: p.muted },
     retry: { height: 44, borderRadius: 14, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' },
     retryText: { color: '#FFFFFF', fontWeight: '700' },
-    moreBtn: { height: 42, borderRadius: 14, borderWidth: 1, borderColor: p.border, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+    moreBtn: { height: 42, borderRadius: 14, borderWidth: 1.5, borderColor: p.accent, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
     moreText: { color: p.accent, fontWeight: '700' },
   });
 }

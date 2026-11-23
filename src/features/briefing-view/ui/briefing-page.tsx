@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -14,6 +14,7 @@ import { feelsLikeNote, fmt, place, SCALES } from '../model/reading-labels';
 import { AqiGauge } from './aqi-gauge';
 import { AreaBanner } from './area-banner';
 import { useBriefingColors, type BriefingColors } from './briefing-theme';
+import { Type } from '@shared/ui/theme';
 import { MetricTile } from './metric-tile';
 import { useScrollToTopOnFocus } from '@shared/lib';
 
@@ -74,6 +75,13 @@ export function BriefingPage() {
       };
     }, []),
   );
+  // Coming back from the phone's settings (or to the browser tab) checks the permission again, so the banner goes away as soon as it is turned on.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void getLocationPermission().then(setPermission);
+    });
+    return () => sub.remove();
+  }, []);
   // The warning's button: the phone's popup again if it will show one, the phone's settings if not, the browser's prompt on the web.
   async function allowLocation() {
     if (Platform.OS !== 'web' && permission?.status === 'denied' && !permission.canAskAgain) {
@@ -167,12 +175,37 @@ export function BriefingPage() {
         ]}>
         {/* While a popover is open, a tap anywhere else closes it. The tiles sit above this layer, so they close it too. */}
         {openTile ? <Pressable accessibilityLabel="Close" style={styles.clickAway} onPress={closeTiles} /> : null}
+        {/* The permission is checked each time the page opens. Without it the readings may be saved ones from earlier, and the banner at the top says so. It
+            shows on the phone and in the browser; a browser that has blocked the site cannot be changed from here, so there the button asks again and the
+            text points to the site settings. */}
+        {permission && permission.status !== 'granted' && permission.status !== 'unknown' ? (
+          <View style={styles.permissionBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
+            <Ionicons name="location-outline" size={22} color="#8A5300" />
+            <View style={styles.permissionText}>
+              <Text style={styles.permissionTitle}>Location is off</Text>
+              <Text style={styles.permissionBody}>
+                {today.data?.location
+                  ? 'These readings may be saved from earlier and may not match where you are now. Turn on location to get accurate, up-to-date air quality, UV and weather.'
+                  : 'Turn on location to get the air quality, UV and weather for where you are.'}
+                {permission.status === 'denied' && !permission.canAskAgain
+                  ? Platform.OS === 'web'
+                    ? ' Your browser has blocked location for this site: allow it in the site settings.'
+                    : ' Reovita cannot ask again, so turn it on in your phone settings.'
+                  : ''}
+              </Text>
+              <Pressable accessibilityRole="button" onPress={() => void allowLocation()} style={styles.permissionBtn}>
+                <Text style={styles.permissionBtnText}>{permission.status === 'denied' && !permission.canAskAgain && Platform.OS !== 'web' ? 'Open settings' : 'Turn on location'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.header}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} hitSlop={8} style={styles.back}>
             <Ionicons name="chevron-back" size={20} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={styles.title}>{'Environmental\nBriefing'}</Text>
+            <Text style={styles.title}>Environmental briefing</Text>
             <Text style={styles.subtitle}>{shownKind === 'night' ? 'Evening' : 'Morning'} atmospheric overview.</Text>
           </View>
         </View>
@@ -180,27 +213,6 @@ export function BriefingPage() {
         {today.data?.location ? (
           <AreaBanner name={place_.data?.name ?? 'Your area'} coords={formatCoords(today.data.location.lat, today.data.location.lng)} colors={colors} />
         ) : null}
-
-        {/* The warning is for a phone only. A browser shows its own prompt, and when it has blocked the site no message of ours can change that. */}
-        {Platform.OS !== 'web' && permission && (permission.status === 'denied' || (permission.status === 'undetermined' && today.data?.needsLocation)) ? (
-          <View style={styles.permissionBox} accessibilityLiveRegion="polite">
-            <Ionicons name="location-outline" size={22} color="#B26A00" />
-            <View style={styles.permissionText}>
-              <Text style={styles.permissionTitle}>Location access is off</Text>
-              <Text style={styles.permissionBody}>
-                {permission.status === 'denied' && !permission.canAskAgain
-                  ? 'Reovita cannot ask for your location again. Turn it on in your phone settings.'
-                  : today.data?.location
-                    ? 'You are seeing your last saved area. Allow location to update it to where you are.'
-                    : 'Allow location to get the air quality, UV and weather for where you are.'}
-              </Text>
-              <Pressable accessibilityRole="button" onPress={() => void allowLocation()} style={styles.permissionBtn}>
-                <Text style={styles.permissionBtnText}>{permission.status === 'denied' && !permission.canAskAgain ? 'Open settings' : 'Allow location'}</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
 
         {today.isPending ? (
           <View style={styles.centerBox}>
@@ -447,10 +459,9 @@ function makeStyles(c: BriefingColors) {
       flex: 1,
     },
     title: {
-      fontSize: 22,
-      fontWeight: '800',
-      letterSpacing: -0.4,
-      lineHeight: 26,
+      ...Type.display,
+      fontSize: 26,
+      lineHeight: 32,
       color: c.text,
     },
     subtitle: {
@@ -621,12 +632,12 @@ function makeStyles(c: BriefingColors) {
       fontWeight: '700',
       color: '#FFFFFF',
     },
-    permissionBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18, backgroundColor: '#FFF4DD', borderWidth: 1, borderColor: '#F3D9A4' },
+    permissionBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18, backgroundColor: '#FFF4DD', borderWidth: 1, borderColor: '#E8C987' },
     permissionText: { flex: 1, gap: 6 },
-    permissionTitle: { fontSize: 14.5, fontWeight: '800', color: '#7A4A00' },
-    permissionBody: { fontSize: 13, lineHeight: 18, color: '#7A4A00' },
-    permissionBtn: { alignSelf: 'flex-start', height: 38, paddingHorizontal: 16, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: '#B26A00' },
-    permissionBtnText: { fontSize: 13.5, fontWeight: '700', color: '#FFFFFF' },
+    permissionTitle: { ...Type.bodyStrong, color: '#6B4000' },
+    permissionBody: { ...Type.small, color: '#6B4000' },
+    permissionBtn: { alignSelf: 'flex-start', height: 40, paddingHorizontal: 18, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: '#8A5300' },
+    permissionBtnText: { ...Type.label, color: '#FFFFFF' },
     errorBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, alignSelf: 'stretch', padding: 12, borderRadius: 14, backgroundColor: '#FDEEF0', borderWidth: 1, borderColor: '#F9CBD2' },
     errorBoxText: { flex: 1, fontSize: 13, lineHeight: 18, color: '#C22F43' },
     settingsBtn: { alignSelf: 'stretch', height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.accent },

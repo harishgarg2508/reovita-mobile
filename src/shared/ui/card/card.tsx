@@ -19,7 +19,7 @@ const createStyles = (colors: FormColors) =>
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Brand.line,
     padding: 18,
-    gap: 10,
+    gap: 12,
     ...Elevation.card,
   },
 });

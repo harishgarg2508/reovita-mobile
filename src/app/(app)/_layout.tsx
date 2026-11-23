@@ -9,6 +9,7 @@ import { useActiveConsent } from '@entities/consent';
 import { useProfileCompleteness } from '@entities/profile';
 import { selectIsSignedIn, sessionCleared } from '@entities/session';
 import { isApiError } from '@shared/api';
+import { KeyboardAvoid } from '@shared/ui/keyboard-avoid';
 import { usePalette } from '@shared/ui/theme';
 import { AccessRequestPrompt } from '@features/access-approve';
 import { StepTracker } from '@features/social';
@@ -62,7 +63,7 @@ export default function AppLayout() {
   }
 
   return (
-    <>
+    <KeyboardAvoid>
     <Drawer
       // Back goes to the screen the person came from. The default goes to the first screen, which then shows the tab used last (for example Records).
       backBehavior="history"
@@ -113,6 +114,6 @@ export default function AppLayout() {
     </Drawer>
     <AccessRequestPrompt />
     <StepTracker />
-    </>
+    </KeyboardAvoid>
   );
 }

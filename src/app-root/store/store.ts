@@ -25,8 +25,8 @@ import { pendingUploadsReducer } from '@/features/report-upload';
 // The medicine list is health data and stays in memory: it is left out of what is written to device storage,
 // and the step reads it back from the server when it opens.
 const withoutMedications = createTransform<HistoryDraft, HistoryDraft>(
-  (history) => ({ ...history, medications: [] }),
-  (history) => ({ ...history, medications: [] }),
+  (history) => ({ ...history, medications: [], noMedications: false }),
+  (history) => ({ ...history, medications: [], noMedications: false }),
   { whitelist: ['history'] },
 );
 

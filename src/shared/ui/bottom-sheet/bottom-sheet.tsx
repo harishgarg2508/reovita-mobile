@@ -1,7 +1,9 @@
 import { USE_NATIVE_DRIVER } from '@shared/lib';
+import { KeyboardAvoid } from '@shared/ui/keyboard-avoid';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Dragging the sheet down this far, or flicking it down, closes it.
@@ -26,6 +28,9 @@ export function BottomSheet({
 }) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // The space under the last item (often the drawer's main button) clears the phone's gesture bar or home indicator, with room to breathe on top of it.
+  const insets = useSafeAreaInsets();
+  const bottom = Math.max(insets.bottom, 12) + (flush ? 0 : 16);
   const [translateY] = useState(() => new Animated.Value(SCREEN_HEIGHT));
 
   const panResponder = useMemo(
@@ -56,15 +61,15 @@ export function BottomSheet({
         translateY.setValue(SCREEN_HEIGHT);
         Animated.spring(translateY, { toValue: 0, useNativeDriver: USE_NATIVE_DRIVER, bounciness: 4 }).start();
       }}>
-      <View style={styles.root}>
+      <KeyboardAvoid always style={styles.root}>
         <Pressable style={[StyleSheet.absoluteFill, styles.scrim]} onPress={onClose} accessibilityLabel="Close" />
-        <Animated.View style={[styles.sheet, flush && styles.sheetFlush, { transform: [{ translateY }] }]} {...(dragHandleOnly ? {} : panResponder.panHandlers)}>
+        <Animated.View style={[styles.sheet, flush && styles.sheetFlush, { paddingBottom: bottom, maxHeight: SCREEN_HEIGHT * 0.92 }, { transform: [{ translateY }] }]} {...(dragHandleOnly ? {} : panResponder.panHandlers)}>
           <View style={styles.handleArea} {...(dragHandleOnly ? panResponder.panHandlers : {})}>
             <View style={styles.handle} />
           </View>
           {children}
         </Animated.View>
-      </View>
+      </KeyboardAvoid>
     </Modal>
   );
 }
@@ -90,7 +95,7 @@ const createStyles = (colors: FormColors) =>
     paddingBottom: 32,
     gap: 16,
   },
-  sheetFlush: { paddingHorizontal: 0, paddingBottom: 0, gap: 0 },
+  sheetFlush: { paddingHorizontal: 0, gap: 0 },
   handleArea: {
     alignSelf: 'stretch',
     paddingVertical: 6,

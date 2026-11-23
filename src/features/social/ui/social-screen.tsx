@@ -13,7 +13,7 @@ import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TYPE, SOCIAL_TOPICS, useMyHandle, use
 import { socialProfileHref, socialRoute } from '../model/routes';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
-import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
+import { SOCIAL_DOCK_SPACE } from './social-dock';
 
 type Tab = 'for_you' | 'friends';
 
@@ -122,7 +122,6 @@ export function SocialScreen() {
         />
       )}
 
-      <SocialDock active="home" />
     </View>
   );
 }

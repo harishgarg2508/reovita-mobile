@@ -142,7 +142,7 @@ export function MedicineScanModal({ visible, onClose, onPick }: Props) {
               <Pressable accessibilityRole="button" onPress={() => void requestPermission()} style={[styles.primary, { backgroundColor: p.accent }]}>
                 <Text style={styles.primaryText}>Allow camera</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => void choose()} style={[styles.secondary, { borderColor: p.border }]}>
+              <Pressable accessibilityRole="button" onPress={() => void choose()} style={[styles.secondary, { borderColor: p.accent, borderWidth: 1.5 }]}>
                 <Text style={[styles.secondaryText, { color: p.text }]}>Choose a photo</Text>
               </Pressable>
             </View>

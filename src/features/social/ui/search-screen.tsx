@@ -13,7 +13,7 @@ import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
 import { useFriendHandle } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
-import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
+import { SOCIAL_DOCK_SPACE } from './social-dock';
 
 // Suggestions start at this many letters, the same as the server.
 const MIN_CHARS = 3;
@@ -129,7 +129,6 @@ export function SearchScreen() {
         </>
       )}
 
-      <SocialDock active="search" />
     </View>
   );
 }

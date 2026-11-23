@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Skeleton } from '@shared/ui/skeleton';
-import { usePalette, type Palette } from '@shared/ui/theme';
+import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 
 import {
   activityLabel,
@@ -111,10 +111,12 @@ function Section({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={styles.iconBubble}>
-          <Ionicons name={icon} size={20} color={p.accent} />
-        </View>
         <Text style={styles.cardTitle}>{title}</Text>
+        {showEdit ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${title}`} hitSlop={8} onPress={() => router.push(EDIT_ROUTE[step])}>
+            <Text style={styles.editText}>Edit</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {query.isLoading ? <Skeleton height={80} /> : null}
@@ -147,26 +149,13 @@ function Section({
 
       {step === 2 ? (
         <View style={styles.historyButtons}>
-          <Pressable accessibilityRole="button" onPress={() => router.push(EDIT_ROUTE[2])} style={[styles.editBtn, styles.historyBtn]}>
-            <Ionicons name="create-outline" size={16} color={p.accent} />
+          <Pressable accessibilityRole="button" onPress={() => router.push(EDIT_ROUTE[2])} hitSlop={8}>
             <Text style={styles.editText}>Edit current</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medical-history')} style={[styles.editBtn, styles.historyBtn]}>
-            <Ionicons name="list-outline" size={16} color={p.accent} />
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medical-history')} hitSlop={8}>
             <Text style={styles.editText}>Show all list</Text>
           </Pressable>
         </View>
-      ) : null}
-
-      {showEdit ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${title}`}
-          onPress={() => router.push(EDIT_ROUTE[step])}
-          style={styles.editBtn}>
-          <Ionicons name="create-outline" size={16} color={p.accent} />
-          <Text style={styles.editText}>Edit</Text>
-        </Pressable>
       ) : null}
     </View>
   );
@@ -224,51 +213,19 @@ function lifestyleRows(d: Record<string, unknown>): Row[] {
 
 function makeStyles(p: Palette) {
   return StyleSheet.create({
-    wrap: { gap: 14 },
-    heading: { fontSize: 20, fontWeight: '800', color: p.textStrong },
-    subheading: { fontSize: 13, color: p.muted, marginTop: -8 },
-    card: {
-      backgroundColor: p.card,
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: p.border,
-      padding: 18,
-      gap: 12,
-    },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconBubble: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: p.accentSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cardTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: p.textStrong },
-    row: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: 12,
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: p.border,
-    },
-    rowLabel: { flex: 1, fontSize: 13, color: p.muted },
-    rowValue: { flex: 1.4, fontSize: 14, fontWeight: '600', color: p.textStrong, textAlign: 'right' },
-    empty: { fontSize: 13, color: p.muted },
-    error: { fontSize: 13, color: p.red },
-    historyButtons: { flexDirection: 'row', gap: 8 },
-    historyBtn: { flex: 1 },
-    editBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: p.accent,
-    },
-    editText: { fontSize: 14, fontWeight: '600', color: p.accent },
+    wrap: { gap: Gap.group },
+    heading: { ...Type.title, color: p.textStrong },
+    subheading: { ...Type.small, color: p.muted, marginTop: -Gap.group + 6 },
+    // A section is a title and rows on thin rules: no box, no icon disc.
+    card: { gap: 4 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6 },
+    cardTitle: { flex: 1, ...Type.heading, color: p.textStrong },
+    row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 12, borderBottomWidth: Rule, borderBottomColor: p.border },
+    rowLabel: { flex: 1, ...Type.small, color: p.muted },
+    rowValue: { flex: 1.4, ...Type.bodyStrong, color: p.textStrong, textAlign: 'right' },
+    empty: { ...Type.small, color: p.muted },
+    error: { ...Type.small, color: p.red },
+    historyButtons: { flexDirection: 'row', gap: 20, paddingTop: 10 },
+    editText: { ...Type.label, color: p.accent },
   });
 }

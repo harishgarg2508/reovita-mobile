@@ -7,7 +7,7 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
  */
 
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const Colors = {
   light: {
@@ -101,14 +101,25 @@ export const Font = {
   extrabold: 'Poppins_800ExtraBold',
 } as const;
 
+// The type of the whole app: one editorial scale. One large heading per screen, then body-sized text. Labels are the body face a step smaller, in sentence
+// case and untracked; nothing is set in capitals. Weights are 400, 500 and 600.
 export const Type = {
-  display: { fontFamily: Font.extrabold, fontSize: 30, lineHeight: 36 },
-  title: { fontFamily: Font.bold, fontSize: 22, lineHeight: 28 },
-  heading: { fontFamily: Font.bold, fontSize: 17, lineHeight: 24 },
+  display: { fontFamily: Font.semibold, fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
+  title: { fontFamily: Font.semibold, fontSize: 21, lineHeight: 27, letterSpacing: -0.3 },
+  heading: { fontFamily: Font.semibold, fontSize: 17, lineHeight: 24, letterSpacing: -0.1 },
   body: { fontFamily: Font.regular, fontSize: 15, lineHeight: 22 },
+  bodyStrong: { fontFamily: Font.semibold, fontSize: 15, lineHeight: 22 },
   caption: { fontFamily: Font.medium, fontSize: 13, lineHeight: 18 },
-  label: { fontFamily: Font.semibold, fontSize: 12, lineHeight: 16 },
+  label: { fontFamily: Font.medium, fontSize: 13, lineHeight: 18 },
+  small: { fontFamily: Font.regular, fontSize: 12.5, lineHeight: 17 },
+  figure: { fontFamily: Font.semibold, fontSize: 34, lineHeight: 40, letterSpacing: -0.8 },
 } as const;
+
+// The thin rule that separates rows in a list. Lists are flat rows on rules; a card is for a picture or one real object (a report, a score).
+export const Rule = StyleSheet.hairlineWidth;
+
+// Space that groups: 16 at the screen edge, 24 between groups, 12 inside a group.
+export const Gap = { edge: 16, group: 24, inner: 12, tight: 6 } as const;
 
 export const Brand = {
   primary: '#1F6F3F',

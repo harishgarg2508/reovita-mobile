@@ -26,6 +26,8 @@ export interface HistoryDraft {
   conditions: string[];
   otherText: string;
   medications: MedicationDraft[];
+  // "I don't take any medicines": the person said the list is empty on purpose. Kept in memory with the list, never written to the device.
+  noMedications: boolean;
   father: string[];
   mother: string[];
   sibling: string[];
@@ -58,6 +60,7 @@ const initialState: OnboardingState = {
     conditions: [],
     otherText: '',
     medications: [],
+    noMedications: false,
     father: [],
     mother: [],
     sibling: [],

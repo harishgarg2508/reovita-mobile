@@ -195,7 +195,13 @@ export function StepConditionsForm({
       {/* 3. Meds Section */}
       <View style={styles.section} onLayout={(e) => onFieldLayout?.('meds', e.nativeEvent.layout.y)}>
         <Text style={styles.sectionLabel}>Meds</Text>
-        <MedicationsSection medications={selectedMeds} onChange={(medications) => patchDraft({ medications })} />
+        <MedicationsSection
+          medications={selectedMeds}
+          none={draft.noMedications === true}
+          // Adding a medicine takes the "none" answer back; saying "none" is only possible with an empty list.
+          onChange={(medications) => patchDraft({ medications, ...(medications.length > 0 ? { noMedications: false } : {}) })}
+          onNoneChange={(noMedications) => patchDraft({ noMedications })}
+        />
       </View>
 
       {/* 4. Family Section */}

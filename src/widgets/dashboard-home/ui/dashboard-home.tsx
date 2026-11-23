@@ -19,7 +19,7 @@ import { USE_NATIVE_DRIVER } from '@shared/lib';
 import { ReovitaLeafLogo } from '@shared/ui';
 import { ProgressBar } from '@shared/ui/progress-bar';
 import { Skeleton } from '@shared/ui/skeleton';
-import { ThemeToggle, useResolvedScheme } from '@shared/ui/theme';
+import { Gap, Rule, ThemeToggle, Type, useResolvedScheme } from '@shared/ui/theme';
 import { PremiumBadge, useSubscription } from '@entities/subscription';
 
 // Colours for the two themes, taken from the dashboard designs.
@@ -38,9 +38,9 @@ const DARK = {
   track: '#2B2846',
 };
 const LIGHT = {
-  bg: '#F7F6FD',
+  bg: '#FFFFFF',
   card: '#FFFFFF',
-  border: '#ECEAF5',
+  border: '#E8E6EF',
   text: '#14121C',
   muted: '#6E6A82',
   iconBg: '#E6F2EA',
@@ -57,11 +57,20 @@ function Card({ p, children, style }: { p: Palette; children: React.ReactNode; s
   return <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, style]}>{children}</View>;
 }
 
-function IconBox({ p, name, color }: { p: Palette; name: keyof typeof Ionicons.glyphMap; color: string }) {
+
+// One row of a list: a plain icon, the title, one line, and a chevron (or a badge). Rows sit on thin rules; there is no box and no tinted tile.
+function ListRow({ p, icon, title, text, right, onPress, label }: { p: Palette; icon: keyof typeof Ionicons.glyphMap; title: string; text: string; right?: React.ReactNode; onPress: () => void; label?: string }) {
   return (
-    <View style={[styles.iconBox, { backgroundColor: p.iconBg }]}>
-      <Ionicons name={name} size={22} color={color} />
-    </View>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.listRow, { borderBottomColor: p.border }]}>
+      <View style={styles.listIcon}>
+        <Ionicons name={icon} size={22} color={p.purple} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={[Type.bodyStrong, { color: p.text }]}>{title}</Text>
+        <Text numberOfLines={2} style={[Type.small, { color: p.muted }]}>{text}</Text>
+      </View>
+      {right ?? <Ionicons name="chevron-forward" size={18} color={p.muted} />}
+    </Pressable>
   );
 }
 
@@ -261,10 +270,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
       {/* Hero: the health score, with a short message and the details button. */}
       <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
         <View style={styles.heroTop}>
-          <View style={[styles.heroPill, { backgroundColor: p.iconBg }]}>
-            <Ionicons name="pulse" size={16} color={BRAND_GREEN} />
-            <Text style={[styles.heroPillText, { color: BRAND_GREEN }]}>Health Score</Text>
-          </View>
+          <Text style={[Type.label, { color: p.muted }]}>Health score</Text>
           <View style={styles.heroActions}>
             {/* Opens the score history: the trend graph and every saved score. */}
             <Pressable
@@ -272,10 +278,9 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
               accessibilityLabel="Score history"
               onPress={() => router.push('/(app)/health-score')}
               hitSlop={8}
-              style={[styles.historyPill, { borderColor: p.border }]}>
-              <Ionicons name="stats-chart" size={14} color={BRAND_GREEN} />
-              <Text style={[styles.historyPillText, { color: BRAND_GREEN }]}>History</Text>
-              <Ionicons name="chevron-forward" size={13} color={BRAND_GREEN} />
+              style={styles.historyLink}>
+              <Text style={[Type.label, { color: BRAND_GREEN }]}>History</Text>
+              <Ionicons name="chevron-forward" size={14} color={BRAND_GREEN} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
               <Ionicons name="information-circle-outline" size={22} color={p.muted} />
@@ -301,7 +306,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
       </View>
 
       {/* The three parts: each card shows its dial and status, and opens the step that adds its information. */}
-      <View style={styles.partsGrid}>
+      <View style={[styles.partsGrid, { borderColor: p.border }]}>
         {PART_CARDS.map((part) => {
           const score = data?.health_score_parts?.[part.key] ?? null;
           return (
@@ -315,7 +320,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
                     : { pathname: part.route, params: { edit: 'true' } },
                 )
               }
-              style={[styles.partCard, { backgroundColor: p.card, borderColor: p.border }]}>
+              style={styles.partCard}>
               <PartGauge p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
               <View style={styles.partFooter}>
                 <Text
@@ -332,161 +337,69 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         })}
       </View>
 
-      <ProfileBmiCard />
+      <View style={[styles.list, { borderTopColor: p.border }]}>
+        <ProfileBmiCard />
+        <ListRow p={p} icon="heart-outline" title="Vitals" text="Log your blood pressure and weight." onPress={() => router.push('/(app)/measurements')} />
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/measurements')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="heart-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Vitals</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Log your blood pressure and weight.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="medkit-outline" title="Medication check" text="See if your medicines interact. Scan a pack or check any two." onPress={() => router.push('/(app)/medication-interactions')} />
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medication-interactions')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="medkit-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Medication check</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>See if your medicines interact. Scan a pack or check any two.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="people-outline" title="Social" text="Share your progress and cheer others on." onPress={() => router.push(SOCIAL_HOME)} />
+      </View>
 
-      <Pressable accessibilityRole="button" onPress={() => router.push(SOCIAL_HOME)}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="people-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Social</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Share your progress and cheer others on.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-        </Card>
-      </Pressable>
-
-      <Card p={p}>
-        <View style={styles.rowTop}>
-          <IconBox p={p} name="flask-outline" color={p.lime} />
-          <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Recent uploads</Text>
-        </View>
-        {recentItems.length === 0 ? (
-          <View style={styles.recentList}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(app)/reports/upload')}
-              style={[styles.recentRow, { borderColor: p.border }]}>
-              <Text style={[styles.recentLabel, { color: p.purple }]}>Upload a report</Text>
-              <Ionicons name="chevron-forward" size={18} color={p.purple} />
+      <View style={styles.block}>
+        <Text style={[Type.title, { color: p.text }]}>Recent uploads</Text>
+        <View style={[styles.list, { borderTopColor: p.border }]}>
+          {recentItems.length === 0 ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/upload')} style={[styles.listRow, { borderBottomColor: p.border }]}>
+              <Text style={[Type.bodyStrong, styles.flex, { color: p.purple }]}>Upload a report</Text>
+              <Ionicons name="chevron-forward" size={18} color={p.muted} />
             </Pressable>
-          </View>
-        ) : (
-          <View style={styles.recentList}>
-            {recentItems.slice(0, 2).map((item) => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                onPress={() =>
-                  // A prescription, scan or other document has no review step: it opens on its summary.
-                  isDocumentReport(item)
-                    ? router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id: item.id } })
-                    : router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })
-                }
-                style={[styles.recentRow, { borderColor: p.border }]}>
-                <Text style={[styles.recentLabel, { color: p.text }]}>{reportTypeLabel(item)}</Text>
-                <Text style={[styles.cardText, { color: p.muted, marginTop: 0 }]}>{formatReportDate(item.created_at)}</Text>
+          ) : (
+            <>
+              {recentItems.slice(0, 2).map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  onPress={() =>
+                    // A prescription, scan or other document has no review step: it opens on its summary.
+                    isDocumentReport(item)
+                      ? router.push({ pathname: '/(app)/reports/interpretation/[id]', params: { id: item.id } })
+                      : router.push({ pathname: '/(app)/reports/[id]', params: { id: item.id } })
+                  }
+                  style={[styles.listRow, { borderBottomColor: p.border }]}>
+                  <View style={styles.flex}>
+                    <Text style={[Type.bodyStrong, { color: p.text }]}>{reportTypeLabel(item)}</Text>
+                    <Text style={[Type.small, { color: p.muted }]}>{formatReportDate(item.created_at)}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={p.muted} />
+                </Pressable>
+              ))}
+              <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/reports/list')} style={[styles.listRow, { borderBottomColor: p.border }]}>
+                <Text style={[Type.bodyStrong, styles.flex, { color: p.purple }]}>See all uploads</Text>
+                <Ionicons name="chevron-forward" size={18} color={p.muted} />
               </Pressable>
-            ))}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(app)/reports/list')}
-              style={[styles.recentRow, { borderColor: p.border }]}>
-              <Text style={[styles.recentLabel, { color: p.purple }]}>More</Text>
-              <Ionicons name="chevron-forward" size={18} color={p.purple} />
-            </Pressable>
-          </View>
-        )}
-      </Card>
+            </>
+          )}
+        </View>
+      </View>
 
       {/* Premium: what the free plan does not include. A free account sees a lock here and the plan screen opens when a card is tapped. */}
-      <View style={styles.premiumHead}>
-        <Ionicons name="diamond" size={15} color={p.lime} />
-        <Text style={[styles.premiumTitle, { color: p.text }]}>Premium</Text>
-        <Text style={[styles.premiumHint, { color: p.muted }]}>{plan.locked ? 'Food, guidance and the daily briefing' : 'Included in your plan'}</Text>
+      <View style={styles.block}>
+        <Text style={[Type.title, { color: p.text }]}>Premium</Text>
+        <Text style={[Type.small, { color: p.muted }]}>{plan.locked ? 'Food, guidance and the daily briefing' : 'Included in your plan'}</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/meal-scan')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="restaurant-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my meal</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your plate: calories and protein.</Text>
-            </View>
-            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
-          </View>
-        </Card>
-      </Pressable>
+      <View style={[styles.list, { borderTopColor: p.border }]}>
+        <ListRow p={p} icon="restaurant-outline" title="Scan my meal" text="Photo of your plate: calories and protein." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/meal-scan')} />
 
-      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/fridge-scan')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="nutrition-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Scan my fridge</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Photo of your fridge: simple meals to cook.</Text>
-            </View>
-            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="nutrition-outline" title="Scan my fridge" text="Photo of your fridge: simple meals to cook." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/fridge-scan')} />
 
-      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/dietary-guidance')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="leaf-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Dietary guidance</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Your BMI and a one-day plan for your goal.</Text>
-            </View>
-            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="leaf-outline" title="Dietary guidance" text="Your BMI and a one-day plan for your goal." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/dietary-guidance')} />
 
       {/* A link under Dietary guidance to the earlier meal scans. */}
-      <Pressable accessibilityRole="button" accessibilityLabel="Meal history" onPress={() => openPremium('/(app)/meal-history')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="restaurant-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Meal history</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>The meals you scanned, day by day.</Text>
-            </View>
-            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="restaurant-outline" title="Meal history" text="The meals you scanned, day by day." label="Meal history" right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/meal-history')} />
 
-      <Pressable accessibilityRole="button" onPress={() => openPremium('/(app)/briefings')}>
-        <Card p={p}>
-          <View style={styles.rowTop}>
-            <IconBox p={p} name="partly-sunny-outline" color={p.lime} />
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, { color: p.text }]}>Daily briefing</Text>
-              <Text style={[styles.cardText, { color: p.muted }]}>Air quality, UV and heat for today.</Text>
-            </View>
-            {plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={20} color={p.purple} />}
-          </View>
-        </Card>
-      </Pressable>
+      <ListRow p={p} icon="partly-sunny-outline" title="Daily briefing" text="Air quality, UV and heat for today." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/briefings')} />
+      </View>
 
       <Modal visible={scoreInfoOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setScoreInfoOpen(false)}>
         <Pressable style={[styles.infoBackdrop, { backgroundColor: p.bg }]} onPress={() => setScoreInfoOpen(false)}>
@@ -546,10 +459,15 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
 
 const styles = StyleSheet.create({
   // One even gap between every card.
-  container: { paddingHorizontal: 20, gap: 12, flexGrow: 1 },
+  container: { paddingHorizontal: Gap.edge, gap: Gap.group, flexGrow: 1 },
+  block: { gap: 2, marginBottom: -Gap.inner },
+  list: { borderTopWidth: Rule },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: Rule },
+  listIcon: { width: 28, alignItems: 'center' },
+  historyLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
-  tagline: { fontSize: 13, fontStyle: 'italic', marginTop: 2, marginLeft: 4 },
+  tagline: { ...Type.small, marginTop: 2, marginLeft: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bellBtn: {
     width: 42,
@@ -581,7 +499,7 @@ const styles = StyleSheet.create({
   alertText: { fontSize: 13, marginTop: 2 },
   profile: { padding: 16, borderRadius: 20, borderWidth: 1, gap: 8 },
   partsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
-  hero: { borderRadius: 24, borderWidth: 1, padding: 18, gap: 12, overflow: 'hidden' },
+  hero: { borderRadius: 24, borderWidth: Rule, padding: 20, gap: 14, overflow: 'hidden' },
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   heroPillText: { fontSize: 13, fontWeight: '700' },
@@ -590,15 +508,15 @@ const styles = StyleSheet.create({
   historyPillText: { fontSize: 12.5, fontWeight: '700' },
   heroBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   heroText: { flex: 1, gap: 8 },
-  heroTitle: { fontSize: 22, fontWeight: '800' },
-  heroSub: { fontSize: 13, lineHeight: 18 },
+  heroTitle: { ...Type.title, fontSize: 24, lineHeight: 30 },
+  heroSub: { ...Type.small },
   viewBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, paddingHorizontal: 14, height: 36, borderRadius: 18, borderWidth: 1.5 },
   viewBtnText: { fontSize: 13, fontWeight: '700' },
-  partsGrid: { flexDirection: 'row', gap: 10 },
-  partCard: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 12, alignItems: 'center', gap: 6 },
+  partsGrid: { flexDirection: 'row', borderTopWidth: Rule, borderBottomWidth: Rule, paddingVertical: 14 },
+  partCard: { flex: 1, alignItems: 'center', gap: 6 },
   // Status text and arrow on one centred line.
   partFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%' },
-  partStatus: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
+  partStatus: { ...Type.label, flexShrink: 1 },
   infoBackdrop: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', padding: 20 },
   infoSheet: { borderRadius: 22, borderWidth: 1, padding: 20, gap: 8, flexShrink: 1 },
   infoBody: { gap: 8, paddingBottom: 4 },
@@ -610,7 +528,7 @@ const styles = StyleSheet.create({
   infoCloseText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   partGaugeCell: { alignItems: 'center', gap: 8 },
   partGaugeLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  partRingLabel: { fontSize: 12.5, fontWeight: '600' },
+  partRingLabel: { ...Type.label },
   recentList: { gap: 8, marginTop: 4 },
   recentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1 },
   recentLabel: { fontSize: 14, fontWeight: '600' },

@@ -13,7 +13,6 @@ import { SOCIAL_HOME, socialProfileHref } from '../model/routes';
 import { friendIsQuiet, friendLabel, friendTap } from '../model/friend-button';
 import { useFriendHandle, useMarkAllSocialRead } from '../model/use-social-actions';
 import { JoinPanel } from './join-panel';
-import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 
 function timeAgo(iso: string): string {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -91,7 +90,7 @@ export function KudosScreen() {
             {...pullRefresh.touch}
             data={items}
             keyExtractor={(item) => `${item.post_id}:${item.handle}`}
-            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + SOCIAL_DOCK_SPACE + 16 }]}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             onEndReachedThreshold={0.4}
             onEndReached={() => {
@@ -118,7 +117,6 @@ export function KudosScreen() {
         </>
       )}
 
-      <SocialDock />
     </View>
   );
 }
