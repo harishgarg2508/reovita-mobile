@@ -63,29 +63,17 @@ export function PostFeed({
   const [blocking, setBlocking] = useState<SocialPost | null>(null);
   // The post open in the drawer (grid layout), and how wide the list is, so the squares fill the row exactly.
   const [openId, setOpenId] = useState<string | null>(null);
-  // The post to bring back when the comments, the kudos list or the share card opened from its drawer is closed. One drawer cannot open on top of another on every
-  // phone, so the post drawer closes first and comes back after, and the person never loses their place.
-  const [reopenId, setReopenId] = useState<string | null>(null);
-  // Opening a profile from the comments or the kudos list leaves the post behind: it is not brought back over the profile.
+  // Opening a profile from the comments or the kudos list leaves the post behind.
   const leaveToProfile = (handle: string) => {
     setOpenId(null);
-    setReopenId(null);
     onOpenProfile?.(handle);
-  };
-  const reopenPost = () => {
-    if (reopenId) setOpenId(reopenId);
-    setReopenId(null);
   };
   const [listWidth, setListWidth] = useState(0);
 
-  // Share opens a card of the post (the handle, the words, the photo, the topic and the stamp) to share as a picture. The drawer closes first, because
-  // one drawer cannot open on top of another on every phone.
+  // Share opens a card of the post (the handle, the words, the photo, the topic and the stamp) to share as a picture. From a post open in the drawer it opens
+  // on top of the drawer.
   const [sharing, setSharing] = useState<SocialPost | null>(null);
-  const sharePost = (post: SocialPost) => {
-    setReopenId(openId === post.id ? post.id : null);
-    setOpenId(null);
-    setSharing(post);
-  };
+  const sharePost = (post: SocialPost) => setSharing(post);
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   const grid = layout === 'grid';
@@ -115,6 +103,34 @@ export function PostFeed({
     }, []),
   );
   const pullRefresh = usePullToRefresh(() => queryRef.current.refetch());
+
+  // The drawers that open from a post: the share card, the comments, the kudos list and the post menu. Opened from a post in the drawer they stack on top of it, as
+  // children of the drawer (a drawer inside a drawer shows on every phone); opened from the feed they are at the top level.
+  const stacked = (
+    <>
+      <ShareCardSheet
+        card={sharing ? { kind: 'post', post: sharing } : null}
+        onClose={() => setSharing(null)}
+      />
+      <CommentsSheet
+        post={commentsPost}
+        onClose={() => setCommentsId(null)}
+        onOpenProfile={leaveToProfile}
+      />
+      <KudosSheet
+        post={kudosPost}
+        onClose={() => setKudosPost(null)}
+        onOpenProfile={leaveToProfile}
+      />
+      <PostMenu
+        post={menuPost}
+        onClose={() => setMenuPost(null)}
+        onDelete={setDeleting}
+        onReport={(post, reason) => report.mutate({ post, reason })}
+        onBlock={setBlocking}
+      />
+    </>
+  );
 
   return (
     <>
@@ -178,23 +194,11 @@ export function PostFeed({
               bleed
               post={openPost}
               onSave={toggleSaved}
-              onComments={(post) => {
-                setReopenId(post.id);
-                setOpenId(null);
-                setCommentsId(post.id);
-              }}
+              onComments={(post) => setCommentsId(post.id)}
               onKudos={toggleKudos}
               onShare={sharePost}
-              // A second drawer or dialog cannot open on top of this one on every phone, so this one closes first.
-              onKudosList={(post) => {
-                setReopenId(post.id);
-                setOpenId(null);
-                setKudosPost(post);
-              }}
-              onMenu={(post) => {
-                setOpenId(null);
-                setMenuPost(post);
-              }}
+              onKudosList={setKudosPost}
+              onMenu={setMenuPost}
               onOpenProfile={(handle) => {
                 setOpenId(null);
                 onOpenProfile?.(handle);
@@ -202,38 +206,10 @@ export function PostFeed({
             />
           ) : null}
         </ScrollView>
+        {stacked}
       </BottomSheet>
 
-      <ShareCardSheet
-        card={sharing ? { kind: 'post', post: sharing } : null}
-        onClose={() => {
-          setSharing(null);
-          reopenPost();
-        }}
-      />
-      <CommentsSheet
-        post={commentsPost}
-        onClose={() => {
-          setCommentsId(null);
-          reopenPost();
-        }}
-        onOpenProfile={leaveToProfile}
-      />
-      <KudosSheet
-        post={kudosPost}
-        onClose={() => {
-          setKudosPost(null);
-          reopenPost();
-        }}
-        onOpenProfile={leaveToProfile}
-      />
-      <PostMenu
-        post={menuPost}
-        onClose={() => setMenuPost(null)}
-        onDelete={setDeleting}
-        onReport={(post, reason) => report.mutate({ post, reason })}
-        onBlock={setBlocking}
-      />
+      {openPost ? null : stacked}
       <ConfirmDialog
         visible={deleting !== null}
         title="Delete this post?"

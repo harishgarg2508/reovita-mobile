@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tapSelection, useScrollToTopOnFocus } from '@shared/lib';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
-import { goBackOr } from '@shared/ui/screen-back/screen-back-button';
 import { usePalette } from '@shared/ui/theme';
 import { SOCIAL_RULE, SOCIAL_SPACE, SOCIAL_TOPICS, SOCIAL_TYPE, useJourneys, useMyHandle, useSocialPods, useSocialQuests, useTodayCheckIns } from '@entities/social';
 
@@ -72,7 +71,8 @@ export function MoveScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: insets.top }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => goBackOr(router, SOCIAL_HOME)} style={styles.iconBtn}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} // Move is a tab of Social: the dock replaces screens instead of stacking them, so Back goes to the Social home, not to what was open before Social.
+          onPress={() => router.replace(SOCIAL_HOME)} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Social settings" hitSlop={10} onPress={() => router.push(socialRoute('/social/settings'))} style={styles.iconBtn}>
@@ -88,7 +88,7 @@ export function MoveScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + SOCIAL_DOCK_SPACE + 16 }]} showsVerticalScrollIndicator={false}>
-          <Text style={[SOCIAL_TYPE.display, { color: p.text }]}>Move</Text>
+          <Text style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Move</Text>
 
           {/* Today: the streak as the figure, the habits as marks, one action */}
           <View style={styles.today}>
@@ -169,10 +169,12 @@ export function MoveScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gutter: { flex: 1, paddingHorizontal: SOCIAL_SPACE.edge, paddingTop: SOCIAL_SPACE.inner },
   body: { paddingHorizontal: SOCIAL_SPACE.edge, gap: SOCIAL_SPACE.group },
+  // The body puts 24 between its parts; the heading and today belong together, so the heading pulls the streak up to 8 below it.
+  heading: { marginBottom: -(SOCIAL_SPACE.group - 8) },
   today: { gap: SOCIAL_SPACE.inner },
   figureRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   marks: { flexDirection: 'row', gap: 6 },

@@ -83,7 +83,7 @@ export function JourneyScreen({ id }: { id: string }) {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={back} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
-        {data ? <Text style={[SOCIAL_TYPE.label, { color: data.status === 'active' ? p.accent : p.muted }]}>{data.status === 'active' ? 'Active' : 'Ended'}</Text> : <View style={styles.iconBtn} />}
+        {data ? <Text style={[SOCIAL_TYPE.label, { color: data.status === 'active' ? p.accent : p.muted, paddingRight: SOCIAL_SPACE.edge }]}>{data.status === 'active' ? 'Active' : 'Ended'}</Text> : <View style={styles.iconBtn} />}
       </View>
       <Text numberOfLines={2} style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>{data?.title ?? 'Journey'}</Text>
 
@@ -389,7 +389,7 @@ export function JourneyScreen({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },

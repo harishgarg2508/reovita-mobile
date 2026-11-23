@@ -129,16 +129,18 @@ export function SocialScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   count: { position: 'absolute', top: 6, right: 4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   countText: { color: '#FFFFFF', fontSize: 10, fontFamily: 'Poppins_600SemiBold' },
-  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: 0, marginTop: -4 },
   gutter: { flex: 1, paddingHorizontal: SOCIAL_SPACE.edge, paddingTop: SOCIAL_SPACE.inner },
-  headerWrap: { paddingBottom: SOCIAL_SPACE.inner, gap: SOCIAL_SPACE.inner },
-  tabs: { flexDirection: 'row', gap: 28, paddingHorizontal: SOCIAL_SPACE.edge, borderBottomWidth: SOCIAL_RULE },
-  tab: { paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -StyleSheet.hairlineWidth },
-  topics: { gap: 8, paddingHorizontal: SOCIAL_SPACE.edge },
+  // 14 between the tabs' rule and the topics, and the post under them brings its own 16, so the topics sit evenly between the two.
+  headerWrap: { paddingTop: 0, paddingBottom: 0, gap: 14 },
+  // The feed already pads its header by the screen edge, so the tabs and the topics add none: they start under the heading.
+  tabs: { flexDirection: 'row', gap: 28, borderBottomWidth: SOCIAL_RULE },
+  tab: { paddingTop: 6, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -StyleSheet.hairlineWidth },
+  topics: { gap: 8 },
   topic: { height: 32, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   error: { textAlign: 'center', marginTop: 40, paddingHorizontal: 24 },
 });

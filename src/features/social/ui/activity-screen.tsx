@@ -224,10 +224,11 @@ export function ActivityScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   title: { fontSize: 18, fontWeight: '800' },
-  allRead: { minWidth: 56, alignItems: 'flex-end' },
+  // A text button at the right end of the bar keeps the screen edge's 16, like the heading at the left.
+  allRead: { minWidth: 56, height: 44, justifyContent: 'center', alignItems: 'flex-end', paddingRight: SOCIAL_SPACE.edge },
   allReadText: { fontSize: 13.5, fontWeight: '700' },
   list: { paddingHorizontal: 16, flexGrow: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 11 },

@@ -47,8 +47,8 @@ import { JoinPanel } from './join-panel';
 import { PostFeed } from './post-feed';
 import { SOCIAL_DOCK_SPACE, SocialDock } from './social-dock';
 
-// A bio longer than this shows two lines with "...more" (about two lines of the card's width).
-const BIO_PREVIEW_CHARS = 70;
+// A bio longer than this shows one line with "...more" (about one line of the card's width).
+const BIO_PREVIEW_CHARS = 34;
 
 export type ProfileTab = 'photos' | 'text' | 'consistency';
 
@@ -364,7 +364,7 @@ function ProfileHeader({
         {/* A long bio wraps inside the card, even a single long word with no spaces, and shows at most four lines. */}
         {profile.bio ? (
           <View style={styles.bioBox}>
-            <Text numberOfLines={bioOpen ? undefined : 2} style={styles.bioText}>
+            <Text numberOfLines={bioOpen ? undefined : 1} style={styles.bioText}>
               {profile.bio}
               {bioOpen && profile.bio.length > BIO_PREVIEW_CHARS ? (
                 <Text onPress={() => setBioOpen(false)} style={[styles.bioMore, { color: p.accent }]}>{'  '}less</Text>

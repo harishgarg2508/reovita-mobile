@@ -32,16 +32,11 @@ export function SocialSettingsScreen() {
   const [confirming, setConfirming] = useState(false);
 
   const blocked = profile.data?.blocked_count;
+  // Only what is about the person's own Social: the saved posts, and the notifications of Social (kudos, comments, requests, invitations), which open on Activity.
+  // Journeys, pods and quests are in Move; friend requests and kudos are in Activity.
   const rows: Row[] = [
-    { icon: 'people-circle-outline', label: 'Accountability pods', hint: 'Small groups with a shared weekly target', href: socialRoute('/social/pods') },
-    { icon: 'map-outline', label: 'Journeys', hint: 'Walk a route with friends on an animated map', href: socialRoute('/social/journeys') },
-    { icon: 'trophy-outline', label: 'Quests and leaderboard', hint: 'Monthly goals and your friends', href: socialRoute('/social/quests') },
-    { icon: 'heart-outline', label: 'Kudos you got', hint: 'Who cheered your posts', href: socialRoute('/social/kudos') },
     { icon: 'bookmark-outline', label: 'Saved posts', hint: 'Posts you kept with the bookmark', href: socialRoute('/social/saved') },
-    { icon: 'pulse-outline', label: 'Your activity', hint: 'Kudos, comments and accepted requests', badge: unread.data?.unread ?? 0, href: socialRoute('/social/activity') },
-    { icon: 'notifications-outline', label: 'Notifications', hint: 'Updates about your reports', href: '/(app)/notifications' as Href },
-    { icon: 'people-outline', label: 'Friend requests', hint: 'Received and sent', badge: unread.data?.requests ?? 0, href: socialRoute('/social/requests') },
-    { icon: 'ban-outline', label: 'Blocked and reported', hint: typeof blocked === 'number' ? `${blocked} blocked` : 'People you blocked or reported', href: socialRoute('/social/blocked') },
+    { icon: 'notifications-outline', label: 'Notifications', hint: 'Kudos, comments, requests and invitations', badge: (unread.data?.unread ?? 0) + (unread.data?.requests ?? 0), href: socialRoute('/social/activity') },
   ];
 
   return (
@@ -69,7 +64,7 @@ export function SocialSettingsScreen() {
                 accessibilityRole="button"
                 onPress={() => router.push(row.href)}
                 style={[styles.row, { borderBottomWidth: SOCIAL_RULE, borderBottomColor: p.border }]}>
-                <View style={[styles.iconBox, { backgroundColor: p.accentSoft }]}>
+                <View style={styles.iconBox}>
                   <Ionicons name={row.icon} size={19} color={p.accent} />
                 </View>
                 <View style={styles.rowText}>
@@ -87,8 +82,18 @@ export function SocialSettingsScreen() {
           </View>
 
           <View style={[styles.card, { borderTopColor: p.border }]}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(socialRoute('/social/blocked'))} style={[styles.row, { borderBottomWidth: SOCIAL_RULE, borderBottomColor: p.border }]}>
+              <View style={styles.iconBox}>
+                <Ionicons name="ban-outline" size={19} color={p.accent} />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={[styles.rowLabel, { color: p.text }]}>Blocked and reported</Text>
+                <Text numberOfLines={1} style={[styles.rowHint, { color: p.muted }]}>{typeof blocked === 'number' ? `${blocked} blocked` : 'People you blocked or reported'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={p.muted} />
+            </Pressable>
             <Pressable accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.row}>
-              <View style={[styles.iconBox, { backgroundColor: p.redSoft }]}>
+              <View style={styles.iconBox}>
                 <Ionicons name="trash-outline" size={19} color={p.red} />
               </View>
               <View style={styles.rowText}>
@@ -115,7 +120,7 @@ export function SocialSettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
@@ -125,11 +130,11 @@ const styles = StyleSheet.create({
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   card: { borderTopWidth: SOCIAL_RULE },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13 },
-  iconBox: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, paddingVertical: 16 },
+  iconBox: { width: 28, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1, minWidth: 0, gap: 1 },
-  rowLabel: { fontSize: 15.5, fontWeight: '700' },
-  rowHint: { fontSize: 12.5 },
+  rowLabel: { fontFamily: 'Poppins_600SemiBold', fontSize: 15.5, lineHeight: 22 },
+  rowHint: { fontFamily: 'Poppins_400Regular', fontSize: 12.5, lineHeight: 17 },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontSize: 11.5, fontWeight: '800', color: '#FFFFFF' },
 });

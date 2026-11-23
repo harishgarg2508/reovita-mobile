@@ -292,14 +292,14 @@ export function PodsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner },
+  heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: 6 },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   spacer: { width: 40, height: 40 },
   title: { fontSize: 18, fontWeight: '800' },
   gutter: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  body: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+  body: { paddingHorizontal: 16, paddingTop: 8, gap: 18 },
   heroCard: { gap: 14, paddingBottom: 4 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   heroIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

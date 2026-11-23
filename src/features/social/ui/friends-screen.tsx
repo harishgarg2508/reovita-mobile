@@ -87,10 +87,10 @@ function PersonRow({ person, busy, onOpen, onToggle }: { person: SocialPerson; b
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.who}>
-        <SocialAvatar handle={person.handle} hasAvatar={person.has_avatar} size={44} />
+        <SocialAvatar handle={person.handle} hasAvatar={person.has_avatar} size={46} />
         <View style={styles.names}>
-          <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{person.display_name || `@${person.handle}`}</Text>
-          <Text numberOfLines={1} style={[styles.handle, { color: p.muted }]}>@{person.handle}{person.is_me ? ' · you' : ''}</Text>
+          <Text numberOfLines={1} style={[SOCIAL_TYPE.bodyStrong, { color: p.text }]}>{person.is_me ? 'You' : person.display_name || `@${person.handle}`}</Text>
+          <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: p.muted }]}>@{person.handle}</Text>
         </View>
       </Pressable>
       {person.is_me ? null : (
@@ -102,7 +102,7 @@ function PersonRow({ person, busy, onOpen, onToggle }: { person: SocialPerson; b
           {busy ? (
             <ActivityIndicator size="small" color={friendIsQuiet(person) ? p.accent : '#FFFFFF'} />
           ) : (
-            <Text style={[styles.buttonText, { color: friendIsQuiet(person) ? p.text : '#FFFFFF' }]}>{friendLabel(person)}</Text>
+            <Text style={[SOCIAL_TYPE.label, { color: friendIsQuiet(person) ? p.text : '#FFFFFF' }]}>{friendLabel(person)}</Text>
           )}
         </Pressable>
       )}
@@ -112,25 +112,15 @@ function PersonRow({ person, busy, onOpen, onToggle }: { person: SocialPerson; b
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SOCIAL_SPACE.edge - 4 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: SOCIAL_SPACE.inner, gap: 2 },
-  round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  spacer: { width: 40, height: 40 },
-  titleBox: { flex: 1, alignItems: 'center' },
-  title: { fontSize: 18, fontWeight: '800' },
-  sub: { fontSize: 12 },
   list: { paddingHorizontal: 16, flexGrow: 1 },
   sep: { height: StyleSheet.hairlineWidth },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
-  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '800' },
   names: { flex: 1, minWidth: 0 },
-  name: { fontSize: 15, fontWeight: '800' },
-  handle: { fontSize: 12.5 },
   button: { minWidth: 96, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  buttonText: { fontSize: 13, fontWeight: '700' },
   emptyBox: { alignItems: 'center', paddingTop: 50 },
   emptyTitle: { fontSize: 16, fontWeight: '800' },
   empty: { fontSize: 14, textAlign: 'center', marginTop: 40, paddingHorizontal: 24 },
