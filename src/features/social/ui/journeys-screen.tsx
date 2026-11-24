@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,6 +22,7 @@ import { StepsCard } from './steps-card';
 import { FeatureHelpButton } from './feature-help';
 
 const NO_MEMBERS: SocialJourneyMember[] = [];
+// (the form for a map the person makes is further down)
 const LOOK_LABEL: Record<JourneyTheme, string> = { plains: 'Plains', mountain: 'Mountain', coast: 'Coast', backwaters: 'Backwaters' };
 const THEME_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { plains: 'sunny-outline', mountain: 'trail-sign-outline', coast: 'boat-outline', backwaters: 'water-outline' };
 
@@ -45,10 +46,6 @@ export function JourneysScreen() {
   const [choosing, setChoosing] = useState(false);
   // The form for a map the person makes.
   const [making, setMaking] = useState(false);
-  const [name, setName] = useState('');
-  const [km, setKm] = useState(300);
-  const [days, setDays] = useState(21);
-  const [look, setLook] = useState<JourneyTheme>('plains');
   const closeSheet = () => {
     setChoosing(false);
     setMaking(false);
@@ -170,50 +167,7 @@ export function JourneysScreen() {
       <BottomSheet visible={choosing} onClose={closeSheet}>
         <View style={styles.sheet}>
           {making ? (
-            <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheet}>
-              <View style={styles.row}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Back to the maps" hitSlop={8} onPress={() => setMaking(false)}>
-                  <Ionicons name="chevron-back" size={20} color={p.text} />
-                </Pressable>
-                <Text style={[styles.cardTitle, { color: p.text }]}>Make your own map</Text>
-              </View>
-              {/* The map as it will look, with the chosen look. It changes as the look changes. */}
-              <View style={styles.preview}>
-                <JourneyMap mapKey="custom" theme={look} members={NO_MEMBERS} width={previewWidth} still />
-              </View>
-              <TextInput value={name} onChangeText={setName} maxLength={40} placeholder="Name, e.g. Home to the office run" placeholderTextColor={p.muted} accessibilityLabel="Map name" style={[styles.input, { color: p.text, borderColor: p.border, backgroundColor: p.input }]} />
-              <Text style={[styles.label, { color: p.text }]}>Look</Text>
-              <View style={styles.chips}>
-                {(Object.keys(THEMES) as JourneyTheme[]).map((key) => (
-                  <Pressable key={key} accessibilityRole="button" onPress={() => { tapSelection(); setLook(key); }} style={[styles.chip, { borderColor: look === key ? p.accent : p.border, backgroundColor: look === key ? p.accentSoft : p.surface }]}>
-                    <View style={[styles.dot, { backgroundColor: THEMES[key].grass[0] }]} />
-                    <Text style={[styles.chipText, { color: look === key ? p.accent : p.text }]}>{LOOK_LABEL[key]}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <View style={styles.wheels}>
-                <View style={styles.wheelCol}>
-                  <Text style={[styles.label, { color: p.text }]}>Route length</Text>
-                  <NumberWheel compact value={km} minValue={1} maxValue={2000} suffix=" km" onChange={setKm} />
-                </View>
-                <View style={styles.wheelCol}>
-                  <Text style={[styles.label, { color: p.text }]}>Days</Text>
-                  <NumberWheel compact value={days} minValue={3} maxValue={90} suffix=" days" onChange={setDays} />
-                </View>
-              </View>
-              <Text style={[styles.hint, { color: p.muted }]}>Walk about 7,000 steps a day to keep the pace: {Math.round(km / Math.ceil(days * 0.7) * 10) / 10} km of route a day.</Text>
-              {start.isError ? <Text style={[styles.hint, { color: p.red }]}>{(start.error as Error).message}</Text> : null}
-              <Pressable
-                accessibilityRole="button"
-                disabled={name.trim().length < 3 || start.isPending}
-                onPress={() => {
-                  tapConfirm();
-                  start.mutate({ title: name.trim(), totalKm: km, days, theme: look }, { onSuccess: (journey) => { closeSheet(); setName(''); router.push(socialJourneyHref(journey.id)); } });
-                }}
-                style={[styles.btn, { backgroundColor: p.accent, flex: 0 }, name.trim().length < 3 && { opacity: 0.5 }]}>
-                {start.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.btnText}>Start this journey</Text>}
-              </Pressable>
-            </ScrollView>
+            <CustomMapForm previewWidth={previewWidth} onBack={() => setMaking(false)} onClose={closeSheet} />
           ) : (
             <>
           <Text style={[styles.cardTitle, { color: p.text }]}>Choose a map</Text>
@@ -259,7 +213,7 @@ export function JourneysScreen() {
             <Ionicons name="chevron-forward" size={16} color={p.muted} />
           </Pressable>
           {start.isError ? <Text style={[styles.hint, { color: p.red }]}>{(start.error as Error).message}</Text> : null}
-          <Pressable accessibilityRole="button" onPress={closeSheet} style={[styles.btn, { borderColor: p.border, borderWidth: 1, flex: 0 }]}>
+          <Pressable accessibilityRole="button" onPress={closeSheet} style={[styles.btn, { borderColor: p.border, borderWidth: 1 }, styles.stackedBtn]}>
             <Text style={[styles.btnText, { color: p.text }]}>Cancel</Text>
           </Pressable>
             </>
@@ -304,6 +258,105 @@ function JourneyRow({ journey, onOpen }: { journey: { title: string; theme?: str
         ) : null}
       </View>
     </Pressable>
+  );
+}
+
+// The name of a map is at least this many characters (the service checks the same).
+const NAME_MIN = 3;
+
+// The form for a map the person makes. It keeps its own fields, so typing or turning a wheel draws only this form. The preview of the map is the heavy part
+// (about a hundred tiles of drawing), so the drawer opens with a plain box in its place and the map is drawn a moment later. The Create button stays at the foot,
+// outside the scrolling part, so it is always in sight.
+function CustomMapForm({ previewWidth, onBack, onClose }: { previewWidth: number; onBack: () => void; onClose: () => void }) {
+  const p = usePalette();
+  const router = useRouter();
+  const start = useStartJourney();
+  const insets = useSafeAreaInsets();
+  // The drawer is at most 92% of the screen and does not scroll itself. The form takes the room the drawer has left (less its handle and padding); the fields shrink and
+  // scroll inside it, and the Create button keeps its size at the foot, so it is in sight on any screen height.
+  const formMaxHeight = useWindowDimensions().height * 0.92 - 96 - insets.bottom;
+  const [name, setName] = useState('');
+  const [km, setKm] = useState(300);
+  const [days, setDays] = useState(21);
+  const [look, setLook] = useState<JourneyTheme>('plains');
+  const [mapReady, setMapReady] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  useEffect(() => {
+    // After the drawer has opened and drawn once.
+    const timer = setTimeout(() => setMapReady(true), 80);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const trimmed = name.trim();
+  const nameOk = trimmed.length >= NAME_MIN;
+  const nameShort = touched && !nameOk;
+
+  function create() {
+    if (!nameOk || start.isPending) return;
+    tapConfirm();
+    start.mutate({ title: trimmed, totalKm: km, days, theme: look }, { onSuccess: (journey) => { onClose(); router.push(socialJourneyHref(journey.id)); } });
+  }
+
+  return (
+    <View style={{ maxHeight: formMaxHeight }}>
+      <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheet}>
+        <View style={styles.row}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back to the maps" hitSlop={8} onPress={onBack}>
+            <Ionicons name="chevron-back" size={20} color={p.text} />
+          </Pressable>
+          <Text style={[styles.cardTitle, { color: p.text }]}>Make your own map</Text>
+        </View>
+        {/* The map as it will look, with the chosen look. It changes as the look changes. */}
+        <View style={[styles.preview, !mapReady && { height: Math.round(previewWidth * 0.62), borderRadius: 18, backgroundColor: p.surface, alignItems: 'center', justifyContent: 'center' }]}>
+          {mapReady ? <JourneyMap mapKey="custom" theme={look} members={NO_MEMBERS} width={previewWidth} still /> : <ActivityIndicator color={p.accent} />}
+        </View>
+        <TextInput
+          value={name}
+          onChangeText={(value) => {
+            setTouched(true);
+            setName(value);
+          }}
+          maxLength={40}
+          placeholder="Name, e.g. Home to the office run"
+          placeholderTextColor={p.muted}
+          accessibilityLabel="Map name"
+          returnKeyType="done"
+          style={[styles.input, { color: p.text, borderColor: nameShort ? p.red : p.border, backgroundColor: p.input }]}
+        />
+        <Text style={[styles.hint, { color: nameShort ? p.red : p.muted }]}>
+          {nameShort ? `The name needs at least ${NAME_MIN} characters.` : `Name it with ${NAME_MIN} to 40 characters.`}
+        </Text>
+        <Text style={[styles.label, { color: p.text }]}>Look</Text>
+        <View style={styles.chips}>
+          {(Object.keys(THEMES) as JourneyTheme[]).map((key) => (
+            <Pressable key={key} accessibilityRole="button" onPress={() => { tapSelection(); setLook(key); }} style={[styles.chip, { borderColor: look === key ? p.accent : p.border, backgroundColor: look === key ? p.accentSoft : p.surface }]}>
+              <View style={[styles.dot, { backgroundColor: THEMES[key].grass[0] }]} />
+              <Text style={[styles.chipText, { color: look === key ? p.accent : p.text }]}>{LOOK_LABEL[key]}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.wheels}>
+          <View style={styles.wheelCol}>
+            <Text style={[styles.label, { color: p.text }]}>Route length</Text>
+            <NumberWheel compact value={km} minValue={1} maxValue={2000} suffix=" km" onChange={setKm} />
+          </View>
+          <View style={styles.wheelCol}>
+            <Text style={[styles.label, { color: p.text }]}>Days</Text>
+            <NumberWheel compact value={days} minValue={3} maxValue={90} suffix=" days" onChange={setDays} />
+          </View>
+        </View>
+        <Text style={[styles.hint, { color: p.muted }]}>Walk about 7,000 steps a day to keep the pace: {Math.round(km / Math.ceil(days * 0.7) * 10) / 10} km of route a day.</Text>
+        {start.isError ? <Text style={[styles.hint, { color: p.red }]}>{(start.error as Error).message}</Text> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !nameOk || start.isPending, busy: start.isPending }}
+          onPress={() => (nameOk ? create() : setTouched(true))}
+          style={[styles.btn, styles.createBtn, { backgroundColor: p.accent }, (!nameOk || start.isPending) && { opacity: 0.5 }]}>
+          {start.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.btnText}>Create map</Text>}
+        </Pressable>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -357,7 +410,10 @@ const styles = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6 },
   stepper: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stepValue: { width: 26, textAlign: 'center', fontSize: 17, fontWeight: '800' },
-  formScroll: { maxHeight: 640 },
+  formScroll: { flexShrink: 1 },
+  // A button in a column. The shared btn style has flex 1, which in a column makes the button's height zero, so its size is set back to its own height.
+  stackedBtn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  createBtn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', height: 50, borderRadius: 25, marginTop: 12 },
   preview: { alignItems: 'center' },
   wheels: { flexDirection: 'row', gap: 12 },
   wheelCol: { flex: 1, gap: 6 },

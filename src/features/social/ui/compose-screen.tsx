@@ -65,12 +65,13 @@ export function ComposeScreen() {
   const canPost = (text.trim().length > 0 || photo !== null) && !create.isPending;
 
   // Pick photos from device files or gallery, up to MAX_PHOTOS in all.
-  async function pickPhoto() {
+  // Returns true when at least one photo was added.
+  async function pickPhoto(): Promise<boolean> {
     setPhotoError(null);
     const room = MAX_PHOTOS - photos.length;
     if (room <= 0) {
       setPhotoError(`A post has up to ${MAX_PHOTOS} photos. Tap one to take it out.`);
-      return;
+      return false;
     }
     try {
       const picked = await DocumentPicker.getDocumentAsync({
@@ -78,16 +79,18 @@ export function ComposeScreen() {
         multiple: true,
         copyToCacheDirectory: true,
       });
-      if (picked.canceled) return;
+      if (picked.canceled) return false;
       const fit = picked.assets.filter((asset) => !asset.size || asset.size <= MAX_PHOTO_BYTES);
       const chosen = fit.slice(0, room);
       if (fit.length < picked.assets.length) setPhotoError('Photos must be under 5 MB each. Some were left out.');
       else if (fit.length > room) setPhotoError(`A post has up to ${MAX_PHOTOS} photos. The first ${room} were added.`);
-      if (chosen.length === 0) return;
+      if (chosen.length === 0) return false;
       setPhotos((current) => [...current, ...chosen.map((asset) => ({ uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'image/jpeg' }))]);
       tapSelection();
+      return true;
     } catch {
       setPhotoError('Could not open photos.');
+      return false;
     }
   }
 
@@ -137,12 +140,16 @@ export function ComposeScreen() {
             <Ionicons name="close" size={28} color="#FFFFFF" />
           </Pressable>
 
+          {/* The flash lights the scene while the camera is open (the torch) and fires with the picture. The front camera of most phones has none. */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Flash ${flash === 'on' ? 'off' : 'on'}`}
+            accessibilityLabel={facing === 'front' ? 'Flash is not available on the front camera' : `Flash ${flash === 'on' ? 'off' : 'on'}`}
+            accessibilityState={{ disabled: facing === 'front' }}
+            disabled={facing === 'front'}
             onPress={() => setFlash((f) => (f === 'on' ? 'off' : 'on'))}
-            hitSlop={10}>
-            <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color="#FFFFFF" />
+            hitSlop={10}
+            style={facing === 'front' ? { opacity: 0.35 } : undefined}>
+            <Ionicons name={flash === 'on' && facing === 'back' ? 'flash' : 'flash-off'} size={24} color="#FFFFFF" />
           </Pressable>
 
           <Pressable
@@ -160,7 +167,8 @@ export function ComposeScreen() {
             <CameraView
               ref={cameraRef}
               facing={facing}
-              flash={flash}
+              flash={facing === 'back' ? flash : 'off'}
+              enableTorch={flash === 'on' && facing === 'back'}
               style={StyleSheet.absoluteFill}
             />
           ) : (
@@ -187,7 +195,17 @@ export function ComposeScreen() {
 
         {/* Camera Bottom Controls Bar */}
         <View style={styles.cameraBottomBar}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Gallery" onPress={() => setMode('gallery')} style={styles.cameraSideBtn}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Browse photos"
+            onPress={() => {
+              tapSelection();
+              // Opens the photo picker again. Photos that are chosen show in the gallery view; a cancelled pick stays on the camera.
+              void pickPhoto().then((added) => {
+                if (added) setMode('gallery');
+              });
+            }}
+            style={styles.cameraSideBtn}>
             <Ionicons name="images-outline" size={28} color="#FFFFFF" />
           </Pressable>
 
