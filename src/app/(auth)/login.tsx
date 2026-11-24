@@ -1,10 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@app-root/store';
+import { consentFlowReset } from '@entities/consent';
+import { onboardingDraftsReset } from '@entities/onboarding';
 import { selectIsSignedIn, selectSessionStatus, sessionReady } from '@entities/session';
 import { friendlySignInError, LoginScreen, useGoogleSignIn } from '@features/auth';
 import { isApiError } from '@shared/api';
+import { forgetSessionData } from '@shared/lib';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePalette } from '@shared/ui/theme';
@@ -13,6 +17,7 @@ export default function LoginRoute() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const signIn = useGoogleSignIn();
+  const queryClient = useQueryClient();
   const signedIn = useAppSelector(selectIsSignedIn);
   const sessionStatus = useAppSelector(selectSessionStatus);
   const palette = usePalette();
@@ -32,8 +37,13 @@ export default function LoginRoute() {
       {
         onSuccess: (session) => {
           if (!session) return; // user closed the account picker
-          dispatch(sessionReady({ subjectId: session.codename, codename: session.codename }));
-          router.replace('/(app)/(tabs)/dashboard');
+          // A different person may be signing in on this phone: nothing from the previous session is kept.
+          void forgetSessionData(queryClient).then(() => {
+            dispatch(consentFlowReset());
+            dispatch(onboardingDraftsReset());
+            dispatch(sessionReady({ subjectId: session.codename, codename: session.codename }));
+            router.replace('/(app)/(tabs)/dashboard');
+          });
         },
       },
     );

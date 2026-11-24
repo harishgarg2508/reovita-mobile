@@ -21,7 +21,7 @@ export function useDietaryHistory() {
 
 // One chart, whole. A chart never changes once it is made, so it is kept.
 export function useDietaryChartById(id: string) {
-  return useQuery({ queryKey: queryKeys.dietary.detail(id), queryFn: () => fetchDietaryChartById(id), enabled: id.length > 0, staleTime: Infinity, retry: false });
+  return useQuery({ queryKey: queryKeys.dietary.detail(id), queryFn: () => fetchDietaryChartById(id), enabled: id.length > 0, staleTime: 0, retry: false });
 }
 
 export function useDeleteDietaryChart() {

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollToTopOnFocus } from '@shared/lib';
 import { Skeleton } from '@shared/ui/skeleton';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
-import { ConfirmDialog } from '@shared/ui';
+import { ConfirmDialog, ScatterOut } from '@shared/ui';
 import { useDeleteReport } from '@entities/report';
 import { Gap, Rule, Type, usePalette, type Palette } from '@shared/ui/theme';
 
@@ -65,6 +65,8 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   const [downloading, setDownloading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // The record scatters away after the person confirms; the delete is sent when the animation ends.
+  const [scattering, setScattering] = useState(false);
   const remove = useDeleteReport();
 
   // One file downloads straight away. Several files open the picker, which offers each file and a zip of all of them.
@@ -89,6 +91,7 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
   }
 
   return (
+    <ScatterOut active={scattering} onDone={() => remove.mutate(record.id)}>
     <View style={styles.card}>
       {/* The eye opens the rest of the record in a swipe-down drawer. */}
       <Pressable accessibilityRole="button" accessibilityLabel="Show the details of this record" onPress={() => setOpen(true)} hitSlop={8} style={styles.eyeBtn}>
@@ -117,7 +120,10 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
         confirmLabel="Delete"
         destructive
         busy={remove.isPending}
-        onConfirm={() => remove.mutate(record.id, { onSettled: () => setConfirmDelete(false) })}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          setScattering(true);
+        }}
         onCancel={() => setConfirmDelete(false)}
       />
 
@@ -238,6 +244,7 @@ function RecordCard({ record, styles, p }: { record: RecordItem; styles: Styles;
       </BottomSheet>
 
     </View>
+    </ScatterOut>
   );
 }
 

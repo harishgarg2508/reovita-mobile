@@ -12,7 +12,7 @@ export function useMedicalHistories() {
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: ['medical-histories'] as const,
-    queryFn: fetchMedicalHistories,
+    queryFn: () => fetchMedicalHistories(),
     staleTime: 0,
   });
   const add = useMutation({

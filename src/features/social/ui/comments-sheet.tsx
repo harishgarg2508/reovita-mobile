@@ -3,6 +3,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
+import { ScatterOut } from '@shared/ui/scatter-out';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { usePalette } from '@shared/ui/theme';
 import { REPORT_REASONS, SocialAvatar, useSocialComments, useSocialReplies, type SocialComment, type SocialPost } from '@entities/social';
@@ -46,6 +47,8 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
   const [reporting, setReporting] = useState<SocialComment | null>(null);
   // The comment waiting for "Are you sure?" before it is deleted.
   const [deleting, setDeleting] = useState<SocialComment | null>(null);
+  // The comment that is scattering away: the delete is sent when its animation ends.
+  const [scattering, setScattering] = useState<SocialComment | null>(null);
   // The comment whose actions are open: a long press on it shows Report or Delete in the drawer.
   const [acting, setActing] = useState<SocialComment | null>(null);
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
@@ -174,18 +177,20 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
               }}
               ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: p.border }]} />}
               renderItem={({ item }) => (
-                <View>
-                  <CommentRow comment={item} {...actions} />
-                  {item.replies_count > 0 ? (
-                    <Pressable accessibilityRole="button" onPress={() => toggle(item.id)} hitSlop={6} style={styles.toggle}>
-                      <View style={[styles.toggleLine, { backgroundColor: p.border }]} />
-                      <Text style={[styles.toggleText, { color: p.muted }]}>
-                        {open.has(item.id) ? 'Hide replies' : `View ${item.replies_count} ${item.replies_count === 1 ? 'reply' : 'replies'}`}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                  {open.has(item.id) ? <Replies commentId={item.id} {...actions} /> : null}
-                </View>
+                <ScatterOut active={scattering?.id === item.id} onDone={() => { if (scattering) remove.mutate({ id: scattering.id, removed: 1 + (scattering.parent_id ? 0 : scattering.replies_count) }); setScattering(null); }}>
+                  <View>
+                    <CommentRow comment={item} {...actions} />
+                    {item.replies_count > 0 ? (
+                      <Pressable accessibilityRole="button" onPress={() => toggle(item.id)} hitSlop={6} style={styles.toggle}>
+                        <View style={[styles.toggleLine, { backgroundColor: p.border }]} />
+                        <Text style={[styles.toggleText, { color: p.muted }]}>
+                          {open.has(item.id) ? 'Hide replies' : `View ${item.replies_count} ${item.replies_count === 1 ? 'reply' : 'replies'}`}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {open.has(item.id) ? <Replies commentId={item.id} {...actions} /> : null}
+                  </View>
+                </ScatterOut>
               )}
               ListEmptyComponent={
                 list.isPending ? (
@@ -265,7 +270,8 @@ export function CommentsSheet({ post, onClose, onOpenProfile }: { post: SocialPo
           confirmLabel="Delete"
           busy={remove.isPending}
           onConfirm={() => {
-            if (deleting) remove.mutate({ id: deleting.id, removed: 1 + (deleting.parent_id ? 0 : deleting.replies_count) }, { onSettled: () => setDeleting(null) });
+            if (deleting) setScattering(deleting);
+            setDeleting(null);
           }}
           onCancel={() => setDeleting(null)}
         />

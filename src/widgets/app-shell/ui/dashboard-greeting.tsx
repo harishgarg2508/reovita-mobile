@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAccountIdentity } from '@entities/session';
+import { useActiveProfile, useIsFamilyView } from '@features/profile-switch';
 import { SocialAvatar, useMyHandle } from '@entities/social';
+import { useChangeAvatar } from '@features/social';
 import { useCurrentSubject } from '@entities/subject';
+import { tapSelection } from '@shared/lib';
 import { Type, usePalette } from '@shared/ui/theme';
 
 // The greeting at the top of the dashboard: the picture, the greeting for the time of day, and the name of the person who is signed in. The name is the one on their
@@ -17,23 +20,54 @@ export function DashboardGreeting() {
   const [photoFailed, setPhotoFailed] = useState(false);
   const subject = useCurrentSubject();
   const handle = useMyHandle();
-  const name = displayName ?? subject.data?.codename ?? 'Welcome';
+  // In a family view the greeting is about the family member: their nickname (or codename), with their initial, and no account picture.
+  const familyView = useIsFamilyView();
+  const activeProfile = useActiveProfile();
+  // The family member's own Google name first, then the nickname the family gave, then the codename.
+  const memberName = activeProfile?.display_name ?? activeProfile?.nickname ?? activeProfile?.codename;
+  const name = familyView && memberName ? memberName : (displayName ?? subject.data?.codename ?? 'Welcome');
+  const avatar = useChangeAvatar(handle.joined && handle.data ? handle.data.handle : null);
+  // The Google account picture is the one shown. The Social picture only stands in when there is no Google picture (or it fails to load).
+  const showGooglePhoto = !familyView && Boolean(photoUrl) && !photoFailed;
+  const hasSocialPhoto = handle.joined && handle.data?.has_avatar === true;
+
+  // Changing or removing applies to the Social picture, so the menu is offered only when that picture is the one shown.
+  function onPicturePress() {
+    tapSelection();
+    if (showGooglePhoto || !handle.joined || !handle.data) return;
+    Alert.alert('Profile picture', 'Choose what to do with your picture.', [
+      { text: 'Change picture', onPress: () => void avatar.change() },
+      ...(hasSocialPhoto ? [{ text: 'Remove picture', style: 'destructive' as const, onPress: () => avatar.remove() }] : []),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }
 
   return (
     <View style={styles.row}>
-      <View style={[styles.ring, { borderColor: p.accent }]}>
-        {photoUrl && !photoFailed ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Change profile picture"
+        disabled={avatar.busy}
+        onPress={onPicturePress}
+        style={[styles.ring, { borderColor: p.accent }]}>
+        {familyView ? (
+          <View style={[styles.fallback, { backgroundColor: p.accentSoft }]}>
+            <Text style={[Type.title, { color: p.accent }]}>{name.slice(0, 1).toUpperCase()}</Text>
+          </View>
+        ) : showGooglePhoto && photoUrl ? (
           <Image source={{ uri: photoUrl }} onError={() => setPhotoFailed(true)} style={styles.photo} resizeMode="cover" accessibilityLabel="Your Google account picture" />
+        ) : hasSocialPhoto ? (
+          <SocialAvatar handle={handle.data?.handle ?? ''} hasAvatar size={42} />
         ) : handle.joined && handle.data ? (
-          <SocialAvatar handle={handle.data.handle} hasAvatar={handle.data.has_avatar} size={42} />
+          <SocialAvatar handle={handle.data.handle} hasAvatar={false} size={42} />
         ) : (
           <View style={[styles.fallback, { backgroundColor: p.accentSoft }]}>
             <Ionicons name="person" size={22} color={p.accent} />
           </View>
         )}
-      </View>
+      </Pressable>
       <View style={styles.text}>
-        <Text style={[Type.small, { color: p.muted }]}>{greeting()},</Text>
+        <Text style={[Type.small, { color: p.muted }]}>{familyView ? 'Family health' : `${greeting()},`}</Text>
         <Text numberOfLines={1} style={[Type.title, styles.name, { color: p.text }]}>
           {name}
         </Text>

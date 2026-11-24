@@ -9,7 +9,12 @@ export function QueryProvider({ children }: PropsWithChildren) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            // Nothing is reused between screens: every screen asks the server again, and data is dropped when its screen closes. A profile switch
+            // would otherwise show the previous profile's data.
+            staleTime: 0,
+            gcTime: 0,
+            // A screen that opens always asks the server for its data again, even when the same data was loaded a moment ago.
+            refetchOnMount: 'always',
             // Do not retry client errors (4xx); retry transient failures once.
             retry: (count, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && count < 1,
           },

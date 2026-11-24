@@ -26,7 +26,7 @@ export function useIncomingAccess() {
       return data;
     },
     // Loaded once: no refetch on focus, remount or a timer.
-    staleTime: Infinity,
+    staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     // A request that has already run out of time cannot be answered, so it is never offered.

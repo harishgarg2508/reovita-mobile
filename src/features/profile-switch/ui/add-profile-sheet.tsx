@@ -12,15 +12,12 @@ import {
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { useFormColors, type FormColors } from '@shared/ui/theme/form-colors';
 
-import {
-  ADD_PROFILE_FAILURE_TEXT,
-  useAddProfile,
-} from '../model/use-profile-switch';
+import { ADD_PROFILE_FAILURE_TEXT, lastFailureDetail, useLinkChild } from '../model/use-profile-switch';
 
 const MAX_NICKNAME = 40;
 
-// Adding a family profile: a short name first (for example Mother), then the person confirms it is them with Google, and the profile
-// is created. The Google step only appears when the server asks for it.
+// Adding a family member: the name is given, then one Google sign-in of the person being added. That sign-in creates their account if it is new, and
+// links it to this account's family. The name is kept while the sheet is closed; it is cleared once the member is added.
 export function AddProfileSheet({
   visible,
   onClose,
@@ -30,37 +27,47 @@ export function AddProfileSheet({
 }) {
   const colors = useFormColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const add = useAddProfile();
+  const link = useLinkChild();
+  const busy = link.isPending;
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The codes behind the failure, shown under the message.
+  const [detail, setDetail] = useState('');
 
   function close() {
-    setNickname('');
     setError(null);
     onClose();
   }
 
   function submit() {
     const name = nickname.trim();
-    if (!name || add.isPending) return;
+    if (!name || busy) return;
     setError(null);
-    add.mutate(name, {
+    setDetail('');
+    link.mutate(name, {
       onSuccess: (failure) => {
-        if (failure === null) close();
-        else setError(ADD_PROFILE_FAILURE_TEXT[failure]);
+        if (failure === null) {
+          setNickname('');
+          close();
+        } else {
+          setError(ADD_PROFILE_FAILURE_TEXT[failure]);
+          setDetail(lastFailureDetail());
+        }
       },
-      onError: () => setError(ADD_PROFILE_FAILURE_TEXT.failed),
+      onError: (err) => {
+        setError(ADD_PROFILE_FAILURE_TEXT.failed);
+        setDetail(lastFailureDetail() || String((err as Error)?.message ?? ''));
+      },
     });
   }
 
   return (
     <BottomSheet visible={visible} onClose={close}>
       <View style={styles.wrap}>
-        <Text style={styles.title}>Add a profile</Text>
+        <Text style={styles.title}>Add a family member</Text>
         <Text style={styles.sub}>
-          For someone whose health records you look after. Each profile has its
-          own code, reports and score, and you will confirm it is you with
-          Google.
+          Give the family member a name, then sign in with their Google account. Their
+          profile keeps its own sign-in, code, reports and score.
         </Text>
         <TextInput
           value={nickname}
@@ -68,38 +75,37 @@ export function AddProfileSheet({
           placeholder="Name, for example Mother"
           placeholderTextColor={colors.placeholder}
           maxLength={MAX_NICKNAME}
-          editable={!add.isPending}
+          editable={!busy}
+          returnKeyType="go"
+          onSubmitEditing={submit}
+          blurOnSubmit={false}
           style={styles.input}
         />
+        <Text style={styles.stepText} accessibilityLiveRegion="polite">
+          {busy ? 'Pick the Google account of the person you are adding.' : 'One step: sign in with the Google account of the person you are adding.'}
+        </Text>
         {error ? (
           <View style={styles.errorBox} accessibilityLiveRegion="polite">
             <Ionicons name="alert-circle" size={18} color={colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.errorTextWrap}>
+              <Text style={styles.errorText}>{error}</Text>
+              {detail ? <Text style={styles.detailText}>Details: {detail}</Text> : null}
+            </View>
           </View>
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{
-            busy: add.isPending,
-            disabled: !nickname.trim() || add.isPending,
-          }}
-          disabled={!nickname.trim() || add.isPending}
+          accessibilityState={{ busy, disabled: !nickname.trim() || busy }}
+          disabled={!nickname.trim() || busy}
           onPress={submit}
-          style={[
-            styles.primary,
-            (!nickname.trim() || add.isPending) && styles.disabled,
-          ]}
+          style={[styles.primary, (!nickname.trim() || busy) && styles.disabled]}
         >
-          {add.isPending ? (
-            <ActivityIndicator color={colors.onAccent} />
-          ) : (
-            <Text style={styles.primaryText}>Continue with Google</Text>
-          )}
+          {busy ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.primaryText}>Continue with Google</Text>}
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={close}
-          disabled={add.isPending}
+          disabled={busy}
           hitSlop={8}
         >
           <Text style={styles.cancel}>Cancel</Text>
@@ -143,6 +149,9 @@ const createStyles = (colors: FormColors) =>
       color: colors.text,
       backgroundColor: colors.card,
     },
+    errorTextWrap: { flex: 1, gap: 2 },
+    detailText: { fontSize: 11.5, color: colors.muted },
+    stepText: { fontSize: 13, lineHeight: 19, color: colors.text, marginTop: 4 },
     errorBox: {
       flexDirection: 'row',
       alignItems: 'flex-start',

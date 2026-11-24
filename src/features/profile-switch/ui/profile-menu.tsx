@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Alert } from 'react-native';
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import { PremiumBadge, useSubscription } from '@entities/subscription';
 import {
   useAccountProfiles,
   useSwitchProfile,
+  useUnlinkProfile,
 } from '../model/use-profile-switch';
 
 // The list that opens from the profile card: the profiles of this account, the one in use ticked, and an "Add profile" row.
@@ -32,6 +34,14 @@ export function ProfileMenu({
   const plan = useSubscription();
   const profiles = useAccountProfiles();
   const switchTo = useSwitchProfile();
+  const unlink = useUnlinkProfile();
+  // Asks before a linked account is taken off this account. Its own sign-in and data stay.
+  function confirmUnlink(subject_id: string, label: string) {
+    Alert.alert('Stop managing this account?', `${label} will no longer open from here. Their own sign-in, profile and data stay as they are.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Stop managing', style: 'destructive', onPress: () => unlink.mutate(subject_id) },
+    ]);
+  }
 
   return (
     <View style={styles.menu}>
@@ -42,13 +52,14 @@ export function ProfileMenu({
         <Pressable
           key={profile.subject_id}
           accessibilityRole="button"
-          accessibilityState={{ selected: profile.is_active }}
-          disabled={switchTo.isPending}
+          accessibilityLabel={profile.view_only ? `${profile.codename}, family member, view only` : undefined}
+          accessibilityState={{ selected: profile.is_active, disabled: profile.view_only || switchTo.isPending }}
+          disabled={switchTo.isPending || profile.view_only}
           onPress={() => {
             onClose();
-            if (!profile.is_active) switchTo.mutate(profile.subject_id);
+            if (!profile.is_active && !profile.view_only) switchTo.mutate(profile.subject_id);
           }}
-          style={[styles.row, profile.is_active && styles.rowOn]}
+          style={[styles.row, profile.is_active && styles.rowOn, profile.view_only && styles.rowLocked]}
         >
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -56,15 +67,31 @@ export function ProfileMenu({
             </Text>
           </View>
           <View style={styles.text}>
+            {/* The Google name of the account is the label; the family's nickname comes under it, then the codename. */}
             <Text style={styles.name} numberOfLines={1}>
-              {profile.role === 'owner'
-                ? 'You'
-                : (profile.nickname ?? 'Family')}
+              {profile.display_name ?? profile.nickname ?? (profile.role === 'owner' && !profile.view_only ? 'You' : 'Family member')}
             </Text>
-            <Text style={styles.code}>{profile.codename}</Text>
+            {profile.nickname && profile.nickname !== (profile.display_name ?? profile.nickname) ? (
+              <Text style={styles.code} numberOfLines={1}>
+                {profile.nickname}
+              </Text>
+            ) : null}
+            <Text style={styles.code}>
+              {profile.view_only ? `${profile.codename} · view only` : profile.linked ? `${profile.codename} · added by you` : profile.codename}
+            </Text>
           </View>
           {profile.is_active ? (
             <Ionicons name="checkmark-circle" size={20} color={p.accent} />
+          ) : null}
+          {profile.linked && !profile.is_active ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Stop managing ${profile.nickname ?? profile.codename}`}
+              hitSlop={10}
+              onPress={() => confirmUnlink(profile.subject_id, profile.nickname ?? profile.codename)}
+            >
+              <Ionicons name="unlink-outline" size={18} color={p.muted} />
+            </Pressable>
           ) : null}
         </Pressable>
       ))}
@@ -98,7 +125,8 @@ function makeStyles(p: Palette) {
       borderBottomWidth: Rule,
       borderBottomColor: p.border,
     },
-    rowOn: {},
+    rowLocked: { opacity: 0.6 },
+  rowOn: {},
     avatar: {
       width: 44,
       height: 44,

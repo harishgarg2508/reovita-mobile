@@ -8,7 +8,7 @@ import type { Subscription } from './subscription.types';
 // The plan of this account. A screen that is part of Premium asks this before it shows. locked is true only once the server has answered "free",
 // so nothing flashes as locked while the plan is still loading. The server checks the plan on every Premium route as well: this only decides what to show.
 export function useSubscription() {
-  const query = useQuery({ queryKey: queryKeys.subscription.detail(), queryFn: fetchSubscription, staleTime: 60_000, retry: 1 });
+  const query = useQuery({ queryKey: queryKeys.subscription.detail(), queryFn: fetchSubscription, staleTime: 0, retry: 1 });
   const isPremium = query.data?.premium === true;
   return { ...query, isPremium, locked: query.isSuccess && !isPremium };
 }

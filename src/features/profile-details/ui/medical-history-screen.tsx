@@ -20,6 +20,7 @@ export function MedicalHistoryScreen() {
   const router = useRouter();
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [infoOpen, setInfoOpen] = useState(false);
+  const openAdd = () => router.push({ pathname: '/(app)/medical-history-entry', params: { date: todayIsoDate() } });
 
   return (
     <ScrollView ref={scrollRef}
@@ -47,7 +48,13 @@ export function MedicalHistoryScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Health log entries</Text>
+        <View style={styles.cardHead}>
+          <Text style={[styles.cardTitle, styles.cardTitleGrow]}>Health log entries</Text>
+          {/* Adds a new entry, on today's date. */}
+          <Pressable accessibilityRole="button" accessibilityLabel="Add health log entry" onPress={openAdd} hitSlop={8}>
+            <Ionicons name="add-circle-outline" size={24} color={p.accent} />
+          </Pressable>
+        </View>
         {view === 'list' ? <MedicalHistoryList /> : <MedicalHistoryCalendar />}
       </View>
 
@@ -82,10 +89,18 @@ function makeStyles(p: Palette) {
     infoNote: { fontSize: 12.5, lineHeight: 18, color: p.muted, marginTop: 6 },
     card: { backgroundColor: p.card, borderRadius: 20, borderWidth: 1, borderColor: p.border, padding: 16, gap: 10 },
     cardTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
+    cardTitleGrow: { flex: 1 },
+    cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     toggle: { flexDirection: 'row', gap: 8, backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 4 },
     toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 12 },
     toggleOn: { backgroundColor: '#1F6F3F' },
     toggleText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#1F6F3F' },
     toggleTextOn: { color: '#FFFFFF' },
   });
+}
+
+// Today's date in the device's local time, as YYYY-MM-DD.
+function todayIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }

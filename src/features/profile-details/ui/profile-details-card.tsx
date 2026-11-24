@@ -30,7 +30,7 @@ const EDIT_ROUTE = {
   3: { pathname: '/onboarding/step-3', params: { edit: 'true' } },
 } as const;
 
-type Row = { label: string; value: string | null };
+export type Row = { label: string; value: string | null };
 
 // The three saved sections of the profile: basics, medical history and lifestyle.
 export function ProfileDetailsCard() {
@@ -235,7 +235,7 @@ function MedicalHistory({
   );
 }
 
-function historyRows(d: Record<string, unknown>): Row[] {
+export function historyRows(d: Record<string, unknown>): Row[] {
   const conditions = (d.conditions as { tag: string; free_text: string | null }[] | undefined) ?? [];
   const family = (d.family_history as { relation: string; condition: string }[] | undefined) ?? [];
   const medications = (d.medications as { name: string | null; dose: string | null }[] | undefined) ?? [];
@@ -257,7 +257,7 @@ function historyRows(d: Record<string, unknown>): Row[] {
   ];
 }
 
-function lifestyleRows(d: Record<string, unknown>): Row[] {
+export function lifestyleRows(d: Record<string, unknown>): Row[] {
   return [
     { label: 'Average sleep', value: d.sleep != null ? `${d.sleep} hours` : null },
     { label: 'Stress (1 low, 5 high)', value: d.stress != null ? String(d.stress) : null },

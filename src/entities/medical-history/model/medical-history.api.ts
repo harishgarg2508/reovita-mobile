@@ -82,9 +82,15 @@ export async function deleteMedicalHistoryFile(id: string, fileId: string): Prom
   await api.delete(`/v1/medical-histories/${id}/files/${fileId}`);
 }
 
-export async function fetchMedicalHistories(): Promise<MedicalHistoryEntry[]> {
-  const { data } = await api.get<MedicalHistoryEntry[]>('/v1/medical-histories');
+// The entries, newest first. `limit` and `page` (from 1) read one page; without them the first 50 come back.
+export async function fetchMedicalHistories(paging?: { limit: number; page: number }): Promise<MedicalHistoryEntry[]> {
+  const { data } = await api.get<MedicalHistoryEntry[]>('/v1/medical-histories', { params: paging });
   return data;
+}
+
+// One page of entries for a list that loads more on "Show more".
+export async function fetchMedicalHistoryPage(page: number, limit: number): Promise<MedicalHistoryEntry[]> {
+  return fetchMedicalHistories({ limit, page });
 }
 
 export async function createMedicalHistory(input: CreateMedicalHistoryInput): Promise<MedicalHistoryEntry> {

@@ -167,7 +167,7 @@ export function useSocialPeople(kind: 'friends' | 'blocked') {
 // The photo of a post. A photo never changes, so it is kept for the whole visit.
 // The profile picture or the cover of a person, as an image address. Loaded again after the person changes it (the upload clears this).
 export function useSocialPicture(handle: string, kind: 'avatar' | 'cover', enabled: boolean) {
-  return useQuery({ queryKey: queryKeys.social.picture(handle, kind), queryFn: () => fetchPicture(handle, kind), enabled: enabled && handle.length > 0, staleTime: 5 * 60 * 1000, retry: false });
+  return useQuery({ queryKey: queryKeys.social.picture(handle, kind), queryFn: () => fetchPicture(handle, kind), enabled: enabled && handle.length > 0, staleTime: 0, retry: false });
 }
 
 export function usePostPhoto(postId: string, enabled: boolean, position = 0) {

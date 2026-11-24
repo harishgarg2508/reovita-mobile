@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
+import { ScatterOut } from '@shared/ui/scatter-out';
 import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { useScrollToTopOnFocus } from '@shared/lib';
 import { PullIndicator, RefreshingBar, usePullToRefresh } from '@shared/ui/pull-to-refresh';
@@ -61,6 +62,8 @@ export function PostFeed({
   const [kudosPost, setKudosPost] = useState<SocialPost | null>(null);
   const [commentsId, setCommentsId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<SocialPost | null>(null);
+  // The post that is scattering away: the delete is sent when its animation ends.
+  const [scattering, setScattering] = useState<SocialPost | null>(null);
   const [editing, setEditing] = useState<SocialPost | null>(null);
   const [blocking, setBlocking] = useState<SocialPost | null>(null);
   // The post open in the drawer (grid layout), and how wide the list is, so the squares fill the row exactly.
@@ -171,7 +174,9 @@ export function PostFeed({
             tileSize > 0 ? <PostTile post={item} size={tileSize} onPress={(post) => setOpenId(post.id)} /> : null
           ) : (
             <View style={edgeToEdge && !fullWidth ? styles.cardPad : undefined}>
-              <PostCard flush={fullWidth} post={item} onComments={(post) => setCommentsId(post.id)} onKudos={toggleKudos} onShare={sharePost} onKudosList={setKudosPost} onMenu={setMenuPost} onSave={toggleSaved} onOpenProfile={onOpenProfile} />
+              <ScatterOut active={scattering?.id === item.id} onDone={() => { if (scattering) remove.mutate(scattering); setScattering(null); }}>
+                <PostCard flush={fullWidth} post={item} onComments={(post) => setCommentsId(post.id)} onKudos={toggleKudos} onShare={sharePost} onKudosList={setKudosPost} onMenu={setMenuPost} onSave={toggleSaved} onOpenProfile={onOpenProfile} />
+              </ScatterOut>
             </View>
           )
         }
@@ -227,7 +232,8 @@ export function PostFeed({
         confirmLabel="Delete"
         busy={remove.isPending}
         onConfirm={() => {
-          if (deleting) remove.mutate(deleting, { onSettled: () => setDeleting(null) });
+          if (deleting) setScattering(deleting);
+          setDeleting(null);
         }}
         onCancel={() => setDeleting(null)}
       />

@@ -20,3 +20,4 @@ export { StepTracker } from './ui/step-tracker';
 export { StepsCard } from './ui/steps-card';
 export { SocialTabBar } from './ui/social-dock';
 export { SOCIAL_HOME } from './model/routes';
+export { useChangeAvatar } from './model/use-change-avatar';

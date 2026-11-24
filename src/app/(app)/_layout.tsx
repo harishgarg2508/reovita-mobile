@@ -13,6 +13,7 @@ import { KeyboardAvoid } from '@shared/ui/keyboard-avoid';
 import { usePalette } from '@shared/ui/theme';
 import { AccessRequestPrompt } from '@features/access-approve';
 import { StepTracker } from '@features/social';
+import { useIsFamilyView } from '@features/profile-switch';
 
 const ACCENT = '#1F6F3F';
 
@@ -24,6 +25,7 @@ const HIDDEN_FROM_MENU = {
 // Gatekeeper for every screen under (app): sign-in, then health consent, then onboarding step 1.
 // Signed-in screens sit behind a side drawer.
 export default function AppLayout() {
+  const familyView = useIsFamilyView();
   const p = usePalette();
   const dispatch = useAppDispatch();
   const signedIn = useAppSelector(selectIsSignedIn);
@@ -89,7 +91,8 @@ export default function AppLayout() {
       <Drawer.Screen name="codename-qr" options={{ drawerLabel: 'My codename & QR' }} />
       <Drawer.Screen name="notifications/index" options={{ drawerLabel: 'Notifications', headerShown: false }} />
       {/* The social draws its own headers per screen (see social/_layout). */}
-      <Drawer.Screen name="social" options={{ drawerLabel: 'Social', headerShown: false }} />
+      {/* A family view has the health details only, so Social is not in the menu. */}
+      {familyView ? null : <Drawer.Screen name="social" options={{ drawerLabel: 'Social', headerShown: false }} />}
 
       {/* Reports draw their own headers per screen (see reports/_layout). */}
       <Drawer.Screen name="reports" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
@@ -97,6 +100,8 @@ export default function AppLayout() {
       <Drawer.Screen name="measurements" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="scan" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="medical-history" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
+      {/* View-only screens for a family member's health (lifestyle, conditions, reports). */}
+      <Drawer.Screen name="health-view/[part]" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       <Drawer.Screen name="medical-history-entry" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />
       {/* Food: each screen draws its own header with a back button, and none is a menu item (the dashboard has the cards). */}
       <Drawer.Screen name="subscription" options={{ headerShown: false, ...HIDDEN_FROM_MENU }} />

@@ -4,23 +4,26 @@ import { useRouter } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmDialog } from '@shared/ui';
+import { BottomSheet } from '@shared/ui/bottom-sheet';
 import { Skeleton } from '@shared/ui/skeleton';
 import { usePalette, type Palette } from '@shared/ui/theme';
 
 import { entryStamp, openMedicalHistoryFile, type MedicalHistoryEntry, type MedicalHistoryFile } from '../model/medical-history.api';
 import { useMedicalHistories } from '../model/use-medical-histories';
+import { MEDICAL_HISTORY_PAGE_SIZE, useMedicalHistoryPages } from '../model/use-medical-history-pages';
 
 // The latest medical history entry, the earlier ones, and the add button. Add and edit open their own page.
 export function MedicalHistoryList() {
   const p = usePalette();
   const styles = useMemo(() => makeStyles(p), [p]);
   const router = useRouter();
-  const { list, remove } = useMedicalHistories();
-
-  const entries = list.data ?? [];
+  const { remove } = useMedicalHistories();
+  // The entries come one page at a time from the server; "Show more" asks for the next ten.
+  const pages = useMedicalHistoryPages(MEDICAL_HISTORY_PAGE_SIZE);
+  const list = pages;
+  const entries = uniqueById(pages.data?.pages.flat() ?? []);
   const latest = entries[0] ?? null;
   const earlier = entries.slice(1);
-  const todayIso = new Date().toISOString().slice(0, 10);
 
   // Deleting is permanent, so the entry is only removed after the user confirms.
   const [pendingDelete, setPendingDelete] = useState<MedicalHistoryEntry | null>(null);
@@ -30,7 +33,8 @@ export function MedicalHistoryList() {
   };
 
   const openEdit = (entry: MedicalHistoryEntry) => router.push({ pathname: '/(app)/medical-history-entry', params: { id: entry.id } });
-  const openAdd = () => router.push({ pathname: '/(app)/medical-history-entry', params: { date: todayIso } });
+  // The add icon on an entry opens a new entry on that entry's date.
+  const openAddOn = (date: string) => router.push({ pathname: '/(app)/medical-history-entry', params: { date } });
 
   return (
     <View style={styles.wrap}>
@@ -41,7 +45,7 @@ export function MedicalHistoryList() {
         </View>
       ) : null}
       {latest ? (
-        <EntryCard entry={latest} label="Latest" styles={styles} defaultOpen onEdit={() => openEdit(latest)} onDelete={() => setPendingDelete(latest)} />
+        <EntryCard entry={latest} label="Latest" styles={styles} defaultOpen onAdd={() => openAddOn(latest.occurred_on)} onEdit={() => openEdit(latest)} onDelete={() => setPendingDelete(latest)} />
       ) : null}
       {!latest && !list.isPending ? <Text style={styles.empty}>No health log entries yet.</Text> : null}
 
@@ -49,9 +53,15 @@ export function MedicalHistoryList() {
         <View style={styles.list}>
           <Text style={styles.sub}>Earlier</Text>
           {earlier.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} styles={styles} onEdit={() => openEdit(entry)} onDelete={() => setPendingDelete(entry)} />
+            <EntryCard key={entry.id} entry={entry} styles={styles} onAdd={() => openAddOn(entry.occurred_on)} onEdit={() => openEdit(entry)} onDelete={() => setPendingDelete(entry)} />
           ))}
         </View>
+      ) : null}
+
+      {pages.hasNextPage ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Show more entries" disabled={pages.isFetchingNextPage} onPress={() => void pages.fetchNextPage()} style={styles.addBtn}>
+          <Text style={styles.addText}>{pages.isFetchingNextPage ? 'Loading…' : 'Show more'}</Text>
+        </Pressable>
       ) : null}
 
       <ConfirmDialog
@@ -65,18 +75,33 @@ export function MedicalHistoryList() {
         onCancel={() => setPendingDelete(null)}
       />
 
-      <Pressable accessibilityRole="button" onPress={openAdd} style={styles.addBtn}>
-        <Ionicons name="add-circle-outline" size={18} color={p.accent} />
-        <Text style={styles.addText}>Add health log entry</Text>
-      </Pressable>
     </View>
   );
+}
+
+// One action in the entry's drawer: an icon and its label, a full-width row.
+function ActionRow({ icon, label, danger = false, styles, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; danger?: boolean; styles: Styles; onPress: () => void }) {
+  const p = usePalette();
+  const color = danger ? '#C22F43' : p.accent;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.sheetRow}>
+      <Ionicons name={icon} size={20} color={color} />
+      <Text style={[styles.sheetRowText, { color: danger ? '#C22F43' : p.textStrong }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// Each entry once: a page that repeats an entry would otherwise show it twice.
+function uniqueById(items: MedicalHistoryEntry[]): MedicalHistoryEntry[] {
+  const seen = new Set<string>();
+  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
 }
 
 function EntryCard({
   entry,
   label,
   styles,
+  onAdd,
   onEdit,
   onDelete,
   defaultOpen = false,
@@ -84,12 +109,14 @@ function EntryCard({
   entry: MedicalHistoryEntry;
   label?: string;
   styles: Styles;
+  onAdd: () => void;
   onEdit: () => void;
   onDelete: () => void;
   defaultOpen?: boolean;
 }) {
   const p = usePalette();
   const [open, setOpen] = useState(defaultOpen);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   async function viewFile(entryId: string, file: MedicalHistoryFile) {
     try {
@@ -103,16 +130,18 @@ function EntryCard({
       <View style={styles.cardHead}>
         <Text style={styles.cardTitle}>{entry.title}</Text>
         {label ? <Text style={styles.badge}>{label}</Text> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={open ? 'Hide details' : 'View details'} onPress={() => setOpen((v) => !v)} hitSlop={8}>
-          <Ionicons name={open ? 'eye-off-outline' : 'eye-outline'} size={18} color={p.accent} />
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Edit entry" onPress={onEdit} hitSlop={8}>
-          <Ionicons name="create-outline" size={17} color={p.accent} />
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Delete entry" onPress={onDelete} hitSlop={8}>
-          <Ionicons name="trash-outline" size={16} color="#C22F43" />
+        <Pressable accessibilityRole="button" accessibilityLabel="More actions for this entry" onPress={() => setActionsOpen(true)} hitSlop={8}>
+          <Ionicons name="ellipsis-horizontal" size={20} color={p.accent} />
         </Pressable>
       </View>
+      {/* The actions for this entry, in a drawer that slides up from the bottom. */}
+      <BottomSheet visible={actionsOpen} onClose={() => setActionsOpen(false)}>
+        <Text style={styles.sheetTitle}>{entry.title}</Text>
+        <ActionRow icon={open ? 'eye-off-outline' : 'eye-outline'} label={open ? 'Hide details' : 'View details'} styles={styles} onPress={() => { setActionsOpen(false); setOpen((v) => !v); }} />
+        <ActionRow icon="add-circle-outline" label="Add an entry on this date" styles={styles} onPress={() => { setActionsOpen(false); onAdd(); }} />
+        <ActionRow icon="create-outline" label="Edit entry" styles={styles} onPress={() => { setActionsOpen(false); onEdit(); }} />
+        <ActionRow icon="trash-outline" label="Delete entry" danger styles={styles} onPress={() => { setActionsOpen(false); onDelete(); }} />
+      </BottomSheet>
       <Text style={styles.cardDate}>
         {formatDate(entry.occurred_on)}
         {entry.occurred_time ? ` · ${entry.occurred_time}` : ''}
@@ -167,6 +196,9 @@ function makeStyles(p: Palette) {
     list: { gap: 8 },
     card: { backgroundColor: p.card, borderRadius: 16, borderWidth: 1, borderColor: p.border, padding: 14, gap: 4 },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    sheetTitle: { fontSize: 15, fontWeight: '700', color: p.textStrong, paddingBottom: 8 },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: p.border },
+    sheetRowText: { fontSize: 15, fontWeight: '600' },
     cardTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: p.textStrong },
     badge: { fontSize: 11, fontWeight: '700', color: p.accent, backgroundColor: p.accentSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     cardDate: { fontSize: 12.5, color: p.muted },

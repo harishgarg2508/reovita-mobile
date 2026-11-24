@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 
+import { FamilySwitchBackDock, useActiveProfile } from '@features/profile-switch';
 import { BottomDock } from '@shared/ui';
 
 /**
@@ -12,9 +13,13 @@ import { BottomDock } from '@shared/ui';
  * - Profile (settings & consents)
  */
 export default function TabsLayout() {
+  // A family view has no main dock: a bar with the way back to your own health takes its place.
+  // The dock shows for the account's own profile only: the profile in use is read from the list, and a family member's view has none.
+  const active = useActiveProfile();
+  const familyView = active?.role === 'member';
   return (
     <Tabs
-      tabBar={(props) => <BottomDock {...props} />}
+      tabBar={(props) => (familyView ? <FamilySwitchBackDock /> : <BottomDock {...props} />)}
       screenOptions={{
         headerShown: false,
         animation: 'shift',

@@ -2,15 +2,17 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { queryKeys } from '@shared/api';
 import { useHome } from '@entities/home';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
-import { bmi, useProfileStepSaved } from '@features/profile-details';
+import { bmi, FamilyHealthSummary, useProfileStepSaved } from '@features/profile-details';
 import { SOCIAL_HOME } from '@features/social';
+import { useAccountProfiles, useActiveProfile, useIsFamilyView } from '@features/profile-switch';
+import { PullIndicator, usePullToRefresh } from '@shared/ui/pull-to-refresh';
 import { SCORE_ZONES } from '@entities/score';
 import { ScoreGauge } from './score-gauge';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
@@ -220,6 +222,20 @@ const PART_CARDS: { key: 'lifestyle' | 'conditions' | 'reports'; label: string; 
   { key: 'reports', label: 'Reports', icon: 'flask-outline', route: '/(app)/reports/upload' },
 ];
 
+function partStatus(score: number | null): string {
+  if (score === null) return 'No data';
+  if (score >= 70) return 'Normal';
+  if (score >= 40) return 'Watch';
+  return 'Critical';
+}
+
+function partStatusColor(score: number | null, p: Palette): string {
+  if (score === null) return p.purple;
+  if (score >= 70) return '#1F7A3E';
+  if (score >= 40) return '#B26A00';
+  return p.red;
+}
+
 // The headline follows the score band: 70 and above is good, 40 to 69 needs some care, below 40 needs attention.
 function heroTitle(score: number | null): string {
   if (score === null) return "Let's get started";
@@ -234,23 +250,9 @@ function heroSubtitle(score: number): string {
   return 'Review your lifestyle and reports with your doctor.';
 }
 
-function partStatus(score: number | null): string {
-  if (score === null) return 'Add info';
-  if (score >= 70) return 'Normal';
-  if (score >= 40) return 'Watch';
-  return 'Critical';
-}
-
-function partStatusColor(score: number | null, p: Palette): string {
-  if (score === null) return p.purple;
-  if (score >= 70) return '#1F7A3E';
-  if (score >= 40) return '#B26A00';
-  return p.red;
-}
-
 // Dashboard: header, the most urgent card first, then the health score, briefing and reports.
 // `greeting` is drawn at the left of the header. It is passed in from the route, so the name of the person is read in one place only (the app-shell widget).
-export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (origin?: { x: number; y: number }) => void; greeting?: React.ReactNode }) {
+export function DashboardHome({ onToggleTheme, greeting, banner }: { onToggleTheme: (origin?: { x: number; y: number }) => void; greeting?: React.ReactNode; banner?: React.ReactNode }) {
   const router = useRouter();
   // A free account sees a lock on each Premium card, and tapping it opens the plan screen. While the plan is still loading nothing shows locked.
   const plan = useSubscription();
@@ -258,6 +260,24 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
   const insets = useSafeAreaInsets();
   const home = useHome();
   const queryClient = useQueryClient();
+  const profiles = useAccountProfiles();
+  // Reloads the dashboard's data and the account's profiles, so the bottom dock and the family view match the account in use.
+  const reloadAll = useCallback(
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.home.root }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.score.root }),
+        profiles.refetch(),
+      ]),
+    [queryClient, profiles.refetch],
+  );
+  const pullRefresh = usePullToRefresh(reloadAll);
+  const [nativeRefreshing, setNativeRefreshing] = useState(false);
+  const refreshFromPhone = useCallback(async () => {
+    setNativeRefreshing(true);
+    await reloadAll();
+    setNativeRefreshing(false);
+  }, [reloadAll]);
   // The first unfinished onboarding step, from the status endpoint. The profile card opens it.
   const nextStep = useProfileCompleteness().data?.next_step ?? null;
   const STEP_OF: Record<OnboardingStepKey, OnboardingStepNumber> = { basics: 1, history: 2, lifestyle: 3, reports: 4 };
@@ -265,6 +285,10 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
   // The notices of Social (kudos, comments, friend requests, invitations), shown on the Social row. Asked for only when there is a Social account.
   const socialMe = useMyHandle();
   const socialUnread = useSocialUnread(socialMe.joined).data;
+  // A family view shows the health details only: the Social row is not shown.
+  const familyView = useIsFamilyView();
+  const activeProfile = useActiveProfile();
+  const familyName = activeProfile?.display_name ?? activeProfile?.nickname ?? 'Family member';
   const socialNew = (socialUnread?.unread ?? 0) + (socialUnread?.requests ?? 0);
   useNotificationStream();
   const scheme = useResolvedScheme();
@@ -283,7 +307,8 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
       setRunId((n) => n + 1);
       void queryClient.invalidateQueries({ queryKey: queryKeys.home.root }, { cancelRefetch: false });
       void queryClient.invalidateQueries({ queryKey: queryKeys.score.root }, { cancelRefetch: false });
-    }, [queryClient]),
+      void profiles.refetch();
+    }, [queryClient, profiles.refetch]),
   );
 
   if (home.isLoading) {
@@ -319,22 +344,30 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
   return (
     <ScrollView
       ref={scrollRef}
+      {...pullRefresh.listProps}
+      {...pullRefresh.touch}
+      refreshControl={Platform.OS === 'web' ? undefined : <RefreshControl refreshing={nativeRefreshing} onRefresh={refreshFromPhone} />}
       contentContainerStyle={[
         styles.container,
         { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8, paddingBottom: Math.max(insets.bottom, 20) + 110 },
       ]}>
+      <PullIndicator pull={pullRefresh.pull} busy={pullRefresh.busy} />
+      {banner}
       <View style={styles.header}>
         {greeting}
         <View style={styles.headerActions}>
           <ThemeToggle scheme={scheme} onToggle={onToggleTheme} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() => router.push('/(app)/notifications')}
-            style={[styles.bellBtn, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="notifications-outline" size={20} color={p.text} />
-            {unread > 0 ? <View style={styles.unreadDot} /> : null}
-          </Pressable>
+          {/* Notifications are Social and the account's own; a family view does not show them. */}
+          {familyView ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              onPress={() => router.push('/(app)/notifications')}
+              style={[styles.bellBtn, { backgroundColor: p.card, borderColor: p.border }]}>
+              <Ionicons name="notifications-outline" size={20} color={p.text} />
+              {unread > 0 ? <View style={styles.unreadDot} /> : null}
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -356,217 +389,229 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
         </Pressable>
       ) : null}
 
-      {data && data.percent < 60 ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push(nextStep ? stepHref(STEP_OF[nextStep]) : '/(app)/reports/upload')}
-          style={[styles.profile, { backgroundColor: p.card, borderColor: p.border }]}>
-          <View style={styles.rowTop}>
-            <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Complete your profile</Text>
-            <Ionicons name="chevron-forward" size={20} color={p.purple} />
-          </View>
-          <ProgressBar percent={data.percent} />
-          <Text style={[styles.cardText, { color: p.muted }]}>{data.percent}% complete</Text>
-        </Pressable>
-      ) : null}
+      {!familyView && data && data.percent < 60 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push(nextStep ? stepHref(STEP_OF[nextStep]) : '/(app)/reports/upload')}
+            style={[styles.profile, { backgroundColor: p.card, borderColor: p.border }]}>
+            <View style={styles.rowTop}>
+              <Text style={[styles.cardTitle, styles.flex, { color: p.text }]}>Complete your profile</Text>
+              <Ionicons name="chevron-forward" size={20} color={p.purple} />
+            </View>
+            <ProgressBar percent={data.percent} />
+            <Text style={[styles.cardText, { color: p.muted }]}>{data.percent}% complete</Text>
+          </Pressable>
+        ) : null}
 
-      {/* Hero: the health score, with a short message and the details button. */}
-      <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
-        <View style={styles.heroTop}>
-          <Text style={[Type.label, { color: p.muted }]}>Health score</Text>
-          <View style={styles.heroActions}>
-            {/* Opens the score history: the trend graph and every saved score. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Score history"
-              onPress={() => router.push('/(app)/health-score')}
-              hitSlop={8}
-              style={styles.historyLink}>
-              <Text style={[Type.label, { color: BRAND_GREEN }]}>History</Text>
-              <Ionicons name="chevron-forward" size={14} color={BRAND_GREEN} />
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
-              <Ionicons name="information-circle-outline" size={22} color={p.muted} />
-            </Pressable>
+        {familyView ? <FamilyHealthSummary displayName={familyName} /> : (
+        <>
+        {/* Hero: the health score, with a short message and the details button. */}
+        <View style={[styles.hero, { backgroundColor: p.card, borderColor: p.border }]}>
+          <View style={styles.heroTop}>
+            <Text style={[Type.label, { color: p.muted }]}>Health score</Text>
+            <View style={styles.heroActions}>
+              {/* Opens the score history: the trend graph and every saved score. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Score history"
+                onPress={() => router.push('/(app)/health-score')}
+                hitSlop={8}
+                style={styles.historyLink}>
+                <Text style={[Type.label, { color: BRAND_GREEN }]}>History</Text>
+                <Ionicons name="chevron-forward" size={14} color={BRAND_GREEN} />
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="How is the score calculated" onPress={() => setScoreInfoOpen(true)} hitSlop={8}>
+                <Ionicons name="information-circle-outline" size={22} color={p.muted} />
+              </Pressable>
+            </View>
+          </View>
+          <View style={styles.heroBody}>
+            <View style={styles.heroText}>
+              {/* Without lab results the score covers only lifestyle and conditions, so it is not called "healthy". */}
+              <Text style={[styles.heroTitle, { color: p.text }]}>
+                {partialScore ? 'Partial score' : heroTitle(data?.health_score ? Number(data.health_score) : null)}
+              </Text>
+              <Text style={[styles.heroSub, { color: p.muted }]}>
+                {partialScore
+                  ? 'Based on your lifestyle and conditions only. Add a lab report to complete it.'
+                  : data?.health_score
+                    ? heroSubtitle(Number(data.health_score))
+                    : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
+              </Text>
+            </View>
+            <ScoreGauge p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} size="large" />
           </View>
         </View>
-        <View style={styles.heroBody}>
-          <View style={styles.heroText}>
-            {/* Without lab results the score covers only lifestyle and conditions, so it is not called "healthy". */}
-            <Text style={[styles.heroTitle, { color: p.text }]}>
-              {partialScore ? 'Partial score' : heroTitle(data?.health_score ? Number(data.health_score) : null)}
-            </Text>
-            <Text style={[styles.heroSub, { color: p.muted }]}>
-              {partialScore
-                ? 'Based on your lifestyle and conditions only. Add a lab report to complete it.'
-                : data?.health_score
-                  ? heroSubtitle(Number(data.health_score))
-                  : (data?.unlock_lines[0] ?? 'Add your details to see your score.')}
-            </Text>
-          </View>
-          <ScoreGauge p={p} score={data?.health_score ? Number(data.health_score) : null} runId={runId} size="large" />
-        </View>
-      </View>
 
-      {/* The three parts: each card shows its dial and status, and opens the step that adds its information. */}
-      <View style={[styles.partsGrid, { borderColor: p.border }]}>
-        {PART_CARDS.map((part) => {
-          const score = data?.health_score_parts?.[part.key] ?? null;
-          return (
-            <Pressable
-              key={part.key}
-              accessibilityRole="button"
-              onPress={() =>
-                router.push(
-                  part.route === '/(app)/reports/upload'
-                    ? part.route
-                    : { pathname: part.route, params: { edit: 'true' } },
-                )
+        {/* The three parts: each card shows its dial and status, and opens the step that adds its information. */}
+        <View style={[styles.partsGrid, { borderColor: p.border }]}>
+          {PART_CARDS.map((part) => {
+            const score = data?.health_score_parts?.[part.key] ?? null;
+            return (
+              <Pressable
+                key={part.key}
+                accessibilityRole="button"
+                onPress={() =>
+                  familyView
+                    ? router.push(`/(app)/health-view/${part.key}` as never)
+                    : router.push(
+                        part.route === '/(app)/reports/upload'
+                          ? part.route
+                          : { pathname: part.route, params: { edit: 'true' } },
+                      )
+                }
+                style={styles.partCard}>
+                <PartGauge p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
+                <View style={styles.partFooter}>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={[styles.partStatus, { color: partStatusColor(score, p) }]}>
+                    {partStatus(score)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={p.muted} />
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+        </>
+        )}
+
+      {familyView ? null : (
+        <>
+        <View style={styles.toolsList}>
+          <Text style={[styles.sectionTitle, { color: p.text }]}>Metrics & Tools</Text>
+
+          {/* BMI Card */}
+          <BmiToolCard p={p} scheme={scheme} />
+
+          {/* Vitals Card */}
+          <ToolCard
+            p={p}
+            icon="pulse-outline"
+            mciIcon="heart-pulse"
+            iconBg={scheme === 'dark' ? '#351219' : '#FEE2E2'}
+            iconColor={scheme === 'dark' ? '#FB7185' : '#E11D48'}
+            title="Vitals"
+            subtitle="Blood pressure and weight"
+            onPress={() => router.push('/(app)/measurements')}
+          />
+
+          {/* Medication check */}
+          <ToolCard
+            p={p}
+            icon="medical-outline"
+            mciIcon="pill"
+            iconBg={scheme === 'dark' ? '#0E283E' : '#E0F2FE'}
+            iconColor={scheme === 'dark' ? '#38BDF8' : '#0284C7'}
+            title="Medication check"
+            subtitle="Medicine interactions"
+            onPress={() => router.push('/(app)/medication-interactions')}
+          />
+
+          {/* Social: not shown in a family view, which has the health details only. */}
+          {familyView ? null : (
+            <ToolCard
+              p={p}
+              icon="people-outline"
+              iconBg={scheme === 'dark' ? '#27153D' : '#F3E8FF'}
+              iconColor={scheme === 'dark' ? '#C084FC' : '#9333EA'}
+              title="Social"
+              subtitle="Share and cheer others on"
+              right={
+                // The notification count of Social, before the chevron, only when there is something new.
+                socialNew > 0 ? (
+                  <View accessibilityLabel={`${socialNew} new`} style={[styles.toolCountPill, { backgroundColor: p.red }]}>
+                    <Text style={[styles.toolCountText, { color: '#FFFFFF' }]}>{countLabel(socialNew)}</Text>
+                  </View>
+                ) : null
               }
-              style={styles.partCard}>
-              <PartGauge p={p} label={part.label} icon={part.icon} score={score} runId={runId} />
-              <View style={styles.partFooter}>
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                  style={[styles.partStatus, { color: partStatusColor(score, p) }]}>
-                  {partStatus(score)}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={p.muted} />
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+              onPress={() => router.push(SOCIAL_HOME)}
+            />
+          )}
 
-      <View style={styles.toolsList}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Metrics & Tools</Text>
+          {/* Recent reports */}
+          <ToolCard
+            p={p}
+            icon="document-text-outline"
+            iconBg={scheme === 'dark' ? '#0B2E28' : '#CCFBF1'}
+            iconColor={scheme === 'dark' ? '#2DD4BF' : '#0D9488'}
+            title="Recent reports"
+            subtitle="Your uploaded reports"
+            right={
+              (data?.reports_count ?? 0) > 0 ? (
+                <View style={[styles.toolCountPill, { backgroundColor: scheme === 'dark' ? '#1F1D33' : '#F1F5F9' }]}>
+                  <Text style={[styles.toolCountText, { color: scheme === 'dark' ? '#A9A3C8' : '#475569' }]}>{countLabel(data?.reports_count ?? 0)}</Text>
+                </View>
+              ) : null
+            }
+            onPress={() => router.push('/(app)/reports/list')}
+          />
 
-        {/* BMI Card */}
-        <BmiToolCard p={p} scheme={scheme} />
+          {/* Health log: a free feature, the events, medicines and reports the person keeps. */}
+          <ToolCard
+            p={p}
+            icon="journal-outline"
+            iconBg={scheme === 'dark' ? '#14213D' : '#E0E7FF'}
+            iconColor={scheme === 'dark' ? '#818CF8' : '#4F46E5'}
+            title="Health log"
+            subtitle="Visits, medicines and reports"
+            onPress={() => router.push('/(app)/medical-history')}
+          />
 
-        {/* Vitals Card */}
-        <ToolCard
-          p={p}
-          icon="pulse-outline"
-          mciIcon="heart-pulse"
-          iconBg={scheme === 'dark' ? '#351219' : '#FEE2E2'}
-          iconColor={scheme === 'dark' ? '#FB7185' : '#E11D48'}
-          title="Vitals"
-          subtitle="Blood pressure and weight"
-          onPress={() => router.push('/(app)/measurements')}
-        />
+          {/* Scan my meal */}
+          <ToolCard
+            p={p}
+            icon="restaurant-outline"
+            iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
+            iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
+            title="Scan my meal"
+            subtitle="Calories and protein"
+            right={plan.locked ? <PremiumBadge /> : null}
+            onPress={() => openPremium('/(app)/meal-scan')}
+          />
 
-        {/* Medication check */}
-        <ToolCard
-          p={p}
-          icon="medical-outline"
-          mciIcon="pill"
-          iconBg={scheme === 'dark' ? '#0E283E' : '#E0F2FE'}
-          iconColor={scheme === 'dark' ? '#38BDF8' : '#0284C7'}
-          title="Medication check"
-          subtitle="Medicine interactions"
-          onPress={() => router.push('/(app)/medication-interactions')}
-        />
+          {/* Scan my fridge */}
+          <ToolCard
+            p={p}
+            icon="nutrition-outline"
+            iconBg={scheme === 'dark' ? '#0F2C1F' : '#DCFCE7'}
+            iconColor={scheme === 'dark' ? '#34D399' : '#16A34A'}
+            title="Scan my fridge"
+            subtitle="Simple meals to cook"
+            right={plan.locked ? <PremiumBadge /> : null}
+            onPress={() => openPremium('/(app)/fridge-scan')}
+          />
 
-        {/* Social */}
-        <ToolCard
-          p={p}
-          icon="people-outline"
-          iconBg={scheme === 'dark' ? '#27153D' : '#F3E8FF'}
-          iconColor={scheme === 'dark' ? '#C084FC' : '#9333EA'}
-          title="Social"
-          subtitle="Share and cheer others on"
-          right={
-            // The notification count of Social, before the chevron, only when there is something new.
-            socialNew > 0 ? (
-              <View accessibilityLabel={`${socialNew} new`} style={[styles.toolCountPill, { backgroundColor: p.red }]}>
-                <Text style={[styles.toolCountText, { color: '#FFFFFF' }]}>{countLabel(socialNew)}</Text>
-              </View>
-            ) : null
-          }
-          onPress={() => router.push(SOCIAL_HOME)}
-        />
+          {/* Dietary guidance */}
+          <ToolCard
+            p={p}
+            icon="leaf-outline"
+            mciIcon="bowl-mix-outline"
+            iconBg={scheme === 'dark' ? '#1E2C0C' : '#ECFCCB'}
+            iconColor={scheme === 'dark' ? '#A3E635' : '#65A30D'}
+            title="Dietary guidance"
+            subtitle="A one-day plan for your goal"
+            right={plan.locked ? <PremiumBadge /> : null}
+            onPress={() => openPremium('/(app)/dietary-guidance')}
+          />
 
-        {/* Recent reports */}
-        <ToolCard
-          p={p}
-          icon="document-text-outline"
-          iconBg={scheme === 'dark' ? '#0B2E28' : '#CCFBF1'}
-          iconColor={scheme === 'dark' ? '#2DD4BF' : '#0D9488'}
-          title="Recent reports"
-          subtitle="Your uploaded reports"
-          right={
-            (data?.reports_count ?? 0) > 0 ? (
-              <View style={[styles.toolCountPill, { backgroundColor: scheme === 'dark' ? '#1F1D33' : '#F1F5F9' }]}>
-                <Text style={[styles.toolCountText, { color: scheme === 'dark' ? '#A9A3C8' : '#475569' }]}>{countLabel(data?.reports_count ?? 0)}</Text>
-              </View>
-            ) : null
-          }
-          onPress={() => router.push('/(app)/reports/list')}
-        />
-
-        {/* Health log: a free feature, the events, medicines and reports the person keeps. */}
-        <ToolCard
-          p={p}
-          icon="journal-outline"
-          iconBg={scheme === 'dark' ? '#14213D' : '#E0E7FF'}
-          iconColor={scheme === 'dark' ? '#818CF8' : '#4F46E5'}
-          title="Health log"
-          subtitle="Visits, medicines and reports"
-          onPress={() => router.push('/(app)/medical-history')}
-        />
-
-        {/* Scan my meal */}
-        <ToolCard
-          p={p}
-          icon="restaurant-outline"
-          iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
-          iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
-          title="Scan my meal"
-          subtitle="Calories and protein"
-          right={plan.locked ? <PremiumBadge /> : null}
-          onPress={() => openPremium('/(app)/meal-scan')}
-        />
-
-        {/* Scan my fridge */}
-        <ToolCard
-          p={p}
-          icon="nutrition-outline"
-          iconBg={scheme === 'dark' ? '#0F2C1F' : '#DCFCE7'}
-          iconColor={scheme === 'dark' ? '#34D399' : '#16A34A'}
-          title="Scan my fridge"
-          subtitle="Simple meals to cook"
-          right={plan.locked ? <PremiumBadge /> : null}
-          onPress={() => openPremium('/(app)/fridge-scan')}
-        />
-
-        {/* Dietary guidance */}
-        <ToolCard
-          p={p}
-          icon="leaf-outline"
-          mciIcon="bowl-mix-outline"
-          iconBg={scheme === 'dark' ? '#1E2C0C' : '#ECFCCB'}
-          iconColor={scheme === 'dark' ? '#A3E635' : '#65A30D'}
-          title="Dietary guidance"
-          subtitle="A one-day plan for your goal"
-          right={plan.locked ? <PremiumBadge /> : null}
-          onPress={() => openPremium('/(app)/dietary-guidance')}
-        />
-
-        {/* Daily briefing */}
-        <ToolCard
-          p={p}
-          icon="partly-sunny-outline"
-          iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
-          iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
-          title="Daily briefing"
-          subtitle="Air, UV and heat today"
-          right={plan.locked ? <PremiumBadge /> : null}
-          onPress={() => openPremium('/(app)/briefings')}
-        />
-      </View>
+          {/* Daily briefing */}
+          <ToolCard
+            p={p}
+            icon="partly-sunny-outline"
+            iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
+            iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
+            title="Daily briefing"
+            subtitle="Air, UV and heat today"
+            right={plan.locked ? <PremiumBadge /> : null}
+            onPress={() => openPremium('/(app)/briefings')}
+          />
+        </View>
+        </>
+      )}
 
       <Modal visible={scoreInfoOpen} animationType="fade" transparent onRequestClose={() => setScoreInfoOpen(false)}>
         <Pressable style={styles.infoBackdrop} onPress={() => setScoreInfoOpen(false)}>

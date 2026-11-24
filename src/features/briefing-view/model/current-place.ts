@@ -29,7 +29,7 @@ export function useCurrentPlace(enabled: boolean) {
     queryKey: ['briefing', 'current-place'] as const,
     queryFn: readCurrentPlace,
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: false,
   });
 }

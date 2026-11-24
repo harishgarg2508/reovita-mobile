@@ -34,3 +34,4 @@ export {
 export { goBackOr } from './screen-back/screen-back-button';
 export { ConfirmDialog } from './confirm-dialog/confirm-dialog';
 export * from './profile-switcher';
+export { ScatterOut } from './scatter-out/scatter-out';

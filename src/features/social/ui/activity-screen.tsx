@@ -190,8 +190,13 @@ export function ActivityScreen() {
             <Pressable accessibilityRole="button" onPress={() => router.push(socialRoute('/social/requests'))} style={[styles.link, { borderBottomColor: p.border }]}>
               <View style={styles.linkText}>
                 <Text style={[SOCIAL_TYPE.bodyStrong, { color: p.text }]}>Friend requests</Text>
-                <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: requests > 0 ? p.accent : p.muted }]}>{requests > 0 ? `${requests} waiting for your answer` : 'Received and sent'}</Text>
+                <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: p.muted }]}>Received and sent</Text>
               </View>
+              {requests > 0 ? (
+                <View accessibilityLabel={`${requests} waiting`} style={[styles.countPill, { backgroundColor: p.accent }]}>
+                  <Text style={styles.countText}>{requests > 99 ? '99+' : requests}</Text>
+                </View>
+              ) : null}
               <Ionicons name="chevron-forward" size={18} color={p.muted} />
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => router.push(socialRoute('/social/kudos'))} style={[styles.link, { borderBottomColor: p.border }]}>
@@ -234,6 +239,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 11 },
   side: { alignItems: 'flex-end', gap: 6, minWidth: 28 },
   groupLabel: { marginTop: SOCIAL_SPACE.group - 6, marginBottom: 4, marginHorizontal: 4 },
+  countPill: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  countText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   links: { borderTopWidth: SOCIAL_RULE },
   link: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: SOCIAL_RULE },
   linkText: { flex: 1, minWidth: 0, gap: 1 },
