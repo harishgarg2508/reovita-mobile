@@ -65,10 +65,10 @@ export function ProfileDetailsCard() {
       <Section
         step={2}
         icon="medkit-outline"
-        title="Medical history"
+        title="Health log"
         query={history}
         rows={() => historyRows(history.data ?? {})}
-        emptyText="You have not added your medical history yet."
+        emptyText="You have not added your health log yet."
         medications={(history.data?.medications as { name: string | null; dose: string | null }[] | undefined) ?? []}
         showEdit={false}
       />
@@ -107,6 +107,19 @@ function Section({
   const styles = useMemo(() => makeStyles(p), [p]);
   const router = useRouter();
   const visible = rows().filter((r) => r.value !== null && r.value !== '');
+
+  // Medical history has its own layout (see MedicalHistory below); the other sections keep the shared rows.
+  if (step === 2) {
+    return (
+      <MedicalHistory
+        title={title}
+        query={query}
+        rows={visible}
+        emptyText={emptyText}
+        medications={(medications ?? []).filter((m) => m.name)}
+      />
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -147,16 +160,6 @@ function Section({
         </View>
       ) : null}
 
-      {step === 2 ? (
-        <View style={styles.historyButtons}>
-          <Pressable accessibilityRole="button" onPress={() => router.push(EDIT_ROUTE[2])} hitSlop={8}>
-            <Text style={styles.editText}>Edit current</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/medical-history')} hitSlop={8}>
-            <Text style={styles.editText}>Show all list</Text>
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -174,6 +177,62 @@ function basicsRows(d: Record<string, unknown>): Row[] {
     { label: 'Weight', value: weightKg },
     { label: 'BMI', value: index },
   ];
+}
+
+// Medical history: the conditions and the family history stack their label over their value, left-aligned, so long values read in full. The medications are a
+// list with the dose beside each name. The two actions sit where a reader expects them: Edit current in the header, Show all list 
+function MedicalHistory({
+  title,
+  query,
+  rows,
+  emptyText,
+  medications,
+}: {
+  title: string;
+  query: { isLoading: boolean; isError: boolean };
+  rows: Row[];
+  emptyText: string;
+  medications: { name: string | null; dose: string | null }[];
+}) {
+  const p = usePalette();
+  const styles = useMemo(() => makeStyles(p), [p]);
+  const router = useRouter();
+  const empty = !query.isLoading && !query.isError && rows.length === 0 && medications.length === 0;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit current health log" hitSlop={8} onPress={() => router.push(EDIT_ROUTE[2])}>
+          <Text style={styles.editText}>Edit</Text>
+        </Pressable>
+      </View>
+
+      {query.isLoading ? <Skeleton height={80} /> : null}
+      {query.isError ? <Text style={styles.error}>Could not load this section.</Text> : null}
+      {empty ? <Text style={styles.empty}>{emptyText}</Text> : null}
+
+      {rows.map((row) => (
+        <View key={row.label} style={styles.stackRow}>
+          <Text style={styles.stackLabel}>{row.label}</Text>
+          <Text style={styles.stackValue}>{row.value}</Text>
+        </View>
+      ))}
+
+      {medications.length > 0 ? (
+        <View style={styles.stackRow}>
+          <Text style={styles.stackLabel}>Medications</Text>
+          {medications.map((m, i) => (
+            <View key={`${m.name}-${i}`} style={styles.medRow}>
+              <Text style={[styles.stackValue, styles.flex]}>{m.name}</Text>
+              {m.dose ? <Text style={styles.doseText}>{m.dose}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+    </View>
+  );
 }
 
 function historyRows(d: Record<string, unknown>): Row[] {
@@ -225,7 +284,12 @@ function makeStyles(p: Palette) {
     rowValue: { flex: 1.4, ...Type.bodyStrong, color: p.textStrong, textAlign: 'right' },
     empty: { ...Type.small, color: p.muted },
     error: { ...Type.small, color: p.red },
-    historyButtons: { flexDirection: 'row', gap: 20, paddingTop: 10 },
+    flex: { flex: 1 },
+    stackRow: { gap: 4, paddingVertical: 12, borderBottomWidth: Rule, borderBottomColor: p.border },
+    stackLabel: { ...Type.small, color: p.muted },
+    stackValue: { ...Type.bodyStrong, color: p.textStrong },
+    medRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingTop: 4 },
+    doseText: { ...Type.small, color: p.muted },
     editText: { ...Type.label, color: p.accent },
   });
 }

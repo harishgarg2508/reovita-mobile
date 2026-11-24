@@ -43,7 +43,7 @@ export function MedicalHistoryList() {
       {latest ? (
         <EntryCard entry={latest} label="Latest" styles={styles} defaultOpen onEdit={() => openEdit(latest)} onDelete={() => setPendingDelete(latest)} />
       ) : null}
-      {!latest && !list.isPending ? <Text style={styles.empty}>No medical history entries yet.</Text> : null}
+      {!latest && !list.isPending ? <Text style={styles.empty}>No health log entries yet.</Text> : null}
 
       {earlier.length > 0 ? (
         <View style={styles.list}>
@@ -57,7 +57,7 @@ export function MedicalHistoryList() {
       <ConfirmDialog
         visible={pendingDelete !== null}
         title="Delete this entry?"
-        message="This medical history entry will be permanently deleted. This cannot be undone."
+        message="This health log entry will be permanently deleted. This cannot be undone."
         confirmLabel="Delete"
         destructive
         busy={remove.isPending}
@@ -67,7 +67,7 @@ export function MedicalHistoryList() {
 
       <Pressable accessibilityRole="button" onPress={openAdd} style={styles.addBtn}>
         <Ionicons name="add-circle-outline" size={18} color={p.accent} />
-        <Text style={styles.addText}>Add medical history</Text>
+        <Text style={styles.addText}>Add health log entry</Text>
       </Pressable>
     </View>
   );

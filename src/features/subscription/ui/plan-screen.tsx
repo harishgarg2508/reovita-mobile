@@ -17,7 +17,7 @@ function data_google(data: { billing?: { google_play: { products: string[]; acco
 }
 
 // What every account has, in plain words. These are shown on the Free side of the comparison.
-const FREE_FEATURES = ['Upload lab reports', 'Health score and trends', 'Medication check', 'Social', 'Your codename and QR'];
+const FREE_FEATURES = ['Upload lab reports', 'Health score and trends', 'Medication check', 'Health log', 'Social', 'Your codename and QR'];
 
 // Free or Premium. The free plan uploads lab reports and has the basics; Premium adds Scan my meal, Scan my fridge, Dietary guidance, the daily briefing,
 // Social, and every kind of upload. A screen of a Premium feature shows this one in its place for a free account, with `feature` saying which one was

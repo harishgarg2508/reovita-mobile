@@ -386,7 +386,7 @@ export function ReportReviewScreen({ reportId }: { reportId: string }) {
 
           {/* Heading */}
           <Text style={styles.aiLoadingTitle}>
-            Our LLM is <Text style={styles.aiLoadingAccent}>processing</Text>
+            We are <Text style={styles.aiLoadingAccent}>processing</Text>
             {'\n'}your results...
           </Text>
           <Text style={styles.aiLoadingSubtitle}>This may take a moment.</Text>

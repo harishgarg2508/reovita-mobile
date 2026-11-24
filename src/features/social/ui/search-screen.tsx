@@ -96,6 +96,7 @@ export function SearchScreen() {
                 <SuggestionRow
                   person={item}
                   busy={friend.isPending && friend.variables?.handle === item.handle}
+                  isMe={item.handle === me.data?.handle}
                   onOpen={() => router.push(socialProfileHref(item.handle))}
                   onToggle={() => friend.mutate(friendTap(item))}
                 />
@@ -133,7 +134,7 @@ export function SearchScreen() {
   );
 }
 
-function SuggestionRow({ person, busy, onOpen, onToggle }: { person: SocialPerson; busy: boolean; onOpen: () => void; onToggle: () => void }) {
+function SuggestionRow({ person, busy, isMe, onOpen, onToggle }: { person: SocialPerson; busy: boolean; isMe: boolean; onOpen: () => void; onToggle: () => void }) {
   const p = usePalette();
   return (
     <View style={[styles.row, { backgroundColor: p.card }]}>
@@ -144,17 +145,19 @@ function SuggestionRow({ person, busy, onOpen, onToggle }: { person: SocialPerso
           <Text numberOfLines={1} style={[SOCIAL_TYPE.small, { color: p.muted }]}>@{person.handle}</Text>
         </View>
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        disabled={busy}
-        onPress={onToggle}
-        style={[styles.friendBtn, friendIsQuiet(person) ? { borderColor: p.border, borderWidth: 1 } : { backgroundColor: p.accent }]}>
-        {busy ? (
-          <ActivityIndicator size="small" color={friendIsQuiet(person) ? p.accent : '#FFFFFF'} />
-        ) : (
-          <Text style={[styles.friendBtnText, { color: friendIsQuiet(person) ? p.text : '#FFFFFF' }]}>{friendLabel(person)}</Text>
-        )}
-      </Pressable>
+      {isMe ? null : (
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={onToggle}
+          style={[styles.friendBtn, friendIsQuiet(person) ? { borderColor: p.border, borderWidth: 1 } : { backgroundColor: p.accent }]}>
+          {busy ? (
+            <ActivityIndicator size="small" color={friendIsQuiet(person) ? p.accent : '#FFFFFF'} />
+          ) : (
+            <Text style={[styles.friendBtnText, { color: friendIsQuiet(person) ? p.text : '#FFFFFF' }]}>{friendLabel(person)}</Text>
+          )}
+        </Pressable>
+      )}
     </View>
   );
 }

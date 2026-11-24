@@ -98,7 +98,7 @@ export function KudosScreen() {
             }}
             refreshing={list.isRefetching && !list.isFetchingNextPage}
             onRefresh={() => void list.refetch()}
-            renderItem={({ item }) => <KudosRow item={item} busy={friend.isPending && friend.variables?.handle === item.handle} onOpen={() => router.push(socialProfileHref(item.handle))} onFriend={() => friend.mutate(friendTap(item))} />}
+            renderItem={({ item }) => <KudosRow item={item} isMe={item.handle === me.data?.handle} busy={friend.isPending && friend.variables?.handle === item.handle} onOpen={() => router.push(socialProfileHref(item.handle))} onFriend={() => friend.mutate(friendTap(item))} />}
             ListEmptyComponent={
               list.isPending ? (
                 <ActivityIndicator color={p.accent} style={{ marginTop: 40 }} />
@@ -121,7 +121,7 @@ export function KudosScreen() {
   );
 }
 
-function KudosRow({ item, busy, onOpen, onFriend }: { item: SocialReceivedKudos; busy: boolean; onOpen: () => void; onFriend: () => void }) {
+function KudosRow({ item, busy, isMe, onOpen, onFriend }: { item: SocialReceivedKudos; busy: boolean; isMe: boolean; onOpen: () => void; onFriend: () => void }) {
   const p = usePalette();
   const name = item.display_name || `@${item.handle}`;
   return (
@@ -136,7 +136,7 @@ function KudosRow({ item, busy, onOpen, onFriend }: { item: SocialReceivedKudos;
           <Text style={[styles.when, { color: p.muted }]}>@{item.handle} · {timeAgo(item.given_at)}</Text>
         </View>
       </Pressable>
-      {item.is_friend ? null : (
+      {item.is_friend || isMe ? null : (
         <Pressable accessibilityRole="button" disabled={busy} onPress={onFriend} style={[styles.friendBtn, friendIsQuiet(item) ? { borderColor: p.border, borderWidth: 1 } : { backgroundColor: p.accent }]}>
           <Text style={[styles.friendBtnText, friendIsQuiet(item) && { color: p.text }]}>{friendLabel(item)}</Text>
         </Pressable>

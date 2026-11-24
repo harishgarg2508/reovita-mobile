@@ -233,31 +233,35 @@ export function MedicalHistoryForm({
     <SafeAreaView style={styles.dialog} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.dialogContent}>
         <View style={styles.dialogHead}>
-          <Text style={styles.dialogTitle}>{entry ? 'Edit medical history' : 'Add medical history'}</Text>
+          <Text style={styles.dialogTitle}>{entry ? 'Edit health log entry' : 'Add health log entry'}</Text>
           <View style={styles.headActions}>
             <Pressable accessibilityRole="button" accessibilityLabel="Reset fields" onPress={resetFields} hitSlop={8}>
               <Text style={styles.closeText}>Reset</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
-              <Text style={styles.closeText}>Close</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Title</Text>
-          <TextInput
-            value={title}
-            onChangeText={(v) => {
-              setTitle(v.slice(0, TITLE_MAX));
-              if (invalid.title) setInvalid((s) => ({ ...s, title: undefined }));
-            }}
-            maxLength={TITLE_MAX}
-            placeholder="What happened, for example a check-up or a fever"
-            placeholderTextColor={p.muted}
-            accessibilityLabel="Title"
-            style={[styles.input, invalid.title ? styles.inputError : null]}
-          />
+          <Text style={styles.label}>What happened</Text>
+          <View>
+            <TextInput
+              value={title}
+              onChangeText={(v) => {
+                setTitle(v.slice(0, TITLE_MAX));
+                if (invalid.title) setInvalid((s) => ({ ...s, title: undefined }));
+              }}
+              maxLength={TITLE_MAX}
+              multiline
+              textAlignVertical="top"
+              placeholder="Write in your own words, for example a check-up, a fever, or how the visit went."
+              placeholderTextColor={p.muted}
+              accessibilityLabel="What happened"
+              style={[styles.input, styles.freeText, invalid.title ? styles.inputError : null]}
+            />
+            <Text accessibilityLabel={`${title.length} of ${TITLE_MAX} characters`} style={styles.counter}>
+              {title.length}/{TITLE_MAX}
+            </Text>
+          </View>
           <FieldMessage text={invalid.title} styles={styles} />
 
           <Text style={styles.label}>Date</Text>
@@ -474,6 +478,8 @@ function makeStyles(p: Palette) {
     label: { ...Type.label, color: p.textStrong },
     labelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: Gap.inner },
     optional: { ...Type.small, color: p.muted },
+    freeText: { height: 120, paddingTop: 12, paddingBottom: 28, lineHeight: 21 },
+    counter: { position: 'absolute', right: 12, bottom: 8, ...Type.small, color: p.muted },
     input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.bg, paddingHorizontal: 14, ...Type.body, color: p.textStrong },
     inputError: { borderColor: p.red, borderWidth: 1.5 },
     fieldError: { ...Type.small, color: p.red },

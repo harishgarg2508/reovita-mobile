@@ -455,11 +455,6 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
           iconColor={scheme === 'dark' ? '#FB7185' : '#E11D48'}
           title="Vitals"
           subtitle="Blood pressure and weight"
-          right={
-            <View style={[styles.toolLogBtn, { backgroundColor: scheme === 'dark' ? '#0F3522' : '#DCFCE7' }]}>
-              <Text style={[styles.toolLogBtnText, { color: scheme === 'dark' ? '#4ADE80' : '#15803D' }]}>Log</Text>
-            </View>
-          }
           onPress={() => router.push('/(app)/measurements')}
         />
 
@@ -512,6 +507,17 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
           onPress={() => router.push('/(app)/reports/list')}
         />
 
+        {/* Health log: a free feature, the events, medicines and reports the person keeps. */}
+        <ToolCard
+          p={p}
+          icon="journal-outline"
+          iconBg={scheme === 'dark' ? '#14213D' : '#E0E7FF'}
+          iconColor={scheme === 'dark' ? '#818CF8' : '#4F46E5'}
+          title="Health log"
+          subtitle="Visits, medicines and reports"
+          onPress={() => router.push('/(app)/medical-history')}
+        />
+
         {/* Scan my meal */}
         <ToolCard
           p={p}
@@ -547,18 +553,6 @@ export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (ori
           subtitle="A one-day plan for your goal"
           right={plan.locked ? <PremiumBadge /> : null}
           onPress={() => openPremium('/(app)/dietary-guidance')}
-        />
-
-        {/* Meal history */}
-        <ToolCard
-          p={p}
-          icon="time-outline"
-          iconBg={scheme === 'dark' ? '#351B08' : '#FFEDD5'}
-          iconColor={scheme === 'dark' ? '#FB923C' : '#EA580C'}
-          title="Meal history"
-          subtitle="Meals you scanned"
-          right={plan.locked ? <PremiumBadge /> : null}
-          onPress={() => openPremium('/(app)/meal-history')}
         />
 
         {/* Daily briefing */}

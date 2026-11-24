@@ -206,7 +206,10 @@ export function StepConditionsForm({
 
       {/* 4. Family Section */}
       <View style={styles.section} onLayout={(e) => onFieldLayout?.('family', e.nativeEvent.layout.y)}>
-        <Text style={styles.sectionLabel}>Family</Text>
+        <Text style={styles.sectionLabel}>Family medical history</Text>
+        <Text style={styles.sectionHelp}>
+          Health conditions that run in your close family, such as diabetes, heart disease or high blood pressure. Tap a row and choose what they had, if anything.
+        </Text>
         <View style={styles.familyCard}>
           {/* Father Row */}
           <Pressable
@@ -361,6 +364,7 @@ const createStyles = (colors: FormColors) =>
     gap: 12,
   },
   blockError: { borderWidth: 1.5, borderColor: colors.error, borderRadius: 14, padding: 10 },
+  sectionHelp: { fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: -4, marginBottom: 8 },
   sectionLabel: {
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,

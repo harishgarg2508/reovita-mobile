@@ -45,6 +45,8 @@ export function MeasurementEntryScreen() {
   const [section, setSection] = useState<'bp' | 'weight'>('bp');
   // The reading whose drawer is open. Each reading has its own drawer with its own fields.
   const [sheet, setSheet] = useState<'bp' | 'weight' | null>(null);
+  // The explanation of this screen, in its own drawer.
+  const [infoOpen, setInfoOpen] = useState(false);
   // Fields that failed validation after a save attempt. They turn red until the user changes them.
   const [bad, setBad] = useState<{ sys?: boolean; dia?: boolean; weight?: boolean }>({});
 
@@ -143,7 +145,10 @@ export function MeasurementEntryScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color={p.text} />
         </Pressable>
-        <Text style={styles.title}>Vitals</Text>
+        <Text style={[styles.title, styles.flex]}>Vitals</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="What vitals are for" hitSlop={10} onPress={() => setInfoOpen(true)}>
+          <Ionicons name="information-circle-outline" size={24} color={p.muted} />
+        </Pressable>
       </View>
       <Text style={styles.subtitle}>Log your blood pressure and weight. They feed your cardiovascular and metabolic scores.</Text>
 
@@ -217,7 +222,7 @@ export function MeasurementEntryScreen() {
             <Ionicons name="body-outline" size={20} color={p.accent} />
             <Text style={styles.cardTitle}>Weight</Text>
           </View>
-          <Field decimal label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
+          <Field decimal stacked label="Weight (kg)" value={weight} onChange={(v) => { setWeight(v); setBad((b) => ({ ...b, weight: false })); }} styles={styles} min={RANGE.weight.min} max={RANGE.weight.max} invalid={bad.weight} />
           <Text style={[styles.hint, bad.weight && styles.hintBad]}>
             {RANGE.weight.min} to {RANGE.weight.max} {RANGE.weight.unit}
           </Text>
@@ -228,6 +233,19 @@ export function MeasurementEntryScreen() {
         </View>
       ) : null}
     </BottomSheet>
+      <BottomSheet visible={infoOpen} onClose={() => setInfoOpen(false)}>
+        <View style={styles.info}>
+          <Text style={styles.infoTitle}>What vitals are for</Text>
+          <Text style={styles.infoBody}>
+            Record your blood pressure and your weight over time. Each reading is saved with the time you took it, so you can see how they change.
+          </Text>
+          <Text style={styles.infoHead}>How to use it</Text>
+          <Text style={styles.infoBody}>1. Tap + beside Blood pressure or Weight.</Text>
+          <Text style={styles.infoBody}>2. Enter the reading. Blood pressure has a top and a bottom number.</Text>
+          <Text style={styles.infoBody}>3. Tap Save. The reading appears under Recent readings.</Text>
+          <Text style={styles.infoNote}>These readings are your own record. They do not give medical advice, and they feed your scores on the Health score screen.</Text>
+        </View>
+      </BottomSheet>
     </Animated.View>
   );
 }
@@ -239,10 +257,13 @@ function Field({
   styles,
   invalid = false,
   decimal = false,
+  stacked = false,
   max = 999,
 }: {
   label: string;
   decimal?: boolean;
+  // true: the field is the only one in its row, so it takes its own height and the full width (it does not share a row).
+  stacked?: boolean;
   value: string;
   onChange: (v: string) => void;
   styles: Styles;
@@ -251,7 +272,7 @@ function Field({
   invalid?: boolean;
 }) {
   return (
-    <View style={styles.field}>
+    <View style={stacked ? styles.fieldStacked : styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -363,17 +384,24 @@ function makeStyles(p: Palette) {
     container: { paddingHorizontal: 20, gap: 14 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     title: { fontSize: 26, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
+    flex: { flex: 1 },
+    info: { gap: 10, paddingBottom: 8 },
+    infoTitle: { fontSize: 18, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
+    infoHead: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: p.textStrong, marginTop: 6 },
+    infoBody: { fontSize: 14, lineHeight: 21, color: p.text },
+    infoNote: { fontSize: 12.5, lineHeight: 18, color: p.muted, marginTop: 6 },
     subtitle: { fontSize: 13, color: p.muted },
     card: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border, paddingTop: 20, paddingBottom: 4, gap: 14 },
     list: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border },
     listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: p.border },
     listIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     listText: { flex: 1, gap: 2 },
-    sheetBody: { gap: 14, paddingBottom: 8 },
+    sheetBody: { gap: 14, paddingBottom: 8, flexShrink: 0 },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     cardTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: p.textStrong },
     row: { flexDirection: 'row', gap: 12 },
     field: { flex: 1, gap: 6 },
+    fieldStacked: { gap: 6, alignSelf: 'stretch', flexShrink: 0 },
     label: { fontSize: 12.5, color: p.muted },
     inputInvalid: { borderColor: '#C22F43', borderWidth: 1.5 },
     hint: { fontSize: 12.5, color: p.muted },
