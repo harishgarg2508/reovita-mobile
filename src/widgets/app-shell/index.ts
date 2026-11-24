@@ -1,2 +1,1 @@
-// index.ts - placeholder
-export {};
+export { DashboardGreeting } from './ui/dashboard-greeting';

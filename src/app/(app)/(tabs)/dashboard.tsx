@@ -2,6 +2,7 @@ import { useThemeTransition } from '@app-root/providers/theme-transition';
 import { useAppDispatch } from '@app-root/store';
 import { themeModeSet } from '@entities/preferences';
 import { useResolvedScheme } from '@shared/ui/theme';
+import { DashboardGreeting } from '@widgets/app-shell';
 import { DashboardHome } from '@widgets/dashboard-home';
 
 // Home tab. The theme toggle is wired here, because the store lives in the app layer.
@@ -11,6 +12,7 @@ export default function DashboardRoute() {
   const playThemeChange = useThemeTransition();
   return (
     <DashboardHome
+      greeting={<DashboardGreeting />}
       onToggleTheme={(origin) => {
         const next = scheme === 'dark' ? 'light' : 'dark';
         playThemeChange(next, origin, () => dispatch(themeModeSet(next)));

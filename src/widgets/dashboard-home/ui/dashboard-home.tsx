@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -9,14 +9,13 @@ import { queryKeys } from '@shared/api';
 import { useHome } from '@entities/home';
 import { useProfileCompleteness, type OnboardingStepKey } from '@entities/profile';
 import { stepHref, type OnboardingStepNumber } from '@features/onboarding-step';
-import { ProfileBmiCard } from '@features/profile-details';
+import { bmi, useProfileStepSaved } from '@features/profile-details';
 import { SOCIAL_HOME } from '@features/social';
 import { SCORE_ZONES } from '@entities/score';
 import { ScoreGauge } from './score-gauge';
 import { useNotificationStream, useUnreadCount } from '@entities/notification';
 import { useMyHandle, useSocialUnread } from '@entities/social';
 import { USE_NATIVE_DRIVER } from '@shared/lib';
-import { ReovitaLeafLogo } from '@shared/ui';
 import { ProgressBar } from '@shared/ui/progress-bar';
 import { Skeleton } from '@shared/ui/skeleton';
 import { Gap, Rule, ThemeToggle, Type, useResolvedScheme } from '@shared/ui/theme';
@@ -58,24 +57,124 @@ function Card({ p, children, style }: { p: Palette; children: React.ReactNode; s
 }
 
 
-// One row of a list: a plain icon, the title, one line, and a chevron (or a badge). Rows sit on thin rules; there is no box and no tinted tile.
-function ListRow({ p, icon, title, text, right, badge, onPress, label }: { p: Palette; icon: keyof typeof Ionicons.glyphMap; title: string; text: string; right?: React.ReactNode; badge?: number; onPress: () => void; label?: string }) {
+interface ToolCardProps {
+  p: Palette;
+  icon: keyof typeof Ionicons.glyphMap;
+  // An icon from the Material Community set, used when Ionicons has no matching glyph (it takes the place of `icon`).
+  mciIcon?: keyof typeof MaterialCommunityIcons.glyphMap;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  badge?: { text: string; bg: string; color: string };
+  subtitle: string;
+  right?: React.ReactNode;
+  // true: no chevron at the right edge (the row shows only what `right` holds).
+  noChevron?: boolean;
+  onPress: () => void;
+  label?: string;
+}
+
+function ToolCard({ p, icon, mciIcon, iconBg, iconColor, title, badge, subtitle, right, noChevron, onPress, label }: ToolCardProps) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.listRow, { borderBottomColor: p.border }]}>
-      <View style={styles.listIcon}>
-        <Ionicons name={icon} size={22} color={p.purple} />
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label ?? title}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.toolCard,
+        {
+          backgroundColor: p.card,
+          borderColor: p.border,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
+        },
+      ]}>
+      {/* Left Icon Tile */}
+      <View style={[styles.toolIconTile, { backgroundColor: iconBg }]}>
+        {mciIcon ? <MaterialCommunityIcons name={mciIcon} size={26} color={iconColor} /> : <Ionicons name={icon} size={24} color={iconColor} />}
       </View>
-      <View style={styles.flex}>
-        <Text style={[Type.bodyStrong, { color: p.text }]}>{title}</Text>
-        <Text numberOfLines={2} style={[Type.small, { color: p.muted }]}>{text}</Text>
-      </View>
-      {badge ? (
-        <View accessibilityLabel={`${badge} new`} style={[styles.rowBadge, { backgroundColor: p.red }]}>
-          <Text style={styles.rowBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+
+      {/* Center Details */}
+      <View style={styles.toolContent}>
+        <View style={styles.toolTitleRow}>
+          <Text style={[styles.toolTitle, { color: p.text }]}>{title}</Text>
+          {badge ? (
+            <View style={[styles.toolBadge, { backgroundColor: badge.bg }]}>
+              <Text style={[styles.toolBadgeText, { color: badge.color }]}>{badge.text}</Text>
+            </View>
+          ) : null}
         </View>
-      ) : null}
-      {right ?? <Ionicons name="chevron-forward" size={18} color={p.muted} />}
+        <Text numberOfLines={1} style={[styles.toolSubtitle, { color: p.muted }]}>
+          {subtitle}
+        </Text>
+      </View>
+
+      {/* Right Element + Chevron */}
+      <View style={styles.toolRightRow}>
+        {right}
+        {noChevron ? null : <Ionicons name="chevron-forward" size={18} color={p.muted} />}
+      </View>
     </Pressable>
+  );
+}
+
+// The count shown on a row: nothing for none, the number up to 9, then 10+, 20+, 30+ and so on in steps of ten.
+function countLabel(count: number): string {
+  return count < 10 ? String(count) : `${Math.floor(count / 10) * 10}+`;
+}
+
+function BmiToolCard({ p, scheme }: { p: Palette; scheme: 'light' | 'dark' }) {
+  const router = useRouter();
+  const basics = useProfileStepSaved(1);
+  const d = basics.data ?? {};
+  const value = bmi(d.height_cm, d.weight_kg);
+  const numeric = value !== null ? Number(value) : null;
+
+  let badgeText = 'HEALTHY';
+  let badgeBg = scheme === 'dark' ? '#0F3522' : '#DCFCE7';
+  let badgeColor = scheme === 'dark' ? '#4ADE80' : '#15803D';
+  let subtitle = 'Healthy weight range';
+
+  if (numeric === null) {
+    badgeText = 'SET UP';
+    badgeBg = scheme === 'dark' ? '#13344F' : '#E0F2FE';
+    badgeColor = scheme === 'dark' ? '#38BDF8' : '#0369A1';
+    subtitle = 'Add height and weight';
+  } else if (numeric < 18.5) {
+    badgeText = 'BELOW';
+    badgeBg = scheme === 'dark' ? '#443209' : '#FEF3C7';
+    badgeColor = scheme === 'dark' ? '#FBBF24' : '#B45309';
+    subtitle = 'Below healthy range';
+  } else if (numeric < 25) {
+    badgeText = 'HEALTHY';
+    badgeBg = scheme === 'dark' ? '#0F3522' : '#DCFCE7';
+    badgeColor = scheme === 'dark' ? '#4ADE80' : '#15803D';
+    subtitle = 'Healthy weight range';
+  } else if (numeric < 30) {
+    badgeText = 'ABOVE';
+    badgeBg = scheme === 'dark' ? '#3D1E0C' : '#FED7AA';
+    badgeColor = scheme === 'dark' ? '#FB923C' : '#C2410C';
+    subtitle = 'Above healthy range';
+  } else {
+    badgeText = 'HIGH';
+    badgeBg = scheme === 'dark' ? '#3D1822' : '#FEE2E2';
+    badgeColor = scheme === 'dark' ? '#FB7185' : '#B91C1C';
+    subtitle = 'Well above healthy range';
+  }
+
+  return (
+    <ToolCard
+      p={p}
+      icon="accessibility-outline"
+      iconBg={scheme === 'dark' ? '#0D2E1C' : '#E6F9F0'}
+      iconColor={scheme === 'dark' ? '#34D399' : '#059669'}
+      title="BMI"
+      badge={{ text: badgeText, bg: badgeBg, color: badgeColor }}
+      subtitle={subtitle}
+      right={numeric !== null ? <Text style={[styles.toolBigValue, { color: p.text }]}>{value}</Text> : null}
+      onPress={() => router.push({ pathname: '/onboarding/step-1', params: { edit: 'true' } })}
+      label="Body mass index. Open basic details"
+    />
   );
 }
 
@@ -150,7 +249,8 @@ function partStatusColor(score: number | null, p: Palette): string {
 }
 
 // Dashboard: header, the most urgent card first, then the health score, briefing and reports.
-export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x: number; y: number }) => void }) {
+// `greeting` is drawn at the left of the header. It is passed in from the route, so the name of the person is read in one place only (the app-shell widget).
+export function DashboardHome({ onToggleTheme, greeting }: { onToggleTheme: (origin?: { x: number; y: number }) => void; greeting?: React.ReactNode }) {
   const router = useRouter();
   // A free account sees a lock on each Premium card, and tapping it opens the plan screen. While the plan is still loading nothing shows locked.
   const plan = useSubscription();
@@ -224,10 +324,7 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 20) + 8, paddingBottom: Math.max(insets.bottom, 20) + 110 },
       ]}>
       <View style={styles.header}>
-        <View>
-          <ReovitaLeafLogo size={32} showWordmark showTagline={false} layout="horizontal" />
-          <Text style={[styles.tagline, { color: p.muted }]}>Your health, in one place.</Text>
-        </View>
+        {greeting}
         <View style={styles.headerActions}>
           <ThemeToggle scheme={scheme} onToggle={onToggleTheme} />
           <Pressable
@@ -343,27 +440,138 @@ export function DashboardHome({ onToggleTheme }: { onToggleTheme: (origin?: { x:
         })}
       </View>
 
-      <View style={[styles.list, { borderTopColor: p.border }]}>
-        <ProfileBmiCard />
-        <ListRow p={p} icon="heart-outline" title="Vitals" text="Log your blood pressure and weight." onPress={() => router.push('/(app)/measurements')} />
+      <View style={styles.toolsList}>
+        <Text style={[styles.sectionTitle, { color: p.text }]}>Metrics & Tools</Text>
 
-      <ListRow p={p} icon="medkit-outline" title="Medication check" text="See if your medicines interact. Scan a pack or check any two." onPress={() => router.push('/(app)/medication-interactions')} />
+        {/* BMI Card */}
+        <BmiToolCard p={p} scheme={scheme} />
 
-      <ListRow p={p} icon="people-outline" title="Social" text={socialNew > 0 ? `${socialNew} new: kudos, comments and requests` : 'Share your progress and cheer others on.'} badge={socialNew} onPress={() => router.push(SOCIAL_HOME)} />
+        {/* Vitals Card */}
+        <ToolCard
+          p={p}
+          icon="pulse-outline"
+          mciIcon="heart-pulse"
+          iconBg={scheme === 'dark' ? '#351219' : '#FEE2E2'}
+          iconColor={scheme === 'dark' ? '#FB7185' : '#E11D48'}
+          title="Vitals"
+          subtitle="Blood pressure and weight"
+          right={
+            <View style={[styles.toolLogBtn, { backgroundColor: scheme === 'dark' ? '#0F3522' : '#DCFCE7' }]}>
+              <Text style={[styles.toolLogBtnText, { color: scheme === 'dark' ? '#4ADE80' : '#15803D' }]}>Log</Text>
+            </View>
+          }
+          onPress={() => router.push('/(app)/measurements')}
+        />
 
-      <ListRow p={p} icon="document-text-outline" title="Recent reports" text="Open your uploaded reports and their results." onPress={() => router.push('/(app)/reports/list')} />
+        {/* Medication check */}
+        <ToolCard
+          p={p}
+          icon="medical-outline"
+          mciIcon="pill"
+          iconBg={scheme === 'dark' ? '#0E283E' : '#E0F2FE'}
+          iconColor={scheme === 'dark' ? '#38BDF8' : '#0284C7'}
+          title="Medication check"
+          subtitle="Medicine interactions"
+          onPress={() => router.push('/(app)/medication-interactions')}
+        />
 
-      {/* Premium rows, in the same list: a free account sees a lock on each and the plan screen opens when one is tapped. */}
-        <ListRow p={p} icon="restaurant-outline" title="Scan my meal" text="Photo of your plate: calories and protein." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/meal-scan')} />
+        {/* Social */}
+        <ToolCard
+          p={p}
+          icon="people-outline"
+          iconBg={scheme === 'dark' ? '#27153D' : '#F3E8FF'}
+          iconColor={scheme === 'dark' ? '#C084FC' : '#9333EA'}
+          title="Social"
+          subtitle="Share and cheer others on"
+          right={
+            // The notification count of Social, before the chevron, only when there is something new.
+            socialNew > 0 ? (
+              <View accessibilityLabel={`${socialNew} new`} style={[styles.toolCountPill, { backgroundColor: p.red }]}>
+                <Text style={[styles.toolCountText, { color: '#FFFFFF' }]}>{countLabel(socialNew)}</Text>
+              </View>
+            ) : null
+          }
+          onPress={() => router.push(SOCIAL_HOME)}
+        />
 
-      <ListRow p={p} icon="nutrition-outline" title="Scan my fridge" text="Photo of your fridge: simple meals to cook." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/fridge-scan')} />
+        {/* Recent reports */}
+        <ToolCard
+          p={p}
+          icon="document-text-outline"
+          iconBg={scheme === 'dark' ? '#0B2E28' : '#CCFBF1'}
+          iconColor={scheme === 'dark' ? '#2DD4BF' : '#0D9488'}
+          title="Recent reports"
+          subtitle="Your uploaded reports"
+          right={
+            (data?.reports_count ?? 0) > 0 ? (
+              <View style={[styles.toolCountPill, { backgroundColor: scheme === 'dark' ? '#1F1D33' : '#F1F5F9' }]}>
+                <Text style={[styles.toolCountText, { color: scheme === 'dark' ? '#A9A3C8' : '#475569' }]}>{countLabel(data?.reports_count ?? 0)}</Text>
+              </View>
+            ) : null
+          }
+          onPress={() => router.push('/(app)/reports/list')}
+        />
 
-      <ListRow p={p} icon="leaf-outline" title="Dietary guidance" text="Your BMI and a one-day plan for your goal." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/dietary-guidance')} />
+        {/* Scan my meal */}
+        <ToolCard
+          p={p}
+          icon="restaurant-outline"
+          iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
+          iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
+          title="Scan my meal"
+          subtitle="Calories and protein"
+          right={plan.locked ? <PremiumBadge /> : null}
+          onPress={() => openPremium('/(app)/meal-scan')}
+        />
 
-      {/* A link under Dietary guidance to the earlier meal scans. */}
-      <ListRow p={p} icon="restaurant-outline" title="Meal history" text="The meals you scanned, day by day." label="Meal history" right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/meal-history')} />
+        {/* Scan my fridge */}
+        <ToolCard
+          p={p}
+          icon="nutrition-outline"
+          iconBg={scheme === 'dark' ? '#0F2C1F' : '#DCFCE7'}
+          iconColor={scheme === 'dark' ? '#34D399' : '#16A34A'}
+          title="Scan my fridge"
+          subtitle="Simple meals to cook"
+          right={plan.locked ? <PremiumBadge /> : null}
+          onPress={() => openPremium('/(app)/fridge-scan')}
+        />
 
-      <ListRow p={p} icon="partly-sunny-outline" title="Daily briefing" text="Air quality, UV and heat for today." right={plan.locked ? <PremiumBadge /> : <Ionicons name="chevron-forward" size={18} color={p.muted} />} onPress={() => openPremium('/(app)/briefings')} />
+        {/* Dietary guidance */}
+        <ToolCard
+          p={p}
+          icon="leaf-outline"
+          mciIcon="bowl-mix-outline"
+          iconBg={scheme === 'dark' ? '#1E2C0C' : '#ECFCCB'}
+          iconColor={scheme === 'dark' ? '#A3E635' : '#65A30D'}
+          title="Dietary guidance"
+          subtitle="A one-day plan for your goal"
+          right={plan.locked ? <PremiumBadge /> : null}
+          onPress={() => openPremium('/(app)/dietary-guidance')}
+        />
+
+        {/* Meal history */}
+        <ToolCard
+          p={p}
+          icon="time-outline"
+          iconBg={scheme === 'dark' ? '#351B08' : '#FFEDD5'}
+          iconColor={scheme === 'dark' ? '#FB923C' : '#EA580C'}
+          title="Meal history"
+          subtitle="Meals you scanned"
+          right={plan.locked ? <PremiumBadge /> : null}
+          onPress={() => openPremium('/(app)/meal-history')}
+        />
+
+        {/* Daily briefing */}
+        <ToolCard
+          p={p}
+          icon="partly-sunny-outline"
+          iconBg={scheme === 'dark' ? '#362608' : '#FEF3C7'}
+          iconColor={scheme === 'dark' ? '#FBBF24' : '#D97706'}
+          title="Daily briefing"
+          subtitle="Air, UV and heat today"
+          right={plan.locked ? <PremiumBadge /> : null}
+          onPress={() => openPremium('/(app)/briefings')}
+        />
       </View>
 
       <Modal visible={scoreInfoOpen} animationType="fade" transparent onRequestClose={() => setScoreInfoOpen(false)}>
@@ -431,8 +639,7 @@ const styles = StyleSheet.create({
   listIcon: { width: 28, alignItems: 'center' },
   historyLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 },
-  tagline: { ...Type.small, fontStyle: 'italic', marginTop: 2, marginLeft: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bellBtn: {
     width: 42,
@@ -512,4 +719,114 @@ const styles = StyleSheet.create({
   premiumHint: { fontSize: 12.5 },
   retry: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 18, height: 40, borderRadius: 20, backgroundColor: '#1F6F3F', justifyContent: 'center' },
   retryText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, marginTop: 10, marginBottom: 4 },
+  toolsList: { gap: 12 },
+  toolCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  toolIconTile: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolContent: {
+    flex: 1,
+    gap: 2,
+  },
+  toolTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toolTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  toolSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  toolRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toolBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  toolBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  toolBigValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginRight: 2,
+  },
+  toolLogBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginRight: 2,
+  },
+  toolLogBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  toolIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  toolCountPill: {
+    minWidth: 28,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  toolCountText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  avatarGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 2,
+  },
+  avatarDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  avatarText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
 });
