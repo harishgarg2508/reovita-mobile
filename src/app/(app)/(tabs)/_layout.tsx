@@ -12,6 +12,9 @@ import { BottomDock } from '@shared/ui';
  * - Records
  * - Profile (settings & consents)
  */
+// The tabs open on the dashboard. On the web the address decides the first tab, so this keeps Records from opening when the address still shows it.
+export const unstable_settings = { initialRouteName: 'dashboard' };
+
 export default function TabsLayout() {
   // A family view has no main dock: a bar with the way back to your own health takes its place.
   // The dock shows for the account's own profile only: the profile in use is read from the list, and a family member's view has none.

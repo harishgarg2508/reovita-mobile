@@ -41,8 +41,9 @@ export function useSwitchProfile() {
     onSuccess: () => {
       // The dashboard opens first, for whichever profile is now in use, and whichever tab the switch was made from. Navigating first means a slow
       // or failed refresh below can not keep the person on the old screen.
+      // The address is moved to the dashboard first, then the tabs start again: on the web the address chooses the first tab.
+      router.replace('/(app)/(tabs)/dashboard');
       startFreshTabs(queryClient);
-      router.navigate('/(app)/(tabs)/dashboard');
       // The saved onboarding and consent progress belongs to the profile it was made for. The new profile starts with its own.
       dispatch(consentFlowReset());
       dispatch(onboardingDraftsReset());
