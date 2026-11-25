@@ -37,16 +37,20 @@ export function useSwitchProfile() {
   const dispatch = useDispatch();
   return useMutation({
     mutationFn: activateAccountProfile,
-    onSuccess: async () => {
-      // Everything shown for the previous profile is forgotten, so the new profile asks the server for its own data.
-      // The profile list is kept (it is refetched, not removed), so the dock and the family view follow the profile now in use.
-      await queryClient.cancelQueries();
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ACCOUNT_PROFILES_KEY[0] });
-      await queryClient.invalidateQueries({ queryKey: ACCOUNT_PROFILES_KEY });
+    onSuccess: () => {
+      // The dashboard opens first, for whichever profile is now in use, and whichever tab the switch was made from. Navigating first means a slow
+      // or failed refresh below can not keep the person on the old screen.
+      router.navigate('/(app)/(tabs)/dashboard');
       // The saved onboarding and consent progress belongs to the profile it was made for. The new profile starts with its own.
       dispatch(consentFlowReset());
       dispatch(onboardingDraftsReset());
-      router.replace('/(app)/(tabs)/dashboard');
+      // Everything shown for the previous profile is forgotten, so the new profile asks the server for its own data.
+      // The profile list is kept (it is refetched, not removed), so the dock and the family view follow the profile now in use.
+      void (async () => {
+        await queryClient.cancelQueries();
+        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ACCOUNT_PROFILES_KEY[0] });
+        await queryClient.invalidateQueries({ queryKey: ACCOUNT_PROFILES_KEY });
+      })();
     },
   });
 }
