@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -13,7 +14,7 @@ import { KeyboardAvoid } from '@shared/ui/keyboard-avoid';
 import { usePalette } from '@shared/ui/theme';
 import { AccessRequestPrompt } from '@features/access-approve';
 import { StepTracker } from '@features/social';
-import { useIsFamilyView } from '@features/profile-switch';
+import { TABS_GENERATION_KEY, useIsFamilyView } from '@features/profile-switch';
 
 const ACCENT = '#1F6F3F';
 
@@ -26,6 +27,8 @@ const HIDDEN_FROM_MENU = {
 // Signed-in screens sit behind a side drawer.
 export default function AppLayout() {
   const familyView = useIsFamilyView();
+  // Changes on every profile switch, so the tabs start again on the dashboard (see startFreshTabs).
+  const tabsGeneration = useQuery({ queryKey: TABS_GENERATION_KEY, queryFn: () => 0, staleTime: Infinity }).data ?? 0;
   const p = usePalette();
   const dispatch = useAppDispatch();
   const signedIn = useAppSelector(selectIsSignedIn);
@@ -82,7 +85,7 @@ export default function AppLayout() {
         drawerLabelStyle: { fontWeight: '600' },
       }}>
       {/* Bottom-dock tabs draw their own chrome. */}
-      <Drawer.Screen name="(tabs)" options={{ headerShown: false, drawerLabel: 'Home' }} />
+      <Drawer.Screen name="(tabs)" getId={() => `tabs-${tabsGeneration}`} options={{ headerShown: false, drawerLabel: 'Home' }} />
       {/* The score history draws its own header with a back button. */}
       <Drawer.Screen name="health-score" options={{ drawerLabel: 'Health score', headerShown: false }} />
       {/* The briefing draws its own header with a back button, so the drawer header is hidden here. */}

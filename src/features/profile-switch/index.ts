@@ -14,3 +14,4 @@ export {
 export type { AccountProfile } from './model/profile-switch.api';
 export { FamilyViewBanner } from './ui/family-view-banner';
 export { FamilySwitchBackDock } from './ui/family-switch-back-dock';
+export { TABS_GENERATION_KEY, startFreshTabs } from './model/tabs-generation';
