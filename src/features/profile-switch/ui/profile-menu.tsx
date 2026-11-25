@@ -49,8 +49,9 @@ export function ProfileMenu({
         <ActivityIndicator color={p.accent} style={styles.loading} />
       ) : null}
       {(profiles.data ?? []).map((profile) => (
+        // The row is not itself a button: the switch and the unlink icon are two buttons side by side (a button can not hold another).
+        <View key={profile.subject_id} style={[styles.row, profile.is_active && styles.rowOn, profile.view_only && styles.rowLocked]}>
         <Pressable
-          key={profile.subject_id}
           accessibilityRole="button"
           accessibilityLabel={profile.view_only ? `${profile.codename}, family member, view only` : undefined}
           accessibilityState={{ selected: profile.is_active, disabled: profile.view_only || switchTo.isPending }}
@@ -59,7 +60,7 @@ export function ProfileMenu({
             onClose();
             if (!profile.is_active && !profile.view_only) switchTo.mutate(profile.subject_id);
           }}
-          style={[styles.row, profile.is_active && styles.rowOn, profile.view_only && styles.rowLocked]}
+          style={styles.rowMain}
         >
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -83,17 +84,18 @@ export function ProfileMenu({
           {profile.is_active ? (
             <Ionicons name="checkmark-circle" size={20} color={p.accent} />
           ) : null}
-          {profile.linked && !profile.is_active ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Stop managing ${profile.nickname ?? profile.codename}`}
-              hitSlop={10}
-              onPress={() => confirmUnlink(profile.subject_id, profile.nickname ?? profile.codename)}
-            >
-              <Ionicons name="unlink-outline" size={18} color={p.muted} />
-            </Pressable>
-          ) : null}
         </Pressable>
+        {profile.linked && !profile.is_active ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Stop managing ${profile.nickname ?? profile.codename}`}
+            hitSlop={10}
+            onPress={() => confirmUnlink(profile.subject_id, profile.nickname ?? profile.codename)}
+          >
+            <Ionicons name="unlink-outline" size={18} color={p.muted} />
+          </Pressable>
+        ) : null}
+        </View>
       ))}
       <Pressable
         accessibilityRole="button"
@@ -117,6 +119,8 @@ function makeStyles(p: Palette) {
     // Flat rows on thin rules: the list is not a card.
     menu: { borderTopWidth: Rule, borderTopColor: p.border, marginTop: Gap.inner },
     loading: { paddingVertical: 14 },
+    // The part of a row that switches profile: it takes the room, so the unlink icon sits at the right.
+    rowMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 14 },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

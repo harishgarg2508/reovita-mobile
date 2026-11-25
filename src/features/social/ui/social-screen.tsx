@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,7 +20,8 @@ type Tab = 'for_you' | 'friends';
 
 // The Social home, in the editorial system (see social-system.ts): a plain bar, one large heading, two text tabs on a rule, a row of topics, then the feed
 // as flat posts. The check-in, quests, pods and journeys live in Move; the bell opens Activity.
-export function SocialScreen() {
+// `themeToggle` is passed in from the route: the theme change lives in the app layer, so the feature can not reach it.
+export function SocialScreen({ themeToggle }: { themeToggle?: ReactNode }) {
   const p = usePalette();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -81,6 +82,8 @@ export function SocialScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => router.replace('/(app)/(tabs)/dashboard')} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={24} color={p.text} />
         </Pressable>
+        <View style={styles.barActions}>
+        {themeToggle}
         <Pressable accessibilityRole="button" accessibilityLabel={waiting > 0 ? `Activity, ${waiting} new` : 'Activity'} hitSlop={10} onPress={() => router.push(socialRoute('/social/activity'))} style={styles.iconBtn}>
           <Ionicons name="notifications-outline" size={23} color={p.text} />
           {waiting > 0 ? (
@@ -89,6 +92,7 @@ export function SocialScreen() {
             </View>
           ) : null}
         </Pressable>
+        </View>
       </View>
       <Text style={[SOCIAL_TYPE.display, styles.heading, { color: p.text }]}>Social</Text>
 
@@ -122,6 +126,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 0 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   count: { position: 'absolute', top: 6, right: 4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   countText: { color: '#FFFFFF', fontSize: 10, fontFamily: 'Poppins_600SemiBold' },
   heading: { paddingHorizontal: SOCIAL_SPACE.edge, paddingBottom: 0, marginTop: -4 },
