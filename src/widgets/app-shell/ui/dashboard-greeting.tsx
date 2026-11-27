@@ -23,8 +23,8 @@ export function DashboardGreeting() {
   // In a family view the greeting is about the family member: their nickname (or codename), with their initial, and no account picture.
   const familyView = useIsFamilyView();
   const activeProfile = useActiveProfile();
-  // The family member's own Google name first, then the nickname the family gave, then the codename.
-  const memberName = activeProfile?.display_name ?? activeProfile?.nickname ?? activeProfile?.codename;
+  // The family member is named by the nickname the family gave, then the codename. Their Google name is never shown in a family view.
+  const memberName = activeProfile?.nickname ?? activeProfile?.codename;
   const name = familyView && memberName ? memberName : (displayName ?? subject.data?.codename ?? 'Welcome');
   const avatar = useChangeAvatar(handle.joined && handle.data ? handle.data.handle : null);
   // The Google account picture is the one shown. The Social picture only stands in when there is no Google picture (or it fails to load).

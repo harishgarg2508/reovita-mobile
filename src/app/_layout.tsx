@@ -8,7 +8,7 @@ import {
   Poppins_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/poppins';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 
 import { usePalette } from '@shared/ui/theme';
@@ -46,8 +46,10 @@ export default function RootLayout() {
   // Icon fonts load on first use. Preload them here and ignore failures, so a slow icon font
   // cannot surface as an uncaught error and break the page.
   useEffect(() => {
-    if (typeof Ionicons.loadFont === 'function') {
-      Ionicons.loadFont().catch(() => undefined);
+    for (const icons of [Ionicons, MaterialCommunityIcons]) {
+      if (typeof icons.loadFont === 'function') {
+        icons.loadFont().catch(() => undefined);
+      }
     }
   }, []);
 

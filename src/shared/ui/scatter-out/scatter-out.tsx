@@ -11,6 +11,12 @@ const DURATION_MS = 440;
 export function ScatterOut({ active, onDone, color = '#9CA3AF', children }: PropsWithChildren<{ active: boolean; onDone: () => void; color?: string }>) {
   const [progress] = useState(() => new Animated.Value(0));
   const finished = useRef(false);
+  // The latest onDone, read when the animation ends. Keeping it out of the effect's dependencies stops a re-render from cancelling the run
+  // before it starts, which left the comment on screen and the delete never sent.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
   // A fixed set of directions and distances, so every removal looks alike and does not change while it plays.
   const dots = useMemo(
     () =>
@@ -29,15 +35,15 @@ export function ScatterOut({ active, onDone, color = '#9CA3AF', children }: Prop
     void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
       if (cancelled) return;
       if (reduced) {
-        onDone();
+        onDoneRef.current();
         return;
       }
-      Animated.timing(progress, { toValue: 1, duration: DURATION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE_DRIVER }).start(() => onDone());
+      Animated.timing(progress, { toValue: 1, duration: DURATION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: USE_NATIVE_DRIVER }).start(() => onDoneRef.current());
     });
     return () => {
       cancelled = true;
     };
-  }, [active, onDone, progress]);
+  }, [active, progress]);
 
   const contentOpacity = progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.3, 0] });
   const contentScale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.9] });

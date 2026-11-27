@@ -32,6 +32,7 @@ export {
   TabProfileIcon,
 } from './icons';
 export { goBackOr } from './screen-back/screen-back-button';
+export { BottomSheet } from './bottom-sheet';
 export { ConfirmDialog } from './confirm-dialog/confirm-dialog';
 export * from './profile-switcher';
 export { ScatterOut } from './scatter-out/scatter-out';

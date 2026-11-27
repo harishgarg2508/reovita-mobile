@@ -288,7 +288,8 @@ export function DashboardHome({ onToggleTheme, greeting, banner }: { onToggleThe
   // A family view shows the health details only: the Social row is not shown.
   const familyView = useIsFamilyView();
   const activeProfile = useActiveProfile();
-  const familyName = activeProfile?.display_name ?? activeProfile?.nickname ?? 'Family member';
+  // A family member is named by the nickname the family gave, never by a Google name (real name never sits next to health data).
+  const familyName = activeProfile?.nickname ?? 'Family member';
   const socialNew = (socialUnread?.unread ?? 0) + (socialUnread?.requests ?? 0);
   useNotificationStream();
   const scheme = useResolvedScheme();
